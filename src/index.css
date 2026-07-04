@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply min-h-screen text-slate-900 antialiased;
+    background-color: #f5f9ff;
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(59, 130, 246, 0.14), transparent 42%),
+      radial-gradient(circle at 88% 0%, rgba(147, 197, 253, 0.22), transparent 36%),
+      linear-gradient(180deg, #ffffff 0%, #f8fbff 40%, #eef5ff 100%);
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-slate-200/70 backdrop-blur-md;
+    background-color: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 4px 24px -6px rgba(15, 23, 42, 0.08);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50;
+    background-image: linear-gradient(to right, #2563eb, #3b82f6);
+    box-shadow: 0 10px 40px -12px rgba(37, 99, 235, 0.18);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-image: linear-gradient(to right, #3b82f6, #6eaef7);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    @apply border-slate-300 bg-slate-50 text-slate-800;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2;
+    --tw-ring-color: rgb(59 130 246 / 0.3);
+  }
+
+  .input:focus {
+    border-color: #a8ceff;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+}
