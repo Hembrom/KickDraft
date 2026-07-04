@@ -4,9 +4,9 @@ import {
   getGroupPlayers,
   saveGroupPlayers,
   groupExists,
-} from '../../../lib/blob-storage.js';
-import { uploadPlayerImageFromBase64 } from '../../../lib/player-image.js';
-import { error, json, readBody, requireAdmin } from '../../../lib/auth.js';
+} from '../lib/blob-storage.js';
+import { uploadPlayerImageFromBase64 } from '../lib/player-image.js';
+import { error, json, readBody, requireAdmin } from '../lib/auth.js';
 import {
   calculateOvr,
   slugify,
@@ -16,7 +16,7 @@ import {
   type Player,
   type PlayerPosition,
   type PlayerStats,
-} from '../../../../shared/types.js';
+} from '../../shared/types.js';
 
 function parseStats(input: Partial<PlayerStats>): PlayerStats | null {
   const stats = {} as PlayerStats;

@@ -2,10 +2,10 @@ import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { readFile as readFileAsync } from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { resolveLocalFilePath } from '../api/lib/local-storage.js';
+import { dispatchApiRequest } from '../server/router.js';
+import { resolveLocalFilePath } from '../server/lib/local-storage.js';
 
 function loadEnvFile(filePath: string) {
   try {
@@ -26,75 +26,6 @@ function loadEnvFile(filePath: string) {
 
 loadEnvFile(path.join(process.cwd(), '.env.local'));
 loadEnvFile(path.join(process.cwd(), '.env'));
-
-type Handler = (req: VercelRequest, res: VercelResponse) => unknown;
-
-const routes: Array<{ method: string; regex: RegExp; file: string; params: string[] }> = [
-  { method: 'POST', regex: /^\/api\/admin\/login$/, file: 'api/admin/login.ts', params: [] },
-  { method: 'GET', regex: /^\/api\/admin\/groups$/, file: 'api/admin/groups/index.ts', params: [] },
-  { method: 'POST', regex: /^\/api\/admin\/groups$/, file: 'api/admin/groups/index.ts', params: [] },
-  { method: 'GET', regex: /^\/api\/groups$/, file: 'api/groups/index.ts', params: [] },
-  {
-    method: 'GET',
-    regex: /^\/api\/groups\/([^/]+)$/,
-    file: 'api/groups/[slug].ts',
-    params: ['slug'],
-  },
-  {
-    method: 'GET',
-    regex: /^\/api\/groups\/([^/]+)\/matches$/,
-    file: 'api/groups/[slug]/matches.ts',
-    params: ['slug'],
-  },
-  {
-    method: 'POST',
-    regex: /^\/api\/groups\/([^/]+)\/matches$/,
-    file: 'api/groups/[slug]/matches.ts',
-    params: ['slug'],
-  },
-  {
-    method: 'GET',
-    regex: /^\/api\/admin\/groups\/([^/]+)\/players$/,
-    file: 'api/admin/groups/[slug]/players.ts',
-    params: ['slug'],
-  },
-  {
-    method: 'POST',
-    regex: /^\/api\/admin\/groups\/([^/]+)\/players$/,
-    file: 'api/admin/groups/[slug]/players.ts',
-    params: ['slug'],
-  },
-  {
-    method: 'PUT',
-    regex: /^\/api\/admin\/groups\/([^/]+)\/players$/,
-    file: 'api/admin/groups/[slug]/players.ts',
-    params: ['slug'],
-  },
-  {
-    method: 'DELETE',
-    regex: /^\/api\/admin\/groups\/([^/]+)\/players$/,
-    file: 'api/admin/groups/[slug]/players.ts',
-    params: ['slug'],
-  },
-  {
-    method: 'POST',
-    regex: /^\/api\/admin\/groups\/([^/]+)\/upload$/,
-    file: 'api/admin/groups/[slug]/upload.ts',
-    params: ['slug'],
-  },
-  {
-    method: 'GET',
-    regex: /^\/api\/groups\/([^/]+)\/images\/([^/]+)$/,
-    file: 'api/groups/[slug]/images/[file].ts',
-    params: ['slug', 'file'],
-  },
-  {
-    method: 'GET',
-    regex: /^\/api\/cron\/purge-matches$/,
-    file: 'api/cron/purge-matches.ts',
-    params: [],
-  },
-];
 
 async function readBody(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
@@ -119,63 +50,15 @@ function createVercelResponse(res: ServerResponse): VercelResponse {
       res.end(JSON.stringify(data));
       return this;
     },
-    end(data?: string) {
+    end(data?: string | Buffer) {
       res.end(data);
       return this;
     },
-    setHeader(name: string, value: string) {
+    setHeader(name: string, value: string | number | readonly string[]) {
       res.setHeader(name, value);
       return this;
     },
   } as VercelResponse;
-}
-
-async function invokeHandler(
-  modulePath: string,
-  req: IncomingMessage,
-  res: ServerResponse,
-  query: Record<string, string | string[]>,
-) {
-  const mod = await import(pathToFileURL(modulePath).href);
-  const handler = mod.default as Handler;
-  const body = await readBody(req);
-  const vercelReq = Object.assign(req, {
-    query,
-    body,
-    cookies: {},
-  }) as VercelRequest;
-
-  await handler(vercelReq, createVercelResponse(res));
-}
-
-function matchRoute(url: string, method: string) {
-  const pathname = new URL(url, 'http://localhost').pathname;
-
-  if (pathname.startsWith('/api/local-files/')) {
-    return { type: 'file' as const, relative: pathname.replace('/api/local-files/', '') };
-  }
-
-  const urlObj = new URL(url, 'http://localhost');
-  for (const route of routes) {
-    const match = pathname.match(route.regex);
-    if (!match || method !== route.method) continue;
-
-    const query: Record<string, string | string[]> = {};
-    route.params.forEach((param, index) => {
-      query[param] = match[index + 1];
-    });
-    urlObj.searchParams.forEach((value, key) => {
-      query[key] = value;
-    });
-
-    return {
-      type: 'handler' as const,
-      file: path.join(process.cwd(), route.file),
-      query,
-    };
-  }
-
-  return null;
 }
 
 const server = createServer(async (req, res) => {
@@ -191,16 +74,11 @@ const server = createServer(async (req, res) => {
 
   const url = req.url ?? '/';
   const method = req.method ?? 'GET';
-  const route = matchRoute(url, method);
+  const pathname = new URL(url, 'http://localhost').pathname;
 
-  if (!route) {
-    res.statusCode = 404;
-    res.end('Not found');
-    return;
-  }
-
-  if (route.type === 'file') {
-    const filePath = resolveLocalFilePath(route.relative);
+  if (pathname.startsWith('/api/local-files/')) {
+    const relative = pathname.replace('/api/local-files/', '');
+    const filePath = resolveLocalFilePath(relative);
     if (!filePath) {
       res.statusCode = 403;
       res.end('Forbidden');
@@ -226,7 +104,14 @@ const server = createServer(async (req, res) => {
   }
 
   try {
-    await invokeHandler(route.file, req, res, route.query);
+    const body = await readBody(req);
+    const vercelReq = Object.assign(req, {
+      body,
+      cookies: {},
+      url,
+    }) as VercelRequest;
+
+    await dispatchApiRequest(vercelReq, createVercelResponse(res));
   } catch (err) {
     console.error(err);
     res.statusCode = 500;

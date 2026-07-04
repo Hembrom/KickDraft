@@ -4,10 +4,10 @@ import {
   groupExists,
   listMatches,
   saveMatch,
-} from '../../lib/blob-storage.js';
-import { error, json, readBody } from '../../lib/auth.js';
-import { generateBalancedTeams } from '../../../shared/team-generator.js';
-import { slugify, type MatchRecord } from '../../../shared/types.js';
+} from '../lib/blob-storage.js';
+import { error, json, readBody } from '../lib/auth.js';
+import { generateBalancedTeams } from '../../shared/team-generator.js';
+import { slugify, type MatchRecord } from '../../shared/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const slug = slugify(String(req.query.slug ?? ''));

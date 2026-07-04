@@ -5,9 +5,9 @@ import {
   saveGroupPlayers,
   saveGroupsIndex,
   groupExists,
-} from '../../lib/blob-storage.js';
-import { error, json, readBody, requireAdmin } from '../../lib/auth.js';
-import { slugify, type GroupMeta } from '../../../shared/types.js';
+} from '../lib/blob-storage.js';
+import { error, json, readBody, requireAdmin } from '../lib/auth.js';
+import { slugify, type GroupMeta } from '../../shared/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {

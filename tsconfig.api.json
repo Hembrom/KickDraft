@@ -13,5 +13,5 @@
     },
     "baseUrl": "."
   },
-  "include": ["api", "shared"]
+  "include": ["api", "server", "shared"]
 }
