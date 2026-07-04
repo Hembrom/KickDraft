@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { groupExists, uploadPlayerImage } from '../../../lib/blob-storage.js';
+import { groupExists } from '../../../lib/blob-storage.js';
+import { uploadPlayerImageFromBase64 } from '../../../lib/player-image.js';
 import { error, json, readBody, requireAdmin } from '../../../lib/auth.js';
 import { slugify } from '../../../../shared/types.js';
 
@@ -30,14 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const mimeType = body.mimeType ?? 'image/jpeg';
-  const extension = mimeType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
-  const base64Data = imageBase64.includes(',')
-    ? imageBase64.split(',')[1]
-    : imageBase64;
-
-  const buffer = Buffer.from(base64Data, 'base64');
-  const blob = new Blob([buffer], { type: mimeType });
-  const url = await uploadPlayerImage(slug, playerId, blob, extension);
+  const url = await uploadPlayerImageFromBase64(slug, playerId, imageBase64, mimeType);
 
   return json(res, 200, { url });
 }

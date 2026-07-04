@@ -113,7 +113,7 @@ export function AdminGroupPage() {
     try {
       let player: Player;
       const club = getClubById(form.clubId);
-      const payload = {
+      const payload: Record<string, unknown> = {
         name: form.name,
         positions: form.positions,
         favouriteClub: club?.name ?? '',
@@ -122,24 +122,15 @@ export function AdminGroupPage() {
         stats: form.stats,
       };
 
+      if (photoFile) {
+        payload.imageBase64 = await fileToBase64(photoFile);
+        payload.mimeType = photoFile.type;
+      }
+
       if (editing) {
         player = await api.adminUpdatePlayer(slug, { ...payload, id: editing.id });
       } else {
         player = await api.adminCreatePlayer(slug, payload);
-      }
-
-      if (photoFile) {
-        const imageBase64 = await fileToBase64(photoFile);
-        const { url } = await api.adminUploadImage(
-          slug,
-          player.id,
-          imageBase64,
-          photoFile.type,
-        );
-        player = await api.adminUpdatePlayer(slug, {
-          id: player.id,
-          photoUrl: url,
-        });
       }
 
       setPlayers((prev) => {

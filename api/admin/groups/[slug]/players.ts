@@ -5,6 +5,7 @@ import {
   saveGroupPlayers,
   groupExists,
 } from '../../../lib/blob-storage.js';
+import { uploadPlayerImageFromBase64 } from '../../../lib/player-image.js';
 import { error, json, readBody, requireAdmin } from '../../../lib/auth.js';
 import {
   calculateOvr,
@@ -86,6 +87,19 @@ function validatePlayerInput(body: Record<string, unknown>, existing?: Player) {
   return { player };
 }
 
+async function applyPlayerPhoto(
+  slug: string,
+  player: Player,
+  body: Record<string, unknown>,
+) {
+  const imageBase64 = typeof body.imageBase64 === 'string' ? body.imageBase64.trim() : '';
+  if (!imageBase64) return player;
+
+  const mimeType = typeof body.mimeType === 'string' ? body.mimeType : 'image/jpeg';
+  const photoUrl = await uploadPlayerImageFromBase64(slug, player.id, imageBase64, mimeType);
+  return { ...player, photoUrl };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const slug = slugify(String(req.query.slug ?? ''));
   if (!slug) return error(res, 400, 'Invalid group slug');
@@ -106,10 +120,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const result = validatePlayerInput(body);
     if ('error' in result) return error(res, 400, result.error);
 
+    const player = await applyPlayerPhoto(slug, result.player, body);
     const data = await getGroupPlayers(slug);
-    data.players.push(result.player);
+    data.players.push(player);
     await saveGroupPlayers(slug, data);
-    return json(res, 201, result.player);
+    return json(res, 201, player);
   }
 
   if (req.method === 'PUT') {
@@ -125,9 +140,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const result = validatePlayerInput(body, data.players[index]);
     if ('error' in result) return error(res, 400, result.error);
 
-    data.players[index] = result.player;
+    data.players[index] = await applyPlayerPhoto(slug, result.player, body);
     await saveGroupPlayers(slug, data);
-    return json(res, 200, result.player);
+    return json(res, 200, data.players[index]);
   }
 
   if (req.method === 'DELETE') {
