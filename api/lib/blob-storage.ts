@@ -1,9 +1,11 @@
-import { del, head, list, put } from '@vercel/blob';
+import { del, get, list, put } from '@vercel/blob';
+import { readFile } from 'node:fs/promises';
 import { normalizePositions, type Player, type PlayerPosition } from '../../shared/types.js';
 import {
   listMatchesLocal,
   purgeOldMatchesLocal,
   readJsonLocal,
+  resolveLocalFilePath,
   uploadImageLocal,
   writeJsonLocal,
 } from './local-storage.js';
@@ -22,18 +24,31 @@ function useLocalStorage() {
   return true;
 }
 
+function blobAccess(): 'public' | 'private' {
+  return process.env.BLOB_ACCESS === 'public' ? 'public' : 'private';
+}
+
 function groupPath(slug: string, ...parts: string[]) {
   return ['groups', slug, ...parts].join('/');
+}
+
+function playerImageApiPath(slug: string, playerId: string, extension: string) {
+  return `/api/groups/${slug}/images/${playerId}.${extension}`;
+}
+
+async function readBlobText(pathname: string): Promise<string | null> {
+  const result = await get(pathname, { access: blobAccess() });
+  if (!result || result.statusCode !== 200 || !result.stream) return null;
+  return new Response(result.stream).text();
 }
 
 export async function readJsonBlob<T>(pathname: string): Promise<T | null> {
   if (useLocalStorage()) return readJsonLocal<T>(pathname);
 
   try {
-    const meta = await head(pathname);
-    const res = await fetch(meta.url);
-    if (!res.ok) return null;
-    return (await res.json()) as T;
+    const text = await readBlobText(pathname);
+    if (!text) return null;
+    return JSON.parse(text) as T;
   } catch {
     return null;
   }
@@ -46,7 +61,7 @@ export async function writeJsonBlob(pathname: string, data: unknown) {
   }
 
   await put(pathname, JSON.stringify(data, null, 2), {
-    access: 'public',
+    access: blobAccess(),
     allowOverwrite: true,
     contentType: 'application/json',
     cacheControlMaxAge: 60,
@@ -100,10 +115,52 @@ export async function uploadPlayerImage(
   }
 
   const blob = await put(pathname, file, {
-    access: 'public',
+    access: blobAccess(),
     allowOverwrite: true,
   });
+
+  if (blobAccess() === 'private') {
+    return playerImageApiPath(slug, playerId, extension);
+  }
+
   return blob.url;
+}
+
+export async function serveGroupImage(
+  slug: string,
+  filename: string,
+): Promise<{ body: Buffer; contentType: string } | null> {
+  if (filename.includes('..') || filename.includes('/')) return null;
+
+  const pathname = groupPath(slug, 'images', filename);
+
+  if (useLocalStorage()) {
+    const filePath = resolveLocalFilePath(pathname);
+    if (!filePath) return null;
+    try {
+      const body = await readFile(filePath);
+      const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+      const types: Record<string, string> = {
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        webp: 'image/webp',
+        gif: 'image/gif',
+      };
+      return { body, contentType: types[ext] ?? 'application/octet-stream' };
+    } catch {
+      return null;
+    }
+  }
+
+  const result = await get(pathname, { access: blobAccess() });
+  if (!result || result.statusCode !== 200 || !result.stream) return null;
+
+  const body = Buffer.from(await new Response(result.stream).arrayBuffer());
+  return {
+    body,
+    contentType: result.blob.contentType ?? 'application/octet-stream',
+  };
 }
 
 export async function saveMatch(record: MatchRecord) {
@@ -121,9 +178,13 @@ export async function listMatches(slug: string): Promise<MatchRecord[]> {
 
   const matches = await Promise.all(
     blobs.map(async (blob) => {
-      const res = await fetch(blob.url);
-      if (!res.ok) return null;
-      return (await res.json()) as MatchRecord;
+      try {
+        const text = await readBlobText(blob.pathname);
+        if (!text) return null;
+        return JSON.parse(text) as MatchRecord;
+      } catch {
+        return null;
+      }
     }),
   );
 
@@ -144,12 +205,16 @@ export async function purgeOldMatches(days = 30) {
     const { blobs } = await list({ prefix });
 
     for (const blob of blobs) {
-      const res = await fetch(blob.url);
-      if (!res.ok) continue;
-      const match = (await res.json()) as MatchRecord;
-      if (new Date(match.date).getTime() < cutoff) {
-        await del(blob.url);
-        deleted++;
+      try {
+        const text = await readBlobText(blob.pathname);
+        if (!text) continue;
+        const match = JSON.parse(text) as MatchRecord;
+        if (new Date(match.date).getTime() < cutoff) {
+          await del(blob.url);
+          deleted++;
+        }
+      } catch {
+        // skip unreadable match blobs
       }
     }
   }

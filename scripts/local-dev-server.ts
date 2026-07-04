@@ -84,6 +84,12 @@ const routes: Array<{ method: string; regex: RegExp; file: string; params: strin
   },
   {
     method: 'GET',
+    regex: /^\/api\/groups\/([^/]+)\/images\/([^/]+)$/,
+    file: 'api/groups/[slug]/images/[file].ts',
+    params: ['slug', 'file'],
+  },
+  {
+    method: 'GET',
     regex: /^\/api\/cron\/purge-matches$/,
     file: 'api/cron/purge-matches.ts',
     params: [],
