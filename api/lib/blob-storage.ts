@@ -11,7 +11,15 @@ import {
 const GROUPS_INDEX = 'groups/index.json';
 
 function useLocalStorage() {
-  return !process.env.BLOB_READ_WRITE_TOKEN;
+  // Local disk is only for offline dev. Vercel Blob uses BLOB_READ_WRITE_TOKEN
+  // locally, or BLOB_STORE_ID + OIDC on deployed Vercel functions.
+  if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
+    return false;
+  }
+  if (process.env.VERCEL) {
+    return false;
+  }
+  return true;
 }
 
 function groupPath(slug: string, ...parts: string[]) {

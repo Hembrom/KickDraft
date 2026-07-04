@@ -230,6 +230,9 @@ const server = createServer(async (req, res) => {
 
 const PORT = Number(process.env.PORT ?? 3000);
 server.listen(PORT, () => {
-  const mode = process.env.BLOB_READ_WRITE_TOKEN ? 'Vercel Blob' : 'local .local-data folder';
+  const mode =
+    process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID
+      ? 'Vercel Blob'
+      : 'local .local-data folder';
   console.log(`SquadBalance API running at http://localhost:${PORT} (${mode})`);
 });
