@@ -28,7 +28,10 @@ function parseStats(input: Partial<PlayerStats>): PlayerStats | null {
   return stats;
 }
 
-function validatePlayerInput(body: Record<string, unknown>, existing?: Player) {
+function validatePlayerInput(
+  body: Record<string, unknown>,
+  existing?: Player,
+): { error: string } | { player: Player } {
   const name = typeof body.name === 'string' ? body.name.trim() : existing?.name;
   if (!name) return { error: 'Name is required' };
 
@@ -134,10 +137,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!id) return error(res, 400, 'Player id is required');
 
     const data = await getGroupPlayers(slug);
-    const index = data.players.findIndex((p) => p.id === id);
+    const index = data.players.findIndex((p: Player) => p.id === id);
     if (index === -1) return error(res, 404, 'Player not found');
 
-    const result = validatePlayerInput(body, data.players[index]);
+    const existing = data.players[index]!;
+    const result = validatePlayerInput(body, existing);
     if ('error' in result) return error(res, 400, result.error);
 
     data.players[index] = await applyPlayerPhoto(slug, result.player, body);
@@ -151,7 +155,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!id) return error(res, 400, 'Player id is required');
 
     const data = await getGroupPlayers(slug);
-    const next = data.players.filter((p) => p.id !== id);
+    const next = data.players.filter((p: Player) => p.id !== id);
     if (next.length === data.players.length) {
       return error(res, 404, 'Player not found');
     }

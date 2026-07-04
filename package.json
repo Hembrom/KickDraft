@@ -8,7 +8,7 @@
     "dev:web": "vite",
     "dev:api": "tsx scripts/local-dev-server.ts",
     "dev:vercel": "vercel dev",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && tsc -p tsconfig.api.json --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit"
   },

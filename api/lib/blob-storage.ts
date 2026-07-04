@@ -1,6 +1,14 @@
 import { del, get, list, put } from '@vercel/blob';
 import { readFile } from 'node:fs/promises';
-import { normalizePositions, type Player, type PlayerPosition } from '../../shared/types.js';
+import {
+  normalizePositions,
+  type GroupMeta,
+  type GroupPlayers,
+  type GroupsIndex,
+  type MatchRecord,
+  type Player,
+  type PlayerPosition,
+} from '../../shared/types.js';
 import {
   listMatchesLocal,
   purgeOldMatchesLocal,
