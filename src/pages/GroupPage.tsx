@@ -4,13 +4,16 @@ import { History, Users, UsersRound } from 'lucide-react';
 import { PlayerCard } from '@/components/PlayerCard';
 import { api, ApiError } from '@/lib/api';
 import {
-  MATCH_FORMATS,
   getMatchSizeLabel,
   getPositionsLabel,
-  resolveTeamSizes,
-  suggestFormat,
+  teamSizesFromPlayerCount,
   type Player,
 } from '@shared/types';
+
+function matchNamePlaceholder() {
+  const d = new Date();
+  return `${d.toLocaleString('en-US', { month: 'long' })} ${d.getDate()} - Suresh`;
+}
 
 export function GroupPage() {
   const { slug = '' } = useParams();
@@ -18,7 +21,7 @@ export function GroupPage() {
   const [groupName, setGroupName] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [format, setFormat] = useState<number | 'auto'>('auto');
+  const [matchName, setMatchName] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -52,15 +55,8 @@ export function GroupPage() {
   }, [players, search]);
 
   const selectedCount = selected.size;
-  const autoFormat = suggestFormat(selectedCount);
-  const resolvedFormat = format === 'auto' ? autoFormat : format;
-  const teamSizes =
-    resolvedFormat !== null ? resolveTeamSizes(resolvedFormat, selectedCount) : null;
+  const teamSizes = teamSizesFromPlayerCount(selectedCount);
   const matchLabel = teamSizes ? getMatchSizeLabel(teamSizes.teamASize, teamSizes.teamBSize) : null;
-  const playerRange =
-    resolvedFormat !== null
-      ? { min: resolvedFormat * 2 - 1, max: resolvedFormat * 2 + 1 }
-      : null;
   const canGenerate = teamSizes !== null && !generating;
 
   function togglePlayer(id: string) {
@@ -77,11 +73,11 @@ export function GroupPage() {
   }
 
   async function handleGenerate() {
-    if (!resolvedFormat || !teamSizes) return;
+    if (!teamSizes) return;
     setGenerating(true);
     setError('');
     try {
-      const match = await api.generateMatch(slug, Array.from(selected), resolvedFormat);
+      const match = await api.generateMatch(slug, Array.from(selected), matchName.trim());
       navigate(`/${slug}/match/${match.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to generate teams');
@@ -121,76 +117,61 @@ export function GroupPage() {
       </div>
 
       <section className="card p-4 sm:p-5">
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="min-w-[180px] flex-1">
-            <label className="label">Match format</label>
-            <select
+        <div className="flex flex-col gap-4">
+          <div className="min-w-0 flex-1">
+            <label className="label" htmlFor="match-name">
+              Match name
+            </label>
+            <input
+              id="match-name"
               className="input"
-              value={format === 'auto' ? 'auto' : String(format)}
-              onChange={(e) => {
-                const value = e.target.value;
-                setFormat(value === 'auto' ? 'auto' : Number(value));
-              }}
-            >
-              <option value="auto">
-                Auto {autoFormat ? `(suggests ${autoFormat}v${autoFormat})` : '(need 9+ players)'}
-              </option>
-              {MATCH_FORMATS.map((f) => (
-                <option key={f} value={f}>
-                  {f}v{f} ({f * 2 - 1}–{f * 2 + 1} players)
-                </option>
-              ))}
-            </select>
+              placeholder={matchNamePlaceholder()}
+              value={matchName}
+              onChange={(e) => setMatchName(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Shown when you share the lineup — e.g. &quot;July 7 - Suresh&quot;
+            </p>
           </div>
 
-          <button
-            type="button"
-            className="btn-secondary"
-            disabled={selectedCount === 0}
-            onClick={clearSelection}
-          >
-            Clear selection
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={selectedCount === 0}
+              onClick={clearSelection}
+            >
+              Clear selection
+            </button>
 
-          <button
-            type="button"
-            className="btn-primary"
-            disabled={!canGenerate}
-            onClick={handleGenerate}
-          >
-            <UsersRound className="h-4 w-4" />
-            {generating ? 'Generating…' : 'Balance teams'}
-          </button>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={!canGenerate}
+              onClick={handleGenerate}
+            >
+              <UsersRound className="h-4 w-4" />
+              {generating ? 'Generating…' : 'Balance teams'}
+            </button>
+          </div>
         </div>
 
-        {resolvedFormat !== null && playerRange !== null && selectedCount === 0 ? (
+        {selectedCount === 0 ? (
           <p className="mt-3 text-sm text-slate-600">
-            Tick the checkbox next to each player who is playing today — pick{' '}
-            {playerRange.min}–{playerRange.max} for {resolvedFormat}v{resolvedFormat} (e.g. 11 → 5v6).
-            Only your selection is used; nobody is picked at random.
+            Tick who is playing today (9–22 players). Size is automatic — 11 selected → 6v5, 12 →
+            6v6, 10 → 5v5.
           </p>
         ) : null}
 
-        {selectedCount > 0 && resolvedFormat === null ? (
+        {selectedCount > 0 && !teamSizes ? (
           <p className="mt-3 text-sm text-amber-700">
-            {selectedCount} selected — pick a match format, or select 9+ players for Auto.
-          </p>
-        ) : null}
-
-        {selectedCount > 0 && resolvedFormat !== null && !teamSizes ? (
-          <p className="mt-3 text-sm text-amber-700">
-            {selectedCount} selected — need {playerRange!.min}–{playerRange!.max} players for{' '}
-            {resolvedFormat}v{resolvedFormat}.
+            {selectedCount} selected — need 9–22 players for a match.
           </p>
         ) : null}
 
         {canGenerate && teamSizes && matchLabel ? (
           <p className="mt-3 text-sm text-emerald-700">
-            Ready — {selectedCount} players → {matchLabel}
-            {teamSizes.teamASize !== teamSizes.teamBSize
-              ? ` (adjusted from ${resolvedFormat}v${resolvedFormat})`
-              : ''}
-            . Teams balanced from your selection.
+            Ready — {selectedCount} players → {matchLabel}. Teams balanced from your selection.
           </p>
         ) : null}
 

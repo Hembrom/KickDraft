@@ -31,6 +31,7 @@ create table if not exists matches (
   id uuid primary key,
   group_slug text not null references groups (slug) on delete cascade,
   date timestamptz not null,
+  name text not null default '',
   format smallint not null,
   selected_player_ids uuid[] not null default '{}',
   team_a jsonb not null,

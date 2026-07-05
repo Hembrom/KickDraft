@@ -50,10 +50,14 @@ export function HistoryPage() {
             >
               <div>
                 <p className="font-semibold text-slate-900">
-                  {getMatchSizeLabel(match.teamA.players.length, match.teamB.players.length)} ·{' '}
-                  {formatRatingGap(match.ratingDifference)}
+                  {match.name.trim() || getMatchSizeLabel(match.teamA.players.length, match.teamB.players.length)}
                 </p>
-                <p className="text-xs text-slate-500">{formatDate(match.date)}</p>
+                <p className="text-xs text-slate-500">
+                  {match.name.trim()
+                    ? `${getMatchSizeLabel(match.teamA.players.length, match.teamB.players.length)} · `
+                    : ''}
+                  {formatRatingGap(match.ratingDifference)} · {formatDate(match.date)}
+                </p>
               </div>
               <span className="text-xs font-medium text-elite-600">View</span>
             </Link>

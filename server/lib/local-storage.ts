@@ -50,7 +50,8 @@ export async function listMatchesLocal(slug: string): Promise<MatchRecord[]> {
         .filter((f) => f.endsWith('.json'))
         .map(async (file) => {
           const raw = await readFile(path.join(dir, file), 'utf8');
-          return JSON.parse(raw) as MatchRecord;
+          const match = JSON.parse(raw) as MatchRecord;
+          return { ...match, name: match.name ?? '' };
         }),
     );
     return matches.sort(

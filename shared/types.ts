@@ -105,6 +105,8 @@ export interface MatchRecord {
   id: string;
   groupSlug: string;
   date: string;
+  /** User label e.g. "July 7 - Suresh" */
+  name: string;
   format: number;
   selectedPlayerIds: string[];
   teamA: GeneratedTeam;
@@ -167,40 +169,22 @@ export function getMatchSizeLabel(teamASize: number, teamBSize: number): string 
   return `${teamASize}v${teamBSize}`;
 }
 
-export function suggestFormat(playerCount: number): number | null {
-  const minPlayers = MATCH_FORMATS[0] * 2 - 1;
-  if (playerCount < minPlayers) return null;
-
-  if (playerCount % 2 === 0) {
-    const even = playerCount / 2;
-    if (even >= MATCH_FORMATS[0] && even <= MATCH_FORMATS[MATCH_FORMATS.length - 1]) {
-      return even;
-    }
-  }
-
-  const smallerTeam = Math.floor(playerCount / 2);
-  if (
-    smallerTeam >= MATCH_FORMATS[0] &&
-    resolveTeamSizes(smallerTeam, playerCount)
-  ) {
-    return smallerTeam;
-  }
-
-  for (const format of MATCH_FORMATS) {
-    if (resolveTeamSizes(format, playerCount)) return format;
-  }
-  return null;
+/** Derive sides from headcount — 11 players → 6v5, 12 → 6v6, etc. */
+export function teamSizesFromPlayerCount(
+  playerCount: number,
+): { teamASize: number; teamBSize: number } | null {
+  const minPlayers = 9;
+  const maxPlayers = 22;
+  if (playerCount < minPlayers || playerCount > maxPlayers) return null;
+  const teamBSize = Math.floor(playerCount / 2);
+  const teamASize = playerCount - teamBSize;
+  return { teamASize, teamBSize };
 }
 
-/** Largest supported format that fits the full squad (e.g. 11 players → 5v5). */
-export function suggestFormatFromRoster(playerCount: number): number | null {
-  if (playerCount < MATCH_FORMATS[0] * 2) return null;
-  const maxTeamSize = Math.floor(playerCount / 2);
-  for (let i = MATCH_FORMATS.length - 1; i >= 0; i--) {
-    const format = MATCH_FORMATS[i];
-    if (format <= maxTeamSize) return format;
-  }
-  return null;
+export function formatFromPlayerCount(playerCount: number): number | null {
+  const sizes = teamSizesFromPlayerCount(playerCount);
+  if (!sizes) return null;
+  return Math.max(sizes.teamASize, sizes.teamBSize);
 }
 
 export function slugify(name: string): string {

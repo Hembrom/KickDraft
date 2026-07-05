@@ -80,6 +80,7 @@ type MatchRow = {
   id: string;
   group_slug: string;
   date: string;
+  name?: string;
   format: number;
   selected_player_ids: string[];
   team_a: GeneratedTeam;
@@ -134,6 +135,7 @@ function rowToMatch(row: MatchRow): MatchRecord {
     id: row.id,
     groupSlug: row.group_slug,
     date: row.date,
+    name: row.name ?? '',
     format: row.format,
     selectedPlayerIds: row.selected_player_ids,
     teamA: row.team_a,
@@ -147,6 +149,7 @@ function matchToRow(record: MatchRecord) {
     id: record.id,
     group_slug: record.groupSlug,
     date: record.date,
+    name: record.name,
     format: record.format,
     selected_player_ids: record.selectedPlayerIds,
     team_a: record.teamA,

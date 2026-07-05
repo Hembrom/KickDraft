@@ -57,10 +57,10 @@ export const api = {
     return request<MatchRecord>(`/api/groups/${slug}/matches/${matchId}`);
   },
 
-  generateMatch(slug: string, playerIds: string[], format: number) {
+  generateMatch(slug: string, playerIds: string[], name: string) {
     return request<MatchRecord>(`/api/groups/${slug}/matches`, {
       method: 'POST',
-      body: JSON.stringify({ playerIds, format }),
+      body: JSON.stringify({ playerIds, name }),
     });
   },
 

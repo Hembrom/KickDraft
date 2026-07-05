@@ -7,7 +7,12 @@ import {
 } from '../lib/storage.js';
 import { error, json, readBody } from '../lib/auth.js';
 import { generateBalancedTeams } from '../../shared/team-generator.js';
-import { resolveTeamSizes, slugify, type MatchRecord } from '../../shared/types.js';
+import {
+  formatFromPlayerCount,
+  slugify,
+  teamSizesFromPlayerCount,
+  type MatchRecord,
+} from '../../shared/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const slug = slugify(String(req.query.slug ?? ''));
@@ -25,27 +30,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === 'POST') {
-    const body = await readBody<{ playerIds?: string[]; format?: number }>(req);
+    const body = await readBody<{ playerIds?: string[]; name?: string }>(req);
     const playerIds = body.playerIds ?? [];
-    const format = Number(body.format);
-
-    if (!format || format < 5 || format > 11) {
-      return error(res, 400, 'Format must be between 5 and 11');
-    }
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
 
     if (playerIds.length === 0) {
       return error(res, 400, 'Select players manually — tick who is playing today');
     }
 
-    const split = resolveTeamSizes(format, playerIds.length);
+    const split = teamSizesFromPlayerCount(playerIds.length);
     if (!split) {
-      const min = format * 2 - 1;
-      const max = format * 2 + 1;
-      return error(
-        res,
-        400,
-        `Select ${min}–${max} players for ${format}v${format} (e.g. 11 players → 5v6)`,
-      );
+      return error(res, 400, 'Select 9–22 players for a match (e.g. 11 → 6v5, 12 → 6v6)');
+    }
+
+    const format = formatFromPlayerCount(playerIds.length);
+    if (!format) {
+      return error(res, 400, 'Could not determine match size from player count');
     }
 
     const { players: allPlayers } = await getGroupPlayers(slug);
@@ -68,6 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         id: crypto.randomUUID(),
         groupSlug: slug,
         date: new Date().toISOString(),
+        name,
         format,
         selectedPlayerIds: selected.map((p) => p.id),
         teamA,
