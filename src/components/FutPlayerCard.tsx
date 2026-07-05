@@ -46,7 +46,7 @@ function CardBorderOverlay({ compact }: { compact: boolean }) {
   const h = compact ? 196 : 236;
   const path = `M ${w / 2} 0 L ${w} ${h * 0.06} L ${w} ${h * 0.77} L ${w / 2} ${h * 0.91} L 0 ${h * 0.77} L 0 ${h * 0.06} Z`;
   const inset = compact ? 4 : 5;
-  const innerPath = `M ${w / 2} ${inset * 0.4} L ${w - inset} ${h * 0.06 + inset * 0.3} L ${w - inset} ${h * 0.77 - inset * 0.5} L ${w / 2} ${h * 0.91 - inset} L ${inset} ${h * 0.77 - inset * 0.5} L ${inset} ${h * 0.06 + inset * 0.3} Z`;
+  const innerPath = `M ${w / 2} ${inset * 0.15} L ${w - inset} ${h * 0.06 + inset * 0.25} L ${w - inset} ${h * 0.77 - inset * 0.5} L ${w / 2} ${h * 0.91 - inset} L ${inset} ${h * 0.77 - inset * 0.5} L ${inset} ${h * 0.06 + inset * 0.25} Z`;
 
   return (
     <svg
@@ -55,9 +55,16 @@ function CardBorderOverlay({ compact }: { compact: boolean }) {
       preserveAspectRatio="none"
       aria-hidden
     >
-      <path d={path} fill="none" stroke="#120e06" strokeWidth={compact ? 4 : 4.5} />
-      <path d={path} fill="none" stroke="#f5e08a" strokeWidth={compact ? 1.8 : 2} />
-      <path d={innerPath} fill="none" stroke="#3d2f0a" strokeWidth={compact ? 1.2 : 1.4} opacity={0.85} />
+      <path d={path} fill="none" stroke="#120e06" strokeWidth={compact ? 4 : 4.5} strokeLinejoin="round" />
+      <path d={path} fill="none" stroke="#f5e08a" strokeWidth={compact ? 1.8 : 2} strokeLinejoin="round" />
+      <path
+        d={innerPath}
+        fill="none"
+        stroke="#3d2f0a"
+        strokeWidth={compact ? 1.2 : 1.4}
+        strokeLinejoin="round"
+        opacity={0.85}
+      />
     </svg>
   );
 }
@@ -97,8 +104,8 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
       ? 'GK'
       : (p.positions[0] ?? 'MID');
   const compact = size === 'sm';
-  const frameInset = compact ? '6px' : '7px';
-  const ringInset = compact ? '3px' : '3.5px';
+  const frameInset = compact ? 5 : 6;
+  const ringInset = compact ? 2.5 : 3;
 
   return (
     <article
@@ -110,28 +117,27 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
       title={p.name}
     >
       <div
-        className="relative h-full w-full drop-shadow-[0_6px_16px_rgba(0,0,0,0.45)]"
+        className="relative h-full w-full overflow-hidden drop-shadow-[0_6px_16px_rgba(0,0,0,0.45)]"
         style={{ clipPath: SHIELD_CLIP }}
       >
         <div className="absolute inset-0" style={{ background: GOLD_FRAME }} />
 
         <div
           className="absolute"
-          style={{ clipPath: SHIELD_CLIP, inset: ringInset, background: '#1a1206' }}
+          style={{ inset: ringInset, background: '#1a1206' }}
         />
 
         <div
           className="absolute"
           style={{
-            clipPath: SHIELD_CLIP,
-            inset: compact ? '4.5px' : '5.5px',
+            inset: frameInset,
             background: GOLD_INNER,
           }}
         />
 
         <div
           className="absolute overflow-hidden"
-          style={{ clipPath: SHIELD_CLIP, inset: frameInset }}
+          style={{ inset: frameInset + 1.5 }}
         >
           <div
             className="absolute inset-0"
@@ -159,10 +165,10 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
           <div
             className={cn(
               'relative flex h-full flex-col',
-              compact ? 'px-2.5 pb-5 pt-2.5' : 'px-3 pb-5 pt-3',
+              compact ? 'px-2.5 pb-5 pt-4' : 'px-3 pb-5 pt-5',
             )}
           >
-            <div className={cn('relative shrink-0', compact ? 'h-[64px]' : 'h-[78px]')}>
+            <div className={cn('relative shrink-0', compact ? 'h-[58px]' : 'h-[72px]')}>
               <div className={cn('relative z-10 leading-none text-[#2f2410]', compact ? 'w-[36px]' : 'w-[42px]')}>
                 <p className={cn('font-bold tabular-nums tracking-tight', compact ? 'text-[26px]' : 'text-[32px]')}>
                   {roundRating(p.ovr)}
@@ -188,8 +194,8 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
 
               <div
                 className={cn(
-                  'absolute bottom-0 right-0 top-0 overflow-hidden',
-                  compact ? 'left-[30px]' : 'left-[36px]',
+                  'absolute bottom-0 right-0 overflow-hidden',
+                  compact ? 'left-[30px] top-1' : 'left-[36px] top-1.5',
                 )}
               >
                 {p.photoUrl ? (
