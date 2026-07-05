@@ -180,11 +180,16 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
               compact ? 'px-2.5 pb-5 pt-[20px]' : 'px-3 pb-5 pt-6',
             )}
           >
-            <div className={cn('relative shrink-0', compact ? 'h-[56px]' : 'h-[68px]')}>
+            <div
+              className={cn(
+                'relative flex shrink-0 items-start gap-1',
+                compact ? 'h-[58px]' : 'h-[70px]',
+              )}
+            >
               <div
                 className={cn(
-                  'relative z-10 leading-none text-[#2f2410]',
-                  compact ? 'w-[34px] pl-0.5' : 'w-[40px] pl-0.5',
+                  'relative z-10 shrink-0 leading-none text-[#2f2410]',
+                  compact ? 'w-[38px]' : 'w-[44px]',
                 )}
               >
                 <p className={cn('font-bold tabular-nums tracking-tight', compact ? 'text-[24px]' : 'text-[30px]')}>
@@ -209,20 +214,12 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
                 )}
               </div>
 
-              <div
-                className={cn(
-                  'pointer-events-none absolute bottom-0 right-0 overflow-hidden',
-                  compact ? 'left-[28px] top-0' : 'left-[34px] top-0',
-                )}
-              >
+              <div className="relative min-w-0 flex-1 self-stretch overflow-hidden">
                 {p.photoUrl ? (
                   <img
                     src={p.photoUrl}
                     alt=""
-                    className={cn(
-                      'absolute right-0 object-cover object-top',
-                      compact ? 'top-0 h-[115%] w-[105%]' : 'top-0 h-[115%] w-[105%]',
-                    )}
+                    className="absolute inset-0 h-full w-full object-cover object-top"
                   />
                 ) : (
                   <div className="flex h-full w-full items-end justify-center pb-1 text-[#2f2410]/25">
