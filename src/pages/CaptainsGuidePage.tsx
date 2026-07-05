@@ -61,7 +61,7 @@ export function CaptainsGuidePage() {
         <figure className="overflow-hidden rounded-xl border border-slate-200">
           <img
             src="/guide/select-players.png"
-            alt="Selecting players with checkboxes"
+            alt="Newtown Sporting Club — tick checkboxes under Today's availability"
             className="w-full"
           />
           <figcaption className="bg-slate-50 px-3 py-2 text-center text-xs text-slate-500">
