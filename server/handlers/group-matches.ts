@@ -4,7 +4,7 @@ import {
   groupExists,
   listMatches,
   saveMatch,
-} from '../lib/blob-storage.js';
+} from '../lib/storage.js';
 import { error, json, readBody } from '../lib/auth.js';
 import { generateBalancedTeams, pickPlayersForMatch } from '../../shared/team-generator.js';
 import { slugify, type MatchRecord } from '../../shared/types.js';

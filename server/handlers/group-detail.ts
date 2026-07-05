@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getGroupMeta, getGroupPlayers, groupExists } from '../lib/blob-storage.js';
+import { getGroupMeta, getGroupPlayers, groupExists } from '../lib/storage.js';
 import { error, json } from '../lib/auth.js';
 import { slugify } from '../../shared/types.js';
 

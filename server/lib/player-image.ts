@@ -1,4 +1,4 @@
-import { uploadPlayerImage } from './blob-storage.js';
+import { uploadPlayerImage } from './storage.js';
 
 export async function uploadPlayerImageFromBase64(
   slug: string,

@@ -5,7 +5,7 @@ import {
   savePlayerRecord,
   deletePlayerRecord,
   groupExists,
-} from '../lib/blob-storage.js';
+} from '../lib/storage.js';
 import { uploadPlayerImageFromBase64 } from '../lib/player-image.js';
 import { error, json, readBody, requireAdmin } from '../lib/auth.js';
 import {

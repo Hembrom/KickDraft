@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { groupExists, serveGroupImage } from '../lib/blob-storage.js';
+import { groupExists, serveGroupImage } from '../lib/storage.js';
 import { error } from '../lib/auth.js';
 import { slugify } from '../../shared/types.js';
 

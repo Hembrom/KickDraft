@@ -5,6 +5,7 @@ import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { dispatchApiRequest } from '../server/router.js';
+import { isSupabaseConfigured } from '../server/lib/supabase-client.js';
 import { resolveLocalFilePath } from '../server/lib/local-storage.js';
 
 function loadEnvFile(filePath: string) {
@@ -121,9 +122,8 @@ const server = createServer(async (req, res) => {
 
 const PORT = Number(process.env.PORT ?? 3000);
 server.listen(PORT, () => {
-  const mode =
-    process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID
-      ? 'Vercel Blob'
-      : 'local .local-data folder';
+  const mode = isSupabaseConfigured()
+    ? 'Supabase'
+    : 'local .local-data folder';
   console.log(`SquadBalance API running at http://localhost:${PORT} (${mode})`);
 });

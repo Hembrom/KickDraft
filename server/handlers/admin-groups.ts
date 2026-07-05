@@ -2,10 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
   getGroupsIndex,
   saveGroupMeta,
-  saveGroupPlayers,
-  saveGroupsIndex,
   groupExists,
-} from '../lib/blob-storage.js';
+} from '../lib/storage.js';
 import { error, json, readBody, requireAdmin } from '../lib/auth.js';
 import { slugify, type GroupMeta } from '../../shared/types.js';
 
@@ -36,11 +34,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     await saveGroupMeta(meta);
-    await saveGroupPlayers(slug, { players: [] });
-
-    const index = await getGroupsIndex();
-    index.groups.push(meta);
-    await saveGroupsIndex(index);
 
     return json(res, 201, meta);
   }

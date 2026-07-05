@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { groupExists } from '../lib/blob-storage.js';
+import { groupExists } from '../lib/storage.js';
 import { uploadPlayerImageFromBase64 } from '../lib/player-image.js';
 import { error, json, readBody, requireAdmin } from '../lib/auth.js';
 import { slugify } from '../../shared/types.js';

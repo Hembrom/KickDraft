@@ -1,18 +1,18 @@
 # SquadBalance
 
-Fair football team generator for casual matches. React frontend + Vercel serverless API, backed by **Vercel Blob** storage.
+Fair football team generator for casual matches. React frontend + Vercel serverless API, backed by **Supabase** (Postgres + Storage).
 
 ## Stack
 
 - **Frontend:** React 19, Vite, TypeScript, Tailwind CSS, React Router
 - **Backend:** Vercel Serverless Functions (`/api`)
-- **Storage:** Vercel Blob (JSON + images)
+- **Storage:** Supabase Postgres (groups, players, matches) + Supabase Storage (player photos)
 - **Auth:** Static admin password (server-verified token)
 
 ## Features
 
 - Admin: create groups, add/edit/delete players with photos and 6 attributes
-- Public group pages: select available players, auto/manual match format, generate balanced teams
+- Public group pages: full squad list, match format, generate balanced teams
 - OVR auto-calculated as average of all stats
 - Match history (last 30 days, purged daily via Vercel Cron)
 - Mobile-first football-themed UI
@@ -25,59 +25,62 @@ Fair football team generator for casual matches. React frontend + Vercel serverl
 npm install
 ```
 
-### 2. Environment
+### 2. Supabase setup
 
-Copy `.env.example` to `.env.local` and set:
+1. Create a project at [supabase.com](https://supabase.com)
+2. Open **SQL Editor** and run the contents of [`supabase/schema.sql`](supabase/schema.sql)
+3. In **Storage**, confirm the `player-images` bucket exists (private)
+4. Copy **Project URL** and **service_role** key from **Settings → API**
+
+### 3. Environment
+
+Copy `.env.example` to `.env.local`:
 
 ```bash
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ADMIN_PASSWORD=your-admin-password
 ADMIN_SECRET=your-random-secret
-BLOB_READ_WRITE_TOKEN=   # from Vercel Blob store
 ```
 
-### 3. Local development
+Without Supabase env vars, the API falls back to local `.local-data/` files for development.
 
-**Frontend only (Vite):**
+### 4. Local development
 
 ```bash
 npm run dev
 ```
 
-**Full stack (API + Blob):**
+Runs Vite (frontend) and the API on port 3000.
 
-```bash
-npx vercel dev
-```
-
-Use `vercel dev` for API routes and Blob access. Vite alone proxies `/api` to port 3000 when the full stack is running.
-
-### 4. Deploy to Vercel
+### 5. Deploy to Vercel
 
 1. Push to GitHub and import project in Vercel
-2. Create a **Blob store** in the Vercel dashboard (Storage → Blob)
-3. Set env vars: `ADMIN_PASSWORD`, `ADMIN_SECRET`, optional `CRON_SECRET`
-4. Deploy — cron job purges matches older than 30 days daily
+2. Set env vars: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`, `ADMIN_SECRET`, optional `CRON_SECRET`
+3. Deploy — cron job purges matches older than 30 days daily
+
+You can remove the Vercel Blob store; it is no longer used.
 
 ## Routes
 
 | URL | Description |
 |-----|-------------|
 | `/` | Home + squad list |
-| `/{groupSlug}` | Select players & generate teams |
+| `/{groupSlug}` | Squad & generate teams |
 | `/{groupSlug}/history` | Match history |
 | `/admin` | Admin login |
 | `/admin/dashboard` | Manage groups |
 | `/admin/groups/{slug}` | Manage players |
 
-## Blob layout
+## Database
 
-```
-groups/index.json
-groups/{slug}/meta.json
-groups/{slug}/players.json
-groups/{slug}/images/{playerId}.jpg
-groups/{slug}/matches/{matchId}.json
-```
+| Table | Purpose |
+|-------|---------|
+| `groups` | Group slug, name, created date |
+| `players` | Player profile, stats, photo URL |
+| `matches` | Generated teams and match metadata |
+
+Player photos are stored in the Supabase Storage bucket `player-images` at `{groupSlug}/{playerId}.{ext}`.
 
 ## API
 

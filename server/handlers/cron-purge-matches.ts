@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { purgeOldMatches } from '../lib/blob-storage.js';
+import { purgeOldMatches } from '../lib/storage.js';
 import { error, json, verifyCronSecret } from '../lib/auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
