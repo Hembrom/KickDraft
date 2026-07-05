@@ -35,6 +35,9 @@ export function HomePage() {
             <Link to="/admin" className="btn-primary">
               Admin setup <ArrowRight className="h-4 w-4" />
             </Link>
+            <Link to="/guide" className="btn-secondary">
+              Captain&apos;s guide
+            </Link>
           </div>
         </div>
       </section>

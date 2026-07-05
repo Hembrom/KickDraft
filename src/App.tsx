@@ -6,6 +6,7 @@ import { AdminLoginPage } from '@/pages/AdminLoginPage';
 import { GroupPage } from '@/pages/GroupPage';
 import { HistoryPage } from '@/pages/HistoryPage';
 import { MatchPage } from '@/pages/MatchPage';
+import { CaptainsGuidePage } from '@/pages/CaptainsGuidePage';
 import { HomePage } from '@/pages/HomePage';
 import { getAdminToken } from '@/lib/utils';
 
@@ -19,6 +20,7 @@ export default function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/guide" element={<CaptainsGuidePage />} />
         <Route path="/admin" element={<AdminLoginPage />} />
         <Route
           path="/admin/dashboard"
