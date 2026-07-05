@@ -156,12 +156,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const id = typeof req.query.id === 'string' ? req.query.id : undefined;
     if (!id) return error(res, 400, 'Player id is required');
 
-    const existingData = await getGroupPlayers(slug);
-    if (!existingData.players.some((p: Player) => p.id === id)) {
-      return error(res, 404, 'Player not found');
-    }
+    let found = false;
+    await mutateGroupPlayers(slug, (players) => {
+      const next = players.filter((p) => p.id !== id);
+      found = next.length < players.length;
+      return next;
+    });
+    if (!found) return error(res, 404, 'Player not found');
 
-    await mutateGroupPlayers(slug, (players) => players.filter((p) => p.id !== id));
     return json(res, 200, { ok: true });
   }
 

@@ -1,4 +1,4 @@
-import { BlobPreconditionFailedError, del, get, list, put } from '@vercel/blob';
+import { del, get, list, put } from '@vercel/blob';
 import { readFile } from 'node:fs/promises';
 import {
   normalizePositions,
@@ -126,33 +126,10 @@ export async function mutateGroupPlayers(
     return next;
   }
 
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const result = await get(pathname, { access: blobAccess() });
-    const current =
-      result?.statusCode === 200 && result.stream
-        ? normalizePlayersData(
-            JSON.parse(await new Response(result.stream).text()) as GroupPlayers,
-          )
-        : { players: [] };
-
-    const next = { players: mutate([...current.players]) };
-
-    try {
-      await put(pathname, JSON.stringify(next, null, 2), {
-        access: blobAccess(),
-        allowOverwrite: true,
-        contentType: 'application/json',
-        cacheControlMaxAge: 0,
-        ...(result?.blob.etag ? { ifMatch: result.blob.etag } : {}),
-      });
-      return next;
-    } catch (err) {
-      if (err instanceof BlobPreconditionFailedError && attempt < 4) continue;
-      throw err;
-    }
-  }
-
-  throw new Error('Failed to update group players');
+  const current = normalizePlayersData(await readJsonBlob<GroupPlayers>(pathname));
+  const next = { players: mutate([...current.players]) };
+  await writeJsonBlob(pathname, next);
+  return next;
 }
 
 export async function uploadPlayerImage(
