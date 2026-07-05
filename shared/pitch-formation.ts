@@ -19,23 +19,53 @@ function isGoalkeeperOnly(player: Player): boolean {
   return player.positions.length === 1 && player.positions[0] === 'GK';
 }
 
-function preferredRow(position: PlayerPosition, rowCount: number): number {
-  if (position === 'GK') return 0;
-  if (position === 'DEF') return Math.min(1, rowCount - 1);
-  if (position === 'FWD') return rowCount - 1;
-  return Math.floor(rowCount / 2);
-}
-
-function bestPreferredRow(player: Player, rowCount: number): number {
+function outfieldPositions(player: Player): PlayerPosition[] {
   const outfield = player.positions.filter((pos) => pos !== 'GK');
-  const positions = outfield.length > 0 ? outfield : player.positions;
-  return Math.min(...positions.map((pos) => preferredRow(pos, rowCount)));
+  return outfield.length > 0 ? outfield : player.positions;
 }
 
-function pickBestForRow(pool: Player[], rowIndex: number, rowCount: number): number {
-  const preferred = pool.findIndex((player) => bestPreferredRow(player, rowCount) === rowIndex);
-  if (preferred !== -1) return preferred;
+/** Higher score = better fit for this row (defenders behind GK, forwards up front). */
+function fitScoreForRow(player: Player, rowIndex: number, rowCount: number): number {
+  const role = getPitchSlotRole(rowIndex, rowCount);
+  const positions = outfieldPositions(player);
+  if (positions.includes(role)) return 100;
+
+  if (role === 'DEF') {
+    if (positions.includes('MID')) return 50;
+    return 10;
+  }
+  if (role === 'MID') {
+    if (positions.includes('DEF')) return 30;
+    if (positions.includes('FWD')) return 40;
+    return 10;
+  }
+  if (role === 'FWD') {
+    if (positions.includes('MID')) return 60;
+    if (positions.includes('DEF')) return 5;
+    return 10;
+  }
   return 0;
+}
+
+function pickBestForRow(
+  pool: Player[],
+  candidates: Player[],
+  rowIndex: number,
+  rowCount: number,
+): number {
+  let bestIndex = -1;
+  let bestScore = -1;
+  for (let i = 0; i < pool.length; i++) {
+    const player = pool[i];
+    if (!candidates.includes(player)) continue;
+    const score = fitScoreForRow(player, rowIndex, rowCount);
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = i;
+    }
+  }
+  if (bestIndex !== -1) return bestIndex;
+  return pool.findIndex((player) => candidates.includes(player));
 }
 
 function pickGoalkeeperIndex(pool: Player[]): number {
@@ -66,11 +96,7 @@ export function getFormationLabel(teamSize: number): string {
 
 export function getPitchSlotRole(rowIndex: number, rowCount: number): PlayerPosition {
   if (rowIndex === 0) return 'GK';
-  if (rowCount >= 4) {
-    if (rowIndex === 1) return 'DEF';
-    if (rowIndex === rowCount - 1) return 'FWD';
-    return 'MID';
-  }
+  if (rowIndex === 1) return 'DEF';
   if (rowIndex === rowCount - 1) return 'FWD';
   return 'MID';
 }
@@ -97,18 +123,7 @@ export function assignPitchRows(players: Player[], teamSize: number): Player[][]
 
       const gkSlotFilled = result[0].some(isGoalkeeper);
       const candidates = outfieldCandidates(pool, gkSlotFilled);
-      const pickInPool = (predicate: (player: Player) => boolean) =>
-        pool.findIndex((player) => candidates.includes(player) && predicate(player));
-
-      let pickIndex = pickInPool(
-        (player) => bestPreferredRow(player, rows.length) === rowIndex,
-      );
-      if (pickIndex === -1) {
-        pickIndex = pool.findIndex((player) => candidates.includes(player));
-      }
-      if (pickIndex === -1) {
-        pickIndex = pickBestForRow(pool, rowIndex, rows.length);
-      }
+      const pickIndex = pickBestForRow(pool, candidates, rowIndex, rows.length);
 
       result[rowIndex].push(takeAt(pickIndex));
     }
