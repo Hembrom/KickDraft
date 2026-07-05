@@ -3,9 +3,13 @@ import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { normalizePlayer, type Player, type PlayerPosition } from '@shared/types';
 import { User } from 'lucide-react';
-import { FutPlayerCard, FUT_CARD_HEIGHT, FUT_CARD_WIDTH } from './FutPlayerCard';
+import { FutPlayerCard, FUT_CARD_APEX_PAD, FUT_CARD_HEIGHT, FUT_CARD_WIDTH } from './FutPlayerCard';
 const POPUP_SCALE = 1.8;
 const VIEWPORT_MARGIN = 12;
+
+function scaledCardHeight() {
+  return (FUT_CARD_HEIGHT + FUT_CARD_APEX_PAD * 2) * POPUP_SCALE;
+}
 
 function displayName(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -23,18 +27,29 @@ interface PopupCoords {
 
 function computePopupCoords(rect: DOMRect): PopupCoords {
   const scaledW = FUT_CARD_WIDTH * POPUP_SCALE;
-  const scaledH = FUT_CARD_HEIGHT * POPUP_SCALE;
+  const scaledH = scaledCardHeight();
   const gap = 10;
   const centerX = rect.left + rect.width / 2;
 
   const spaceAbove = rect.top - VIEWPORT_MARGIN;
   const spaceBelow = window.innerHeight - rect.bottom - VIEWPORT_MARGIN;
 
-  const placement: PopupPlacement =
+  let placement: PopupPlacement =
     spaceAbove >= scaledH + gap || spaceAbove >= spaceBelow ? 'above' : 'below';
 
-  const top =
-    placement === 'above' ? rect.top - gap : rect.bottom + gap;
+  let top = placement === 'above' ? rect.top - gap : rect.bottom + gap;
+
+  if (placement === 'above') {
+    const minAnchorY = VIEWPORT_MARGIN + scaledH;
+    if (top < minAnchorY) {
+      if (spaceBelow >= scaledH + gap) {
+        placement = 'below';
+        top = rect.bottom + gap;
+      } else {
+        top = minAnchorY;
+      }
+    }
+  }
 
   const halfW = scaledW / 2;
   let left = centerX;
@@ -111,7 +126,7 @@ export function PitchPlayerMarker({
       {open && coords
         ? createPortal(
             <div
-              className="pointer-events-auto fixed z-[9999]"
+              className="pointer-events-auto fixed z-[9999] overflow-visible"
               style={{
                 left: coords.left,
                 top: coords.top,

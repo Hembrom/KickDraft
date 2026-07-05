@@ -5,6 +5,8 @@ import { User } from 'lucide-react';
 
 export const FUT_CARD_WIDTH = 124;
 export const FUT_CARD_HEIGHT = 196;
+/** Room above/below the shield so the chevron tips aren't clipped. */
+export const FUT_CARD_APEX_PAD = 8;
 
 interface FutPlayerCardProps {
   player: Player;
@@ -25,9 +27,12 @@ const RIGHT_STATS: { key: keyof PlayerStats; label: string }[] = [
   { key: 'physicality', label: 'PHY' },
 ];
 
-/** Shield outline — shoulder at 7% keeps the top chevron readable at small sizes. */
-const SHIELD_SHOULDER = 0.07;
-const SHIELD_CLIP = `polygon(50% 0%, 100% ${SHIELD_SHOULDER * 100}%, 100% 77%, 50% 91%, 0% 77%, 0% ${SHIELD_SHOULDER * 100}%)`;
+/** Chevron depth matches top and bottom (14% of shield height). */
+const CHEVRON_DEPTH = 0.14;
+const BOTTOM_SHOULDER = 0.77;
+const BOTTOM_POINT = 0.91;
+
+const SHIELD_CLIP = `polygon(50% 0%, 100% ${CHEVRON_DEPTH * 100}%, 100% ${BOTTOM_SHOULDER * 100}%, 50% ${BOTTOM_POINT * 100}%, 0% ${BOTTOM_SHOULDER * 100}%, 0% ${CHEVRON_DEPTH * 100}%)`;
 
 const GOLD_FRAME = `
   linear-gradient(145deg, #fff0a8 0%, #e8c547 22%, #c99818 48%, #f3dd78 72%, #a67c00 100%)
@@ -42,35 +47,35 @@ function displayName(name: string): string {
   return (parts.length > 1 ? parts[parts.length - 1] : parts[0]).toUpperCase();
 }
 
-function shieldPaths(w: number, h: number, inset = 0) {
-  const sy = h * SHIELD_SHOULDER;
-  const apex = w / 2;
-  return {
-    outer: `M ${apex} 0 L ${w - inset} ${sy + inset * 1.1} L ${w - inset} ${h * 0.77 - inset * 0.4} L ${apex} ${h * 0.91 - inset * 0.9} L ${inset} ${h * 0.77 - inset * 0.4} L ${inset} ${sy + inset * 1.1} Z`,
-  };
+function shieldPath(w: number, h: number, inset = 0) {
+  const topY = h * CHEVRON_DEPTH + inset * 0.55;
+  const bottomShoulderY = h * BOTTOM_SHOULDER - inset * 0.45;
+  const bottomPointY = h * BOTTOM_POINT - inset * 0.85;
+  const side = inset;
+  return `M ${w / 2} 0 L ${w - side} ${topY} L ${w - side} ${bottomShoulderY} L ${w / 2} ${bottomPointY} L ${side} ${bottomShoulderY} L ${side} ${topY} Z`;
 }
 
 function CardBorderOverlay({ compact }: { compact: boolean }) {
-  const w = compact ? 124 : 148;
-  const h = compact ? 196 : 236;
-  const outer = shieldPaths(w, h, 0).outer;
-  const inner = shieldPaths(w, h, compact ? 3.5 : 4).outer;
+  const w = compact ? FUT_CARD_WIDTH : 148;
+  const h = compact ? FUT_CARD_HEIGHT : 236;
+  const outer = shieldPath(w, h, 0);
+  const inner = shieldPath(w, h, compact ? 3.5 : 4);
 
   return (
     <svg
-      className="pointer-events-none absolute inset-0 h-full w-full"
+      className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
       viewBox={`0 0 ${w} ${h}`}
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio="none"
       aria-hidden
     >
-      <path d={outer} fill="none" stroke="#120e06" strokeWidth={compact ? 3.5 : 4} strokeLinejoin="miter" />
-      <path d={outer} fill="none" stroke="#f5e08a" strokeWidth={compact ? 1.4 : 1.6} strokeLinejoin="miter" />
+      <path d={outer} fill="none" stroke="#120e06" strokeWidth={compact ? 3.5 : 4} vectorEffect="non-scaling-stroke" />
+      <path d={outer} fill="none" stroke="#f5e08a" strokeWidth={compact ? 1.4 : 1.6} vectorEffect="non-scaling-stroke" />
       <path
         d={inner}
         fill="none"
         stroke="#3d2f0a"
         strokeWidth={compact ? 1 : 1.2}
-        strokeLinejoin="miter"
+        vectorEffect="non-scaling-stroke"
         opacity={0.9}
       />
     </svg>
@@ -113,19 +118,24 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
       : (p.positions[0] ?? 'MID');
   const compact = size === 'sm';
   const frameInset = compact ? 6 : 7;
+  const bodyHeight = compact ? FUT_CARD_HEIGHT : 236;
+  const bodyWidth = compact ? FUT_CARD_WIDTH : 148;
+  const pad = FUT_CARD_APEX_PAD;
 
   return (
     <article
-      className={cn(
-        'relative shrink-0 select-none',
-        compact ? 'h-[196px] w-[124px]' : 'h-[236px] w-[148px]',
-        className,
-      )}
+      className={cn('relative shrink-0 select-none overflow-visible', className)}
+      style={{
+        width: bodyWidth,
+        height: bodyHeight + pad * 2,
+        paddingTop: pad,
+        paddingBottom: pad,
+      }}
       title={p.name}
     >
       <div
-        className="relative h-full w-full overflow-hidden drop-shadow-[0_6px_16px_rgba(0,0,0,0.45)]"
-        style={{ clipPath: SHIELD_CLIP }}
+        className="relative w-full overflow-visible drop-shadow-[0_6px_16px_rgba(0,0,0,0.45)]"
+        style={{ height: bodyHeight, clipPath: SHIELD_CLIP }}
       >
         <div className="absolute inset-0" style={{ background: GOLD_FRAME }} />
 
@@ -167,7 +177,7 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
           <div
             className={cn(
               'relative flex h-full flex-col',
-              compact ? 'px-2.5 pb-5 pt-[18px]' : 'px-3 pb-5 pt-[22px]',
+              compact ? 'px-2.5 pb-5 pt-[20px]' : 'px-3 pb-5 pt-6',
             )}
           >
             <div className={cn('relative shrink-0', compact ? 'h-[56px]' : 'h-[68px]')}>
@@ -202,8 +212,7 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
               <div
                 className={cn(
                   'pointer-events-none absolute bottom-0 right-0 overflow-hidden',
-                  compact ? 'left-[28px]' : 'left-[34px]',
-                  compact ? 'top-[-10px]' : 'top-[-12px]',
+                  compact ? 'left-[28px] top-0' : 'left-[34px] top-0',
                 )}
               >
                 {p.photoUrl ? (
@@ -212,7 +221,7 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
                     alt=""
                     className={cn(
                       'absolute right-0 object-cover object-top',
-                      compact ? 'top-0 h-[118%] w-[105%]' : 'top-0 h-[118%] w-[105%]',
+                      compact ? 'top-0 h-[115%] w-[105%]' : 'top-0 h-[115%] w-[105%]',
                     )}
                   />
                 ) : (
@@ -246,7 +255,9 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
         </div>
       </div>
 
-      <CardBorderOverlay compact={compact} />
+      <div className="absolute left-0 right-0" style={{ top: pad, height: bodyHeight }}>
+        <CardBorderOverlay compact={compact} />
+      </div>
     </article>
   );
 }
