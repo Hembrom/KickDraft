@@ -4,13 +4,18 @@ import { History, Shuffle, Users } from 'lucide-react';
 import { PitchView } from '@/components/PitchView';
 import { PlayerCard } from '@/components/PlayerCard';
 import { api, ApiError } from '@/lib/api';
-import { MATCH_FORMATS, getPositionsLabel, suggestFormat, type MatchRecord, type Player } from '@shared/types';
+import {
+  MATCH_FORMATS,
+  getPositionsLabel,
+  suggestFormatFromRoster,
+  type MatchRecord,
+  type Player,
+} from '@shared/types';
 
 export function GroupPage() {
   const { slug = '' } = useParams();
   const [groupName, setGroupName] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [format, setFormat] = useState<number | 'auto'>('auto');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -45,29 +50,21 @@ export function GroupPage() {
     );
   }, [players, search]);
 
-  const selectedCount = selected.size;
-  const autoFormat = suggestFormat(selectedCount);
+  const autoFormat = suggestFormatFromRoster(players.length);
   const resolvedFormat = format === 'auto' ? autoFormat : format;
+  const playersNeeded = resolvedFormat !== null ? resolvedFormat * 2 : null;
   const canGenerate =
     resolvedFormat !== null &&
-    selectedCount === resolvedFormat * 2 &&
+    playersNeeded !== null &&
+    players.length >= playersNeeded &&
     !generating;
-
-  function togglePlayer(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
 
   async function handleGenerate() {
     if (!resolvedFormat) return;
     setGenerating(true);
     setError('');
     try {
-      const match = await api.generateMatch(slug, Array.from(selected), resolvedFormat);
+      const match = await api.generateMatch(slug, resolvedFormat);
       setResult(match);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to generate teams');
@@ -97,9 +94,7 @@ export function GroupPage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Squad</p>
           <h1 className="font-display text-3xl font-bold text-slate-900">{groupName}</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {players.length} players · {selectedCount} selected
-          </p>
+          <p className="mt-1 text-sm text-slate-500">{players.length} players in squad</p>
         </div>
         <Link to={`/${slug}/history`} className="btn-secondary">
           <History className="h-4 w-4" /> Match history
@@ -119,10 +114,10 @@ export function GroupPage() {
               }}
             >
               <option value="auto">
-                Auto {autoFormat ? `(suggests ${autoFormat}v${autoFormat})` : '(need even count)'}
+                Auto {autoFormat ? `(suggests ${autoFormat}v${autoFormat})` : '(not enough players)'}
               </option>
               {MATCH_FORMATS.map((f) => (
-                <option key={f} value={f}>
+                <option key={f} value={f} disabled={players.length < f * 2}>
                   {f}v{f} ({f * 2} players)
                 </option>
               ))}
@@ -140,16 +135,22 @@ export function GroupPage() {
           </button>
         </div>
 
-        {selectedCount > 0 && resolvedFormat === null ? (
-          <p className="mt-3 text-sm text-amber-700">
-            {selectedCount} players selected — pick an even number for equal teams, or choose a
-            manual format.
+        {resolvedFormat !== null && playersNeeded !== null && players.length > playersNeeded ? (
+          <p className="mt-3 text-sm text-slate-600">
+            {resolvedFormat}v{resolvedFormat} uses {playersNeeded} players — picked randomly from
+            all {players.length} in the squad.
           </p>
         ) : null}
 
-        {selectedCount > 0 && resolvedFormat !== null && selectedCount !== resolvedFormat * 2 ? (
+        {resolvedFormat !== null && playersNeeded !== null && players.length === playersNeeded ? (
+          <p className="mt-3 text-sm text-slate-600">
+            Using all {players.length} players for {resolvedFormat}v{resolvedFormat}.
+          </p>
+        ) : null}
+
+        {resolvedFormat === null ? (
           <p className="mt-3 text-sm text-amber-700">
-            Select exactly {resolvedFormat * 2} players for {resolvedFormat}v{resolvedFormat}.
+            Need at least {MATCH_FORMATS[0] * 2} players in the squad to generate teams.
           </p>
         ) : null}
 
@@ -170,7 +171,7 @@ export function GroupPage() {
       <section>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h2 className="inline-flex items-center gap-2 font-display text-xl font-bold">
-            <Users className="h-5 w-5 text-elite-500" /> Today&apos;s availability
+            <Users className="h-5 w-5 text-elite-500" /> Squad
           </h2>
           <input
             className="input max-w-xs"
@@ -185,13 +186,7 @@ export function GroupPage() {
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
             {filtered.map((player) => (
-              <PlayerCard
-                key={player.id}
-                player={player}
-                selectable
-                selected={selected.has(player.id)}
-                onToggle={() => togglePlayer(player.id)}
-              />
+              <PlayerCard key={player.id} player={player} />
             ))}
           </div>
         )}

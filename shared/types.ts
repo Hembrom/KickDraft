@@ -144,6 +144,17 @@ export function suggestFormat(playerCount: number): number | null {
   return playerCount / 2;
 }
 
+/** Largest supported format that fits the full squad (e.g. 11 players → 5v5). */
+export function suggestFormatFromRoster(playerCount: number): number | null {
+  if (playerCount < MATCH_FORMATS[0] * 2) return null;
+  const maxTeamSize = Math.floor(playerCount / 2);
+  for (let i = MATCH_FORMATS.length - 1; i >= 0; i--) {
+    const format = MATCH_FORMATS[i];
+    if (format <= maxTeamSize) return format;
+  }
+  return null;
+}
+
 export function slugify(name: string): string {
   return name
     .toLowerCase()
