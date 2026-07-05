@@ -5,8 +5,8 @@ import { normalizePlayer, type Player, type PlayerPosition } from '@shared/types
 import { User } from 'lucide-react';
 import { FutPlayerCard, FUT_CARD_APEX_PAD, FUT_CARD_HEIGHT, FUT_CARD_WIDTH } from './FutPlayerCard';
 const POPUP_SCALE_DESKTOP = 1.8;
-/** Mobile popup is 60% smaller than desktop (40% of desktop scale). */
-const POPUP_SCALE_MOBILE = POPUP_SCALE_DESKTOP * 0.4;
+/** Mobile popup — 40% larger than the base card (1.4×). */
+const POPUP_SCALE_MOBILE = 1.4;
 const VIEWPORT_MARGIN = 12;
 const MOBILE_MQ = '(max-width: 639px)';
 
