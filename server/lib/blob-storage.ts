@@ -1,4 +1,4 @@
-import { del, get, list, put } from '@vercel/blob';
+import { BlobPreconditionFailedError, del, get, list, put } from '@vercel/blob';
 import { readFile } from 'node:fs/promises';
 import {
   normalizePositions,
@@ -44,6 +44,17 @@ function playerImageApiPath(slug: string, playerId: string, extension: string) {
   return `/api/groups/${slug}/images/${playerId}.${extension}`;
 }
 
+function normalizePlayersData(data: GroupPlayers | null): GroupPlayers {
+  const players = (data?.players ?? []).map((player) => {
+    const raw = player as Player & { position?: PlayerPosition };
+    return {
+      ...raw,
+      positions: normalizePositions(raw.positions, raw.position),
+    };
+  });
+  return { players };
+}
+
 async function readBlobText(pathname: string): Promise<string | null> {
   const result = await get(pathname, { access: blobAccess() });
   if (!result || result.statusCode !== 200 || !result.stream) return null;
@@ -72,7 +83,7 @@ export async function writeJsonBlob(pathname: string, data: unknown) {
     access: blobAccess(),
     allowOverwrite: true,
     contentType: 'application/json',
-    cacheControlMaxAge: 60,
+    cacheControlMaxAge: 0,
   });
 }
 
@@ -95,18 +106,53 @@ export async function saveGroupMeta(meta: GroupMeta) {
 
 export async function getGroupPlayers(slug: string): Promise<GroupPlayers> {
   const data = await readJsonBlob<GroupPlayers>(groupPath(slug, 'players.json'));
-  const players = (data?.players ?? []).map((player) => {
-    const raw = player as Player & { position?: PlayerPosition };
-    return {
-      ...raw,
-      positions: normalizePositions(raw.positions, raw.position),
-    };
-  });
-  return { players };
+  return normalizePlayersData(data);
 }
 
 export async function saveGroupPlayers(slug: string, data: GroupPlayers) {
   await writeJsonBlob(groupPath(slug, 'players.json'), data);
+}
+
+export async function mutateGroupPlayers(
+  slug: string,
+  mutate: (players: Player[]) => Player[],
+): Promise<GroupPlayers> {
+  const pathname = groupPath(slug, 'players.json');
+
+  if (useLocalStorage()) {
+    const current = normalizePlayersData(await readJsonLocal<GroupPlayers>(pathname));
+    const next = { players: mutate([...current.players]) };
+    await writeJsonLocal(pathname, next);
+    return next;
+  }
+
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const result = await get(pathname, { access: blobAccess() });
+    const current =
+      result?.statusCode === 200 && result.stream
+        ? normalizePlayersData(
+            JSON.parse(await new Response(result.stream).text()) as GroupPlayers,
+          )
+        : { players: [] };
+
+    const next = { players: mutate([...current.players]) };
+
+    try {
+      await put(pathname, JSON.stringify(next, null, 2), {
+        access: blobAccess(),
+        allowOverwrite: true,
+        contentType: 'application/json',
+        cacheControlMaxAge: 0,
+        ...(result?.blob.etag ? { ifMatch: result.blob.etag } : {}),
+      });
+      return next;
+    } catch (err) {
+      if (err instanceof BlobPreconditionFailedError && attempt < 4) continue;
+      throw err;
+    }
+  }
+
+  throw new Error('Failed to update group players');
 }
 
 export async function uploadPlayerImage(

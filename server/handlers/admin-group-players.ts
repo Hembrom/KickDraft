@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
   getGroupMeta,
   getGroupPlayers,
-  saveGroupPlayers,
+  mutateGroupPlayers,
   groupExists,
 } from '../lib/blob-storage.js';
 import { uploadPlayerImageFromBase64 } from '../lib/player-image.js';
@@ -124,9 +124,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if ('error' in result) return error(res, 400, result.error);
 
     const player = await applyPlayerPhoto(slug, result.player, body);
-    const data = await getGroupPlayers(slug);
-    data.players.push(player);
-    await saveGroupPlayers(slug, data);
+    await mutateGroupPlayers(slug, (players) => {
+      if (players.some((p) => p.id === player.id)) return players;
+      return [...players, player];
+    });
     return json(res, 201, player);
   }
 
@@ -136,17 +137,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const id = body.id;
     if (!id) return error(res, 400, 'Player id is required');
 
-    const data = await getGroupPlayers(slug);
-    const index = data.players.findIndex((p: Player) => p.id === id);
-    if (index === -1) return error(res, 404, 'Player not found');
+    const existingData = await getGroupPlayers(slug);
+    const existing = existingData.players.find((p: Player) => p.id === id);
+    if (!existing) return error(res, 404, 'Player not found');
 
-    const existing = data.players[index]!;
     const result = validatePlayerInput(body, existing);
     if ('error' in result) return error(res, 400, result.error);
 
-    data.players[index] = await applyPlayerPhoto(slug, result.player, body);
-    await saveGroupPlayers(slug, data);
-    return json(res, 200, data.players[index]);
+    const updated = await applyPlayerPhoto(slug, result.player, body);
+    await mutateGroupPlayers(slug, (players) =>
+      players.map((p) => (p.id === id ? updated : p)),
+    );
+    return json(res, 200, updated);
   }
 
   if (req.method === 'DELETE') {
@@ -154,13 +156,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const id = typeof req.query.id === 'string' ? req.query.id : undefined;
     if (!id) return error(res, 400, 'Player id is required');
 
-    const data = await getGroupPlayers(slug);
-    const next = data.players.filter((p: Player) => p.id !== id);
-    if (next.length === data.players.length) {
+    const existingData = await getGroupPlayers(slug);
+    if (!existingData.players.some((p: Player) => p.id === id)) {
       return error(res, 404, 'Player not found');
     }
 
-    await saveGroupPlayers(slug, { players: next });
+    await mutateGroupPlayers(slug, (players) => players.filter((p) => p.id !== id));
     return json(res, 200, { ok: true });
   }
 
