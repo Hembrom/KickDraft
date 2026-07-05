@@ -7,7 +7,7 @@ import {
 } from '../lib/storage.js';
 import { error, json, readBody } from '../lib/auth.js';
 import { generateBalancedTeams } from '../../shared/team-generator.js';
-import { slugify, type MatchRecord } from '../../shared/types.js';
+import { resolveTeamSizes, slugify, type MatchRecord } from '../../shared/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const slug = slugify(String(req.query.slug ?? ''));
@@ -33,12 +33,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return error(res, 400, 'Format must be between 5 and 11');
     }
 
-    const needed = format * 2;
-    if (playerIds.length !== needed) {
+    const split = resolveTeamSizes(format, playerIds.length);
+    if (!split) {
+      const min = format * 2 - 1;
+      const max = format * 2 + 1;
       return error(
         res,
         400,
-        `Select exactly ${needed} players for ${format}v${format}`,
+        `Select ${min}–${max} players for ${format}v${format} (e.g. 11 players → 5v6)`,
       );
     }
 
@@ -54,7 +56,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const { teamA, teamB, ratingDifference } = generateBalancedTeams(
         selected,
-        format as 5 | 6 | 7 | 8 | 9 | 10 | 11,
+        split.teamASize,
+        split.teamBSize,
       );
 
       const record: MatchRecord = {

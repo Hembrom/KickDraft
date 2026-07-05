@@ -139,9 +139,52 @@ export function calculateOvr(stats: PlayerStats): number {
   return roundRating(sum / 6);
 }
 
+export function resolveTeamSizes(
+  format: number,
+  playerCount: number,
+): { teamASize: number; teamBSize: number } | null {
+  if (format < MATCH_FORMATS[0] || format > MATCH_FORMATS[MATCH_FORMATS.length - 1]) {
+    return null;
+  }
+  if (playerCount < format * 2 - 1 || playerCount > format * 2 + 1) {
+    return null;
+  }
+  if (playerCount === format * 2) {
+    return { teamASize: format, teamBSize: format };
+  }
+  if (playerCount > format * 2) {
+    return { teamASize: format, teamBSize: format + 1 };
+  }
+  return { teamASize: format - 1, teamBSize: format };
+}
+
+export function getMatchSizeLabel(teamASize: number, teamBSize: number): string {
+  return `${teamASize}v${teamBSize}`;
+}
+
 export function suggestFormat(playerCount: number): number | null {
-  if (playerCount < 4 || playerCount % 2 !== 0) return null;
-  return playerCount / 2;
+  const minPlayers = MATCH_FORMATS[0] * 2 - 1;
+  if (playerCount < minPlayers) return null;
+
+  if (playerCount % 2 === 0) {
+    const even = playerCount / 2;
+    if (even >= MATCH_FORMATS[0] && even <= MATCH_FORMATS[MATCH_FORMATS.length - 1]) {
+      return even;
+    }
+  }
+
+  const smallerTeam = Math.floor(playerCount / 2);
+  if (
+    smallerTeam >= MATCH_FORMATS[0] &&
+    resolveTeamSizes(smallerTeam, playerCount)
+  ) {
+    return smallerTeam;
+  }
+
+  for (const format of MATCH_FORMATS) {
+    if (resolveTeamSizes(format, playerCount)) return format;
+  }
+  return null;
 }
 
 /** Largest supported format that fits the full squad (e.g. 11 players → 5v5). */

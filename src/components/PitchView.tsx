@@ -1,4 +1,4 @@
-import { roundRating } from '@shared/types';
+import { roundRating, getMatchSizeLabel } from '@shared/types';
 import { enrichMatchWithRoster } from '@shared/match-utils';
 import { assignPitchRows, getFormationLabel, getPitchSlotRole } from '@shared/pitch-formation';
 import type { GeneratedTeam, MatchRecord, Player } from '@shared/types';
@@ -66,15 +66,21 @@ function TeamHalf({
 }
 
 export function PitchView({ match, roster = [] }: { match: MatchRecord; roster?: Player[] }) {
-  const teamSize = match.format;
   const displayMatch = roster.length > 0 ? enrichMatchWithRoster(match, roster) : match;
+  const teamASize = displayMatch.teamA.players.length;
+  const teamBSize = displayMatch.teamB.players.length;
+  const matchLabel = getMatchSizeLabel(teamASize, teamBSize);
+  const formationLabel =
+    teamASize === teamBSize
+      ? getFormationLabel(teamASize)
+      : `${getFormationLabel(teamASize)} / ${getFormationLabel(teamBSize)}`;
 
   return (
     <section className="card overflow-visible p-0">
       <div className="border-b border-slate-200/80 bg-white/90 px-4 py-3">
         <p className="text-sm text-slate-500">Match lineup</p>
         <p className="font-display text-lg font-bold text-slate-900">
-          {teamSize}v{teamSize} · {getFormationLabel(teamSize)} · Rating diff {roundRating(match.ratingDifference)}
+          {matchLabel} · {formationLabel} · Rating diff {roundRating(match.ratingDifference)}
         </p>
       </div>
 
@@ -123,8 +129,8 @@ export function PitchView({ match, roster = [] }: { match: MatchRecord; roster?:
           <div className="pointer-events-none absolute top-1/2 right-3 h-20 w-10 -translate-y-1/2 border-2 border-r-0 border-white/40 sm:right-4 sm:h-24 sm:w-12" />
 
           <div className="relative flex h-full flex-row">
-            <TeamHalf team={displayMatch.teamA} teamSize={teamSize} side="left" />
-            <TeamHalf team={displayMatch.teamB} teamSize={teamSize} side="right" />
+            <TeamHalf team={displayMatch.teamA} teamSize={teamASize} side="left" />
+            <TeamHalf team={displayMatch.teamB} teamSize={teamBSize} side="right" />
           </div>
         </div>
       </div>

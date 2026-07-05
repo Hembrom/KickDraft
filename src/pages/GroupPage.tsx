@@ -6,7 +6,9 @@ import { PlayerCard } from '@/components/PlayerCard';
 import { api, ApiError } from '@/lib/api';
 import {
   MATCH_FORMATS,
+  getMatchSizeLabel,
   getPositionsLabel,
+  resolveTeamSizes,
   suggestFormat,
   type MatchRecord,
   type Player,
@@ -54,12 +56,14 @@ export function GroupPage() {
   const selectedCount = selected.size;
   const autoFormat = suggestFormat(selectedCount);
   const resolvedFormat = format === 'auto' ? autoFormat : format;
-  const playersNeeded = resolvedFormat !== null ? resolvedFormat * 2 : null;
-  const canGenerate =
-    resolvedFormat !== null &&
-    playersNeeded !== null &&
-    selectedCount === playersNeeded &&
-    !generating;
+  const teamSizes =
+    resolvedFormat !== null ? resolveTeamSizes(resolvedFormat, selectedCount) : null;
+  const matchLabel = teamSizes ? getMatchSizeLabel(teamSizes.teamASize, teamSizes.teamBSize) : null;
+  const playerRange =
+    resolvedFormat !== null
+      ? { min: resolvedFormat * 2 - 1, max: resolvedFormat * 2 + 1 }
+      : null;
+  const canGenerate = teamSizes !== null && !generating;
 
   function togglePlayer(id: string) {
     setSelected((prev) => {
@@ -75,7 +79,7 @@ export function GroupPage() {
   }
 
   async function handleGenerate() {
-    if (!resolvedFormat || selectedCount !== resolvedFormat * 2) return;
+    if (!resolvedFormat || !teamSizes) return;
     setGenerating(true);
     setError('');
     try {
@@ -131,11 +135,11 @@ export function GroupPage() {
               }}
             >
               <option value="auto">
-                Auto {autoFormat ? `(suggests ${autoFormat}v${autoFormat})` : '(select an even count)'}
+                Auto {autoFormat ? `(suggests ${autoFormat}v${autoFormat})` : '(need 9+ players)'}
               </option>
               {MATCH_FORMATS.map((f) => (
                 <option key={f} value={f}>
-                  {f}v{f} ({f * 2} players)
+                  {f}v{f} ({f * 2 - 1}–{f * 2 + 1} players)
                 </option>
               ))}
             </select>
@@ -161,34 +165,33 @@ export function GroupPage() {
           </button>
         </div>
 
-        {resolvedFormat !== null && playersNeeded !== null && selectedCount === 0 ? (
+        {resolvedFormat !== null && playerRange !== null && selectedCount === 0 ? (
           <p className="mt-3 text-sm text-slate-600">
-            Select who is playing today — pick exactly {playersNeeded} players for{' '}
-            {resolvedFormat}v{resolvedFormat} from the full squad below.
+            Select who is playing today — pick {playerRange.min}–{playerRange.max} players for{' '}
+            {resolvedFormat}v{resolvedFormat} (e.g. 11 selected → 5v6).
           </p>
         ) : null}
 
         {selectedCount > 0 && resolvedFormat === null ? (
           <p className="mt-3 text-sm text-amber-700">
-            {selectedCount} selected — choose an even number of players, or pick a manual format.
+            {selectedCount} selected — pick a match format, or select 9+ players for Auto.
           </p>
         ) : null}
 
-        {selectedCount > 0 && resolvedFormat !== null && playersNeeded !== null && selectedCount !== playersNeeded ? (
+        {selectedCount > 0 && resolvedFormat !== null && !teamSizes ? (
           <p className="mt-3 text-sm text-amber-700">
-            {selectedCount} selected — pick exactly {playersNeeded} for {resolvedFormat}v
-            {resolvedFormat} (
-            {selectedCount > playersNeeded
-              ? `${selectedCount - playersNeeded} too many`
-              : `need ${playersNeeded - selectedCount} more`}
-            ).
+            {selectedCount} selected — need {playerRange!.min}–{playerRange!.max} players for{' '}
+            {resolvedFormat}v{resolvedFormat}.
           </p>
         ) : null}
 
-        {canGenerate ? (
+        {canGenerate && teamSizes && matchLabel ? (
           <p className="mt-3 text-sm text-emerald-700">
-            Ready — {selectedCount} players selected for {resolvedFormat}v{resolvedFormat}. Teams
-            will be balanced from your pick (not random).
+            Ready — {selectedCount} players → {matchLabel}
+            {teamSizes.teamASize !== teamSizes.teamBSize
+              ? ` (adjusted from ${resolvedFormat}v${resolvedFormat})`
+              : ''}
+            . Teams balanced from your selection.
           </p>
         ) : null}
 

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { PitchView } from '@/components/PitchView';
 import { api, ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
-import { roundRating, type MatchRecord, type Player } from '@shared/types';
+import { getMatchSizeLabel, roundRating, type MatchRecord, type Player } from '@shared/types';
 
 export function HistoryPage() {
   const { slug = '' } = useParams();
@@ -54,7 +54,8 @@ export function HistoryPage() {
               >
                 <div>
                   <p className="font-semibold text-slate-900">
-                    {match.format}v{match.format} · diff {roundRating(match.ratingDifference)}
+                    {getMatchSizeLabel(match.teamA.players.length, match.teamB.players.length)} · diff{' '}
+                    {roundRating(match.ratingDifference)}
                   </p>
                   <p className="text-xs text-slate-500">{formatDate(match.date)}</p>
                 </div>

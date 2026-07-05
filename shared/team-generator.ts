@@ -1,4 +1,4 @@
-import type { GeneratedTeam, MatchFormat, Player } from './types.js';
+import type { GeneratedTeam, Player } from './types.js';
 import { calculateOvr, roundRating } from './types.js';
 
 function shuffle<T>(array: T[]): T[] {
@@ -28,10 +28,12 @@ export interface TeamGenerationResult {
 
 export function generateBalancedTeams(
   players: Player[],
-  teamSize: MatchFormat,
+  teamASize: number,
+  teamBSize: number,
 ): TeamGenerationResult {
-  if (players.length !== teamSize * 2) {
-    throw new Error(`Need exactly ${teamSize * 2} players for ${teamSize}v${teamSize}`);
+  const total = teamASize + teamBSize;
+  if (players.length !== total) {
+    throw new Error(`Need exactly ${total} players for ${teamASize}v${teamBSize}`);
   }
 
   const sorted = [...players].sort((a, b) => b.ovr - a.ovr);
@@ -57,11 +59,11 @@ export function generateBalancedTeams(
           ? i % 2 === 0
           : i % 2 === 1;
 
-      if (pickA && teamAPlayers.length < teamSize) {
+      if (pickA && teamAPlayers.length < teamASize) {
         teamAPlayers.push(player);
-      } else if (!pickA && teamBPlayers.length < teamSize) {
+      } else if (!pickA && teamBPlayers.length < teamBSize) {
         teamBPlayers.push(player);
-      } else if (teamAPlayers.length < teamSize) {
+      } else if (teamAPlayers.length < teamASize) {
         teamAPlayers.push(player);
       } else {
         teamBPlayers.push(player);
