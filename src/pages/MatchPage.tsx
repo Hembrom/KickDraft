@@ -16,7 +16,7 @@ export function MatchPage() {
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
-  const lineupRef = useRef<HTMLElement>(null);
+  const pitchCaptureRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -41,7 +41,7 @@ export function MatchPage() {
       const result = await shareMatchLineup({
         match,
         groupName,
-        captureEl: lineupRef.current,
+        captureEl: pitchCaptureRef.current,
       });
       if (result === 'copied') {
         setCopied(true);
@@ -119,13 +119,12 @@ export function MatchPage() {
       </div>
 
       <p className="text-sm text-slate-600">
-        Share sends a lineup screenshot plus one link (match name, size, and URL). Works best on
-        mobile via WhatsApp or your share sheet.
+        Share sends a pitch screenshot (teams on the ground) plus one link with the match name.
       </p>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-      <PitchView ref={lineupRef} match={match} roster={players} />
+      <PitchView pitchCaptureRef={pitchCaptureRef} match={match} roster={players} />
     </div>
   );
 }

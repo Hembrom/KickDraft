@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { type Ref } from 'react';
 import { formatRatingGap, getMatchSizeLabel, roundRating } from '@shared/types';
 import { enrichMatchWithRoster } from '@shared/match-utils';
 import { assignPitchRows, getFormationLabel, getPitchSlotRole } from '@shared/pitch-formation';
@@ -236,8 +236,15 @@ function PitchField({
   );
 }
 
-export const PitchView = forwardRef<HTMLElement, { match: MatchRecord; roster?: Player[] }>(
-  function PitchView({ match, roster = [] }, ref) {
+export function PitchView({
+  match,
+  roster = [],
+  pitchCaptureRef,
+}: {
+  match: MatchRecord;
+  roster?: Player[];
+  pitchCaptureRef?: Ref<HTMLDivElement>;
+}) {
   const displayMatch = roster.length > 0 ? enrichMatchWithRoster(match, roster) : match;
   const teamASize = displayMatch.teamA.players.length;
   const teamBSize = displayMatch.teamB.players.length;
@@ -249,7 +256,7 @@ export const PitchView = forwardRef<HTMLElement, { match: MatchRecord; roster?: 
   const matchTitle = (match.name ?? '').trim();
 
   return (
-    <section ref={ref} className="card overflow-hidden p-0 sm:overflow-visible">
+    <section className="card overflow-hidden p-0 sm:overflow-visible">
       <div className="border-b border-slate-200/80 bg-white/90 px-4 py-3">
         <p className="text-sm text-slate-500">Match lineup</p>
         {matchTitle ? (
@@ -268,7 +275,7 @@ export const PitchView = forwardRef<HTMLElement, { match: MatchRecord; roster?: 
         </p>
       </div>
 
-      <div className="overflow-hidden px-2 py-4 sm:overflow-x-auto sm:px-4">
+      <div ref={pitchCaptureRef} className="w-full overflow-hidden sm:overflow-x-auto">
         <div className="sm:hidden">
           <PitchField
             layout="vertical"
@@ -290,5 +297,4 @@ export const PitchView = forwardRef<HTMLElement, { match: MatchRecord; roster?: 
       </div>
     </section>
   );
-},
-);
+}

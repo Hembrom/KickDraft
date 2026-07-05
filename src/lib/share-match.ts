@@ -13,7 +13,7 @@ export async function captureLineupImage(element: HTMLElement): Promise<File | n
     const dataUrl = await toPng(element, {
       cacheBust: true,
       pixelRatio: Math.min(window.devicePixelRatio || 2, 2),
-      backgroundColor: '#ffffff',
+      backgroundColor: '#2a8a48',
     });
     const blob = await (await fetch(dataUrl)).blob();
     return new File([blob], 'lineup.png', { type: 'image/png' });
