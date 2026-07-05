@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { formatRatingGap, getMatchSizeLabel, roundRating } from '@shared/types';
 import { enrichMatchWithRoster } from '@shared/match-utils';
 import { assignPitchRows, getFormationLabel, getPitchSlotRole } from '@shared/pitch-formation';
@@ -235,7 +236,8 @@ function PitchField({
   );
 }
 
-export function PitchView({ match, roster = [] }: { match: MatchRecord; roster?: Player[] }) {
+export const PitchView = forwardRef<HTMLElement, { match: MatchRecord; roster?: Player[] }>(
+  function PitchView({ match, roster = [] }, ref) {
   const displayMatch = roster.length > 0 ? enrichMatchWithRoster(match, roster) : match;
   const teamASize = displayMatch.teamA.players.length;
   const teamBSize = displayMatch.teamB.players.length;
@@ -244,18 +246,19 @@ export function PitchView({ match, roster = [] }: { match: MatchRecord; roster?:
     teamASize === teamBSize
       ? getFormationLabel(teamASize)
       : `${getFormationLabel(teamASize)} / ${getFormationLabel(teamBSize)}`;
+  const matchTitle = (match.name ?? '').trim();
 
   return (
-    <section className="card overflow-hidden p-0 sm:overflow-visible">
+    <section ref={ref} className="card overflow-hidden p-0 sm:overflow-visible">
       <div className="border-b border-slate-200/80 bg-white/90 px-4 py-3">
         <p className="text-sm text-slate-500">Match lineup</p>
-        {match.name.trim() ? (
-          <p className="font-display text-lg font-bold text-slate-900">{match.name.trim()}</p>
+        {matchTitle ? (
+          <p className="font-display text-lg font-bold text-slate-900">{matchTitle}</p>
         ) : null}
         <p
           className={cn(
             'font-display font-bold text-slate-900',
-            match.name.trim() ? 'text-base sm:text-lg' : 'text-lg',
+            matchTitle ? 'text-base sm:text-lg' : 'text-lg',
           )}
         >
           {matchLabel} · {formationLabel} · {formatRatingGap(match.ratingDifference)}
@@ -287,4 +290,5 @@ export function PitchView({ match, roster = [] }: { match: MatchRecord; roster?:
       </div>
     </section>
   );
-}
+},
+);

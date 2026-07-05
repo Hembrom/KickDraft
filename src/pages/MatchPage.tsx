@@ -1,16 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Check, Share2 } from 'lucide-react';
+import { Check, Loader2, Share2 } from 'lucide-react';
 import { PitchView } from '@/components/PitchView';
 import { api, ApiError } from '@/lib/api';
+import { shareMatchLineup } from '@/lib/share-match';
 import { formatDate } from '@/lib/utils';
 import { getMatchSizeLabel, type MatchRecord, type Player } from '@shared/types';
-
-function buildShareText(match: MatchRecord, url: string): string {
-  const sizeLabel = getMatchSizeLabel(match.teamA.players.length, match.teamB.players.length);
-  const title = match.name.trim() || `${sizeLabel} lineup`;
-  return `${title}\n${sizeLabel} · ${formatDate(match.date)}\n${url}`;
-}
 
 export function MatchPage() {
   const { slug = '', matchId = '' } = useParams();
@@ -18,8 +13,10 @@ export function MatchPage() {
   const [match, setMatch] = useState<MatchRecord | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sharing, setSharing] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const lineupRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -36,30 +33,24 @@ export function MatchPage() {
       .finally(() => setLoading(false));
   }, [slug, matchId]);
 
-  async function copyShareLink() {
-    if (!match) return;
-    const text = buildShareText(match, window.location.href);
+  async function handleShare() {
+    if (!match || sharing) return;
+    setSharing(true);
+    setError('');
     try {
-      if (navigator.share && /Mobi|Android/i.test(navigator.userAgent)) {
-        await navigator.share({
-          title: match.name.trim() || groupName,
-          text,
-          url: window.location.href,
-        });
-        return;
-      }
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
-      try {
-        await navigator.clipboard.writeText(text);
+      const result = await shareMatchLineup({
+        match,
+        groupName,
+        captureEl: lineupRef.current,
+      });
+      if (result === 'copied') {
         setCopied(true);
         window.setTimeout(() => setCopied(false), 2000);
-      } catch {
-        setError('Could not copy — copy the URL from your browser bar.');
       }
+    } catch {
+      setError('Could not share — try copying the link from your browser bar.');
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -67,10 +58,21 @@ export function MatchPage() {
     return <p className="text-slate-500">Loading match…</p>;
   }
 
-  if (error || !match) {
+  if (error && !match) {
     return (
       <div className="card p-6">
-        <p className="text-red-600">{error || 'Match not found'}</p>
+        <p className="text-red-600">{error}</p>
+        <Link to={`/${slug}`} className="btn-secondary mt-4 inline-flex">
+          Back to squad
+        </Link>
+      </div>
+    );
+  }
+
+  if (!match) {
+    return (
+      <div className="card p-6">
+        <p className="text-red-600">Match not found</p>
         <Link to={`/${slug}`} className="btn-secondary mt-4 inline-flex">
           Back to squad
         </Link>
@@ -79,7 +81,7 @@ export function MatchPage() {
   }
 
   const matchLabel = getMatchSizeLabel(match.teamA.players.length, match.teamB.players.length);
-  const displayTitle = match.name.trim() || `${matchLabel} lineup`;
+  const displayTitle = (match.name ?? '').trim() || `${matchLabel} lineup`;
 
   return (
     <div className="space-y-6">
@@ -92,9 +94,20 @@ export function MatchPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="btn-primary" onClick={copyShareLink}>
-            {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
-            {copied ? 'Copied' : 'Share match'}
+          <button
+            type="button"
+            className="btn-primary"
+            disabled={sharing}
+            onClick={handleShare}
+          >
+            {sharing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : copied ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <Share2 className="h-4 w-4" />
+            )}
+            {sharing ? 'Preparing…' : copied ? 'Copied' : 'Share match'}
           </button>
           <Link to={`/${slug}`} className="btn-secondary">
             New match
@@ -106,10 +119,13 @@ export function MatchPage() {
       </div>
 
       <p className="text-sm text-slate-600">
-        Share includes the match name and link — anyone can view this lineup for 30 days.
+        Share sends a lineup screenshot plus one link (match name, size, and URL). Works best on
+        mobile via WhatsApp or your share sheet.
       </p>
 
-      <PitchView match={match} roster={players} />
+      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+      <PitchView ref={lineupRef} match={match} roster={players} />
     </div>
   );
 }
