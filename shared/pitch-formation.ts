@@ -1,11 +1,11 @@
 import type { Player, PlayerPosition } from './types';
 
-/** Rows from goal line to attack, e.g. 5-a-side = [1 GK, 2 mid, 2 fwd] */
+/** Rows from goal line to attack (GK → outfield). */
 const FORMATIONS: Record<number, number[]> = {
   5: [1, 2, 2],
-  6: [1, 2, 3],
+  6: [1, 3, 2],
   7: [1, 3, 3],
-  8: [1, 3, 4],
+  8: [1, 2, 3, 1],
   9: [1, 4, 4],
   10: [1, 4, 5],
   11: [1, 4, 4, 2],

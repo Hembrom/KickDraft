@@ -7,7 +7,7 @@ import { api, ApiError } from '@/lib/api';
 import {
   MATCH_FORMATS,
   getPositionsLabel,
-  suggestFormatFromRoster,
+  suggestFormat,
   type MatchRecord,
   type Player,
 } from '@shared/types';
@@ -16,6 +16,7 @@ export function GroupPage() {
   const { slug = '' } = useParams();
   const [groupName, setGroupName] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [format, setFormat] = useState<number | 'auto'>('auto');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -50,21 +51,35 @@ export function GroupPage() {
     );
   }, [players, search]);
 
-  const autoFormat = suggestFormatFromRoster(players.length);
+  const selectedCount = selected.size;
+  const autoFormat = suggestFormat(selectedCount);
   const resolvedFormat = format === 'auto' ? autoFormat : format;
   const playersNeeded = resolvedFormat !== null ? resolvedFormat * 2 : null;
   const canGenerate =
     resolvedFormat !== null &&
     playersNeeded !== null &&
-    players.length >= playersNeeded &&
+    selectedCount === playersNeeded &&
     !generating;
 
+  function togglePlayer(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelected(new Set());
+  }
+
   async function handleGenerate() {
-    if (!resolvedFormat) return;
+    if (!resolvedFormat || selectedCount !== resolvedFormat * 2) return;
     setGenerating(true);
     setError('');
     try {
-      const match = await api.generateMatch(slug, resolvedFormat);
+      const match = await api.generateMatch(slug, Array.from(selected), resolvedFormat);
       setResult(match);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to generate teams');
@@ -94,7 +109,9 @@ export function GroupPage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Squad</p>
           <h1 className="font-display text-3xl font-bold text-slate-900">{groupName}</h1>
-          <p className="mt-1 text-sm text-slate-500">{players.length} players in squad</p>
+          <p className="mt-1 text-sm text-slate-500">
+            {players.length} in squad · {selectedCount} selected for today
+          </p>
         </div>
         <Link to={`/${slug}/history`} className="btn-secondary">
           <History className="h-4 w-4" /> Match history
@@ -114,15 +131,24 @@ export function GroupPage() {
               }}
             >
               <option value="auto">
-                Auto {autoFormat ? `(suggests ${autoFormat}v${autoFormat})` : '(not enough players)'}
+                Auto {autoFormat ? `(suggests ${autoFormat}v${autoFormat})` : '(select an even count)'}
               </option>
               {MATCH_FORMATS.map((f) => (
-                <option key={f} value={f} disabled={players.length < f * 2}>
+                <option key={f} value={f}>
                   {f}v{f} ({f * 2} players)
                 </option>
               ))}
             </select>
           </div>
+
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={selectedCount === 0}
+            onClick={clearSelection}
+          >
+            Clear selection
+          </button>
 
           <button
             type="button"
@@ -135,22 +161,34 @@ export function GroupPage() {
           </button>
         </div>
 
-        {resolvedFormat !== null && playersNeeded !== null && players.length > playersNeeded ? (
+        {resolvedFormat !== null && playersNeeded !== null && selectedCount === 0 ? (
           <p className="mt-3 text-sm text-slate-600">
-            {resolvedFormat}v{resolvedFormat} uses {playersNeeded} players — picked randomly from
-            all {players.length} in the squad.
+            Select who is playing today — pick exactly {playersNeeded} players for{' '}
+            {resolvedFormat}v{resolvedFormat} from the full squad below.
           </p>
         ) : null}
 
-        {resolvedFormat !== null && playersNeeded !== null && players.length === playersNeeded ? (
-          <p className="mt-3 text-sm text-slate-600">
-            Using all {players.length} players for {resolvedFormat}v{resolvedFormat}.
-          </p>
-        ) : null}
-
-        {resolvedFormat === null ? (
+        {selectedCount > 0 && resolvedFormat === null ? (
           <p className="mt-3 text-sm text-amber-700">
-            Need at least {MATCH_FORMATS[0] * 2} players in the squad to generate teams.
+            {selectedCount} selected — choose an even number of players, or pick a manual format.
+          </p>
+        ) : null}
+
+        {selectedCount > 0 && resolvedFormat !== null && playersNeeded !== null && selectedCount !== playersNeeded ? (
+          <p className="mt-3 text-sm text-amber-700">
+            {selectedCount} selected — pick exactly {playersNeeded} for {resolvedFormat}v
+            {resolvedFormat} (
+            {selectedCount > playersNeeded
+              ? `${selectedCount - playersNeeded} too many`
+              : `need ${playersNeeded - selectedCount} more`}
+            ).
+          </p>
+        ) : null}
+
+        {canGenerate ? (
+          <p className="mt-3 text-sm text-emerald-700">
+            Ready — {selectedCount} players selected for {resolvedFormat}v{resolvedFormat}. Teams
+            will be balanced from your pick (not random).
           </p>
         ) : null}
 
@@ -171,7 +209,7 @@ export function GroupPage() {
       <section>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h2 className="inline-flex items-center gap-2 font-display text-xl font-bold">
-            <Users className="h-5 w-5 text-elite-500" /> Squad
+            <Users className="h-5 w-5 text-elite-500" /> Today&apos;s availability
           </h2>
           <input
             className="input max-w-xs"
@@ -186,7 +224,13 @@ export function GroupPage() {
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
             {filtered.map((player) => (
-              <PlayerCard key={player.id} player={player} />
+              <PlayerCard
+                key={player.id}
+                player={player}
+                selectable
+                selected={selected.has(player.id)}
+                onToggle={() => togglePlayer(player.id)}
+              />
             ))}
           </div>
         )}

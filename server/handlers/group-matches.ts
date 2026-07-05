@@ -6,7 +6,7 @@ import {
   saveMatch,
 } from '../lib/storage.js';
 import { error, json, readBody } from '../lib/auth.js';
-import { generateBalancedTeams, pickPlayersForMatch } from '../../shared/team-generator.js';
+import { generateBalancedTeams } from '../../shared/team-generator.js';
 import { slugify, type MatchRecord } from '../../shared/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -26,6 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'POST') {
     const body = await readBody<{ playerIds?: string[]; format?: number }>(req);
+    const playerIds = body.playerIds ?? [];
     const format = Number(body.format);
 
     if (!format || format < 5 || format > 11) {
@@ -33,29 +34,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const needed = format * 2;
-    const { players: allPlayers } = await getGroupPlayers(slug);
-
-    if (allPlayers.length < needed) {
+    if (playerIds.length !== needed) {
       return error(
         res,
         400,
-        `Need at least ${needed} players in the squad for ${format}v${format}`,
+        `Select exactly ${needed} players for ${format}v${format}`,
       );
     }
 
-    let selected = allPlayers;
-    const playerIds = body.playerIds ?? [];
+    const { players: allPlayers } = await getGroupPlayers(slug);
+    const selected = playerIds
+      .map((id) => allPlayers.find((p) => p.id === id))
+      .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
-    if (playerIds.length === needed) {
-      selected = playerIds
-        .map((id) => allPlayers.find((p) => p.id === id))
-        .filter((p): p is NonNullable<typeof p> => Boolean(p));
-
-      if (selected.length !== playerIds.length) {
-        return error(res, 400, 'One or more selected players were not found');
-      }
-    } else {
-      selected = pickPlayersForMatch(allPlayers, needed);
+    if (selected.length !== playerIds.length) {
+      return error(res, 400, 'One or more selected players were not found');
     }
 
     try {
