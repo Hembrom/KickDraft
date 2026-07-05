@@ -32,13 +32,29 @@ export function HomePage() {
             perfect for 5-a-side through 11-a-side kickabouts.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/admin" className="btn-primary">
-              Admin setup <ArrowRight className="h-4 w-4" />
+            <Link to="/newtown-sporting-club" className="btn-primary">
+              Newtown Sporting Club <ArrowRight className="h-4 w-4" />
             </Link>
             <Link to="/guide" className="btn-secondary">
               Captain&apos;s guide
             </Link>
+            <Link to="/admin" className="btn-secondary">
+              Admin setup
+            </Link>
           </div>
+          <p className="mt-4 text-sm text-slate-500">
+            New to this? Read the{' '}
+            <Link to="/guide" className="font-medium text-elite-600 underline-offset-2 hover:underline">
+              captain&apos;s guide
+            </Link>{' '}
+            —{' '}
+            <a
+              href="https://kick-draft.vercel.app/guide"
+              className="font-medium text-elite-600 underline-offset-2 hover:underline"
+            >
+              kick-draft.vercel.app/guide
+            </a>
+          </p>
         </div>
       </section>
 
@@ -57,7 +73,7 @@ export function HomePage() {
           {
             icon: Sparkles,
             title: 'Match day ready',
-            text: 'Select who showed up, pick 5v5–11v11, and kick off.',
+            text: 'Tick who is coming, balance teams, and share the lineup.',
           },
         ].map(({ icon: Icon, title, text }) => (
           <article key={title} className="card p-5">

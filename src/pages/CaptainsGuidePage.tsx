@@ -2,6 +2,9 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 
 const APP_URL = 'https://kick-draft.vercel.app';
+const GUIDE_URL = `${APP_URL}/guide`;
+const NEWTOWN_SLUG = 'newtown-sporting-club';
+const NEWTOWN_URL = `${APP_URL}/${NEWTOWN_SLUG}`;
 
 export function CaptainsGuidePage() {
   return (
@@ -14,19 +17,30 @@ export function CaptainsGuidePage() {
           How to make teams in 5 minutes
         </h1>
         <p className="text-slate-600">
-          Pick who played today → balanced sides → share on WhatsApp. No random picks — you
-          choose the squad.
+          Pick who is coming → balanced sides → share on WhatsApp. No random picks — you choose
+          the squad.
         </p>
-        <a href={APP_URL} className="btn-primary inline-flex">
-          Open SquadBalance <ArrowRight className="h-4 w-4" />
-        </a>
+        <div className="flex flex-wrap gap-3">
+          <Link to={`/${NEWTOWN_SLUG}`} className="btn-primary inline-flex">
+            Open Newtown Sporting Club <ArrowRight className="h-4 w-4" />
+          </Link>
+          <a href={GUIDE_URL} className="btn-secondary inline-flex text-sm">
+            {GUIDE_URL}
+          </a>
+        </div>
       </header>
 
       <section className="card space-y-3 p-5">
         <h2 className="font-display text-lg font-bold">1 · Open your squad</h2>
         <p className="text-sm text-slate-600">
-          Go to <a href={APP_URL} className="font-medium text-elite-600">{APP_URL}</a> and open
-          your club (e.g. Newtown Sporting Club).
+          Go to{' '}
+          <a href={NEWTOWN_URL} className="font-medium text-elite-600">
+            Newtown Sporting Club
+          </a>{' '}
+          —{' '}
+          <a href={NEWTOWN_URL} className="break-all font-medium text-elite-600">
+            {NEWTOWN_URL}
+          </a>
         </p>
       </section>
 
@@ -39,10 +53,10 @@ export function CaptainsGuidePage() {
       </section>
 
       <section className="card space-y-4 p-5">
-        <h2 className="font-display text-lg font-bold">3 · Tick who showed up</h2>
+        <h2 className="font-display text-lg font-bold">3 · Tick who is coming</h2>
         <p className="text-sm text-slate-600">
-          Under <strong>Today&apos;s availability</strong>, tap the checkbox for each player.
-          Only selected players are used — nobody is picked at random.
+          Under <strong>Today&apos;s availability</strong>, tap the checkbox for each player who
+          is coming or will show up. Only selected players are used — nobody is picked at random.
         </p>
         <figure className="overflow-hidden rounded-xl border border-slate-200">
           <img
@@ -51,7 +65,7 @@ export function CaptainsGuidePage() {
             className="w-full"
           />
           <figcaption className="bg-slate-50 px-3 py-2 text-center text-xs text-slate-500">
-            Tick everyone who is playing today
+            Tick everyone who is coming or will show up
           </figcaption>
         </figure>
         <p className="text-sm text-slate-600">
@@ -108,7 +122,7 @@ export function CaptainsGuidePage() {
           <br />
           5v5 · 5 Jul 2026, 13:01
           <br />
-          https://kick-draft.vercel.app/your-club/match/...
+          https://kick-draft.vercel.app/newtown-sporting-club/match/...
         </div>
         <p className="text-xs text-slate-500">
           Anyone with the link can view the lineup for 30 days.
@@ -125,9 +139,9 @@ export function CaptainsGuidePage() {
       </section>
 
       <div className="flex flex-wrap gap-3">
-        <a href={APP_URL} className="btn-primary">
+        <Link to={`/${NEWTOWN_SLUG}`} className="btn-primary">
           Start a match
-        </a>
+        </Link>
         <Link to="/" className="btn-secondary">
           Back home
         </Link>

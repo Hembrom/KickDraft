@@ -1,21 +1,22 @@
 # How to make teams (for captains)
 
-**App:** https://kick-draft.vercel.app  
-**Full guide with pictures:** https://kick-draft.vercel.app/guide
+**Newtown Sporting Club:** https://kick-draft.vercel.app/newtown-sporting-club  
+**Captain's guide (with pictures):** https://kick-draft.vercel.app/guide
 
 ---
 
 ## In 6 steps
 
 ### 1. Open your squad
-Go to the app and open your club page.
+Go to **Newtown Sporting Club**:  
+https://kick-draft.vercel.app/newtown-sporting-club
 
 ### 2. Name the match
 Example: **July 7 - Suresh**  
 This name is used when you share the lineup.
 
-### 3. Tick who showed up
-Under **Today's availability**, tap the checkbox next to each player.  
+### 3. Tick who is coming
+Under **Today's availability**, tap the checkbox for each player who is coming or will show up.  
 **Manual only** — nobody is picked at random.
 
 | Players selected | Match size |
@@ -51,4 +52,4 @@ https://kick-draft.vercel.app/newtown-sporting-club/match/...
 
 ---
 
-*Questions? Share this guide: https://kick-draft.vercel.app/guide*
+*Share this guide: https://kick-draft.vercel.app/guide*

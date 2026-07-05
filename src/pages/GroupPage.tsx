@@ -158,8 +158,8 @@ export function GroupPage() {
 
         {selectedCount === 0 ? (
           <p className="mt-3 text-sm text-slate-600">
-            Tick who is playing today (9–22 players). Size is automatic — 11 selected → 6v5, 12 →
-            6v6, 10 → 5v5.
+            Tick who is coming or will show up (9–22 players). Size is automatic — 11 selected
+            → 6v5, 12 → 6v6, 10 → 5v5.
           </p>
         ) : null}
 
@@ -185,7 +185,8 @@ export function GroupPage() {
               <Users className="h-5 w-5 text-elite-500" /> Today&apos;s availability
             </h2>
             <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-              Tap the checkbox to select who showed up — manual only, no random picks.
+              Tap the checkbox for each player who is coming or will show up — manual only, no
+              random picks.
             </p>
           </div>
           <input
