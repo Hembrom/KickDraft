@@ -1,4 +1,4 @@
-import { del, get, list, put } from '@vercel/blob';
+import { del, get, head, list, put } from '@vercel/blob';
 import { readFile } from 'node:fs/promises';
 import {
   normalizePositions,
@@ -11,14 +11,17 @@ import {
 } from '../../shared/types.js';
 import {
   listMatchesLocal,
+  listPlayerFilesLocal,
   purgeOldMatchesLocal,
   readJsonLocal,
   resolveLocalFilePath,
+  deleteJsonLocal,
   uploadImageLocal,
   writeJsonLocal,
 } from './local-storage.js';
 
 const GROUPS_INDEX = 'groups/index.json';
+const LEGACY_PLAYERS_FILE = 'players.json';
 
 function useLocalStorage() {
   // Local disk is only for offline dev. Vercel Blob uses BLOB_READ_WRITE_TOKEN
@@ -44,15 +47,81 @@ function playerImageApiPath(slug: string, playerId: string, extension: string) {
   return `/api/groups/${slug}/images/${playerId}.${extension}`;
 }
 
+function playerFilePath(slug: string, playerId: string) {
+  return groupPath(slug, 'players', `${playerId}.json`);
+}
+
+function normalizePlayerRecord(player: Player): Player {
+  const raw = player as Player & { position?: PlayerPosition };
+  return {
+    ...raw,
+    positions: normalizePositions(raw.positions, raw.position),
+  };
+}
+
 function normalizePlayersData(data: GroupPlayers | null): GroupPlayers {
-  const players = (data?.players ?? []).map((player) => {
-    const raw = player as Player & { position?: PlayerPosition };
-    return {
-      ...raw,
-      positions: normalizePositions(raw.positions, raw.position),
-    };
-  });
-  return { players };
+  return { players: (data?.players ?? []).map(normalizePlayerRecord) };
+}
+
+function sortPlayers(players: Player[]) {
+  return [...players].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+async function readLegacyGroupPlayers(slug: string): Promise<GroupPlayers> {
+  const data = await readJsonBlob<GroupPlayers>(groupPath(slug, LEGACY_PLAYERS_FILE));
+  return normalizePlayersData(data);
+}
+
+async function listPlayerRecordsFromBlob(slug: string): Promise<Player[]> {
+  const prefix = `${groupPath(slug, 'players')}/`;
+  const { blobs } = await list({ prefix });
+
+  const players = await Promise.all(
+    blobs
+      .filter((blob) => blob.pathname.endsWith('.json'))
+      .map(async (blob) => {
+        try {
+          const text = await readBlobText(blob.pathname);
+          if (!text) return null;
+          return normalizePlayerRecord(JSON.parse(text) as Player);
+        } catch {
+          return null;
+        }
+      }),
+  );
+
+  return players.filter((p): p is Player => p !== null);
+}
+
+async function listPlayerRecordsLocal(slug: string): Promise<Player[]> {
+  const files = await listPlayerFilesLocal(slug);
+  const players = await Promise.all(
+    files.map(async (file) => {
+      const data = await readJsonLocal<Player>(`groups/${slug}/players/${file}`);
+      return data ? normalizePlayerRecord(data) : null;
+    }),
+  );
+  return players.filter((p): p is Player => p !== null);
+}
+
+async function migrateLegacyPlayersFile(slug: string, players: Player[]) {
+  if (players.length === 0) return;
+
+  await Promise.all(
+    players.map((player) => writeJsonBlob(playerFilePath(slug, player.id), player)),
+  );
+
+  if (useLocalStorage()) {
+    await deleteJsonLocal(groupPath(slug, LEGACY_PLAYERS_FILE));
+    return;
+  }
+
+  try {
+    const legacy = await head(groupPath(slug, LEGACY_PLAYERS_FILE));
+    if (legacy) await del(legacy.url);
+  } catch {
+    // legacy file already removed
+  }
 }
 
 async function readBlobText(pathname: string): Promise<string | null> {
@@ -105,31 +174,58 @@ export async function saveGroupMeta(meta: GroupMeta) {
 }
 
 export async function getGroupPlayers(slug: string): Promise<GroupPlayers> {
-  const data = await readJsonBlob<GroupPlayers>(groupPath(slug, 'players.json'));
-  return normalizePlayersData(data);
-}
-
-export async function saveGroupPlayers(slug: string, data: GroupPlayers) {
-  await writeJsonBlob(groupPath(slug, 'players.json'), data);
-}
-
-export async function mutateGroupPlayers(
-  slug: string,
-  mutate: (players: Player[]) => Player[],
-): Promise<GroupPlayers> {
-  const pathname = groupPath(slug, 'players.json');
-
   if (useLocalStorage()) {
-    const current = normalizePlayersData(await readJsonLocal<GroupPlayers>(pathname));
-    const next = { players: mutate([...current.players]) };
-    await writeJsonLocal(pathname, next);
-    return next;
+    const fromFiles = await listPlayerRecordsLocal(slug);
+    if (fromFiles.length > 0) {
+      return { players: sortPlayers(fromFiles) };
+    }
+
+    const legacy = await readLegacyGroupPlayers(slug);
+    if (legacy.players.length > 0) {
+      await migrateLegacyPlayersFile(slug, legacy.players);
+    }
+    return legacy;
   }
 
-  const current = normalizePlayersData(await readJsonBlob<GroupPlayers>(pathname));
-  const next = { players: mutate([...current.players]) };
-  await writeJsonBlob(pathname, next);
-  return next;
+  const fromFiles = await listPlayerRecordsFromBlob(slug);
+  if (fromFiles.length > 0) {
+    return { players: sortPlayers(fromFiles) };
+  }
+
+  const legacy = await readLegacyGroupPlayers(slug);
+  if (legacy.players.length > 0) {
+    await migrateLegacyPlayersFile(slug, legacy.players);
+    return legacy;
+  }
+
+  return { players: [] };
+}
+
+export async function savePlayerRecord(slug: string, player: Player) {
+  const record = normalizePlayerRecord(player);
+  await writeJsonBlob(playerFilePath(slug, record.id), record);
+}
+
+export async function deletePlayerRecord(slug: string, playerId: string) {
+  const pathname = playerFilePath(slug, playerId);
+
+  if (useLocalStorage()) {
+    await deleteJsonLocal(pathname);
+    return;
+  }
+
+  try {
+    const meta = await head(pathname);
+    if (meta) await del(meta.url);
+  } catch {
+    // already deleted
+  }
+}
+
+export async function saveGroupPlayers(slug: string, _data: GroupPlayers) {
+  // Groups start with no player files; legacy combined file is no longer written.
+  void slug;
+  void _data;
 }
 
 export async function uploadPlayerImage(

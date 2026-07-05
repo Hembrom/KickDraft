@@ -95,4 +95,22 @@ export function resolveLocalFilePath(relativePath: string) {
   return resolved;
 }
 
+export async function listPlayerFilesLocal(slug: string): Promise<string[]> {
+  const dir = toDiskPath(`groups/${slug}/players`);
+  try {
+    const files = await readdir(dir);
+    return files.filter((f) => f.endsWith('.json'));
+  } catch {
+    return [];
+  }
+}
+
+export async function deleteJsonLocal(pathname: string) {
+  try {
+    await unlink(toDiskPath(pathname));
+  } catch {
+    // already gone
+  }
+}
+
 export type { GroupMeta, GroupPlayers, GroupsIndex, MatchRecord };
