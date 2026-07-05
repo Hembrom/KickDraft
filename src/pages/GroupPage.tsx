@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { History, Shuffle, Users } from 'lucide-react';
-import { PitchView } from '@/components/PitchView';
 import { PlayerCard } from '@/components/PlayerCard';
 import { api, ApiError } from '@/lib/api';
 import {
@@ -10,12 +9,12 @@ import {
   getPositionsLabel,
   resolveTeamSizes,
   suggestFormat,
-  type MatchRecord,
   type Player,
 } from '@shared/types';
 
 export function GroupPage() {
   const { slug = '' } = useParams();
+  const navigate = useNavigate();
   const [groupName, setGroupName] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -24,7 +23,6 @@ export function GroupPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<MatchRecord | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -84,7 +82,7 @@ export function GroupPage() {
     setError('');
     try {
       const match = await api.generateMatch(slug, Array.from(selected), resolvedFormat);
-      setResult(match);
+      navigate(`/${slug}/match/${match.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to generate teams');
     } finally {
@@ -197,17 +195,6 @@ export function GroupPage() {
 
         {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
       </section>
-
-      {result ? (
-        <section className="space-y-4">
-          <div className="flex justify-end">
-            <button type="button" className="btn-secondary" onClick={() => setResult(null)}>
-              Clear result
-            </button>
-          </div>
-          <PitchView match={result} roster={players} />
-        </section>
-      ) : null}
 
       <section>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">

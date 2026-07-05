@@ -1,23 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { PitchView } from '@/components/PitchView';
 import { api, ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
-import { getMatchSizeLabel, roundRating, type MatchRecord, type Player } from '@shared/types';
+import { formatRatingGap, getMatchSizeLabel, type MatchRecord } from '@shared/types';
 
 export function HistoryPage() {
   const { slug = '' } = useParams();
   const [matches, setMatches] = useState<MatchRecord[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    Promise.all([api.getMatches(slug), api.getGroup(slug)])
-      .then(([matchData, groupData]) => {
+    api
+      .getMatches(slug)
+      .then((matchData) => {
         setMatches(matchData.matches);
-        setPlayers(groupData.players);
       })
       .catch((err: unknown) => {
         setError(err instanceof ApiError ? err.message : 'Failed to load history');
@@ -46,30 +43,20 @@ export function HistoryPage() {
       ) : (
         <div className="space-y-3">
           {matches.map((match) => (
-            <article key={match.id} className="card overflow-hidden">
-              <button
-                type="button"
-                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-elite-50/60"
-                onClick={() => setExpanded(expanded === match.id ? null : match.id)}
-              >
-                <div>
-                  <p className="font-semibold text-slate-900">
-                    {getMatchSizeLabel(match.teamA.players.length, match.teamB.players.length)} · diff{' '}
-                    {roundRating(match.ratingDifference)}
-                  </p>
-                  <p className="text-xs text-slate-500">{formatDate(match.date)}</p>
-                </div>
-                <span className="text-xs font-medium text-elite-600">
-                  {expanded === match.id ? 'Hide' : 'View'}
-                </span>
-              </button>
-
-              {expanded === match.id ? (
-                <div className="border-t border-slate-200 p-4">
-                  <PitchView match={match} roster={players} />
-                </div>
-              ) : null}
-            </article>
+            <Link
+              key={match.id}
+              to={`/${slug}/match/${match.id}`}
+              className="card flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-elite-50/60"
+            >
+              <div>
+                <p className="font-semibold text-slate-900">
+                  {getMatchSizeLabel(match.teamA.players.length, match.teamB.players.length)} ·{' '}
+                  {formatRatingGap(match.ratingDifference)}
+                </p>
+                <p className="text-xs text-slate-500">{formatDate(match.date)}</p>
+              </div>
+              <span className="text-xs font-medium text-elite-600">View</span>
+            </Link>
           ))}
         </div>
       )}

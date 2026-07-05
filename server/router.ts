@@ -6,6 +6,7 @@ import adminGroupUpload from './handlers/admin-group-upload.js';
 import groupsList from './handlers/groups-list.js';
 import groupDetail from './handlers/group-detail.js';
 import groupMatches from './handlers/group-matches.js';
+import groupMatchDetail from './handlers/group-match-detail.js';
 import groupImage from './handlers/group-image.js';
 import cronPurgeMatches from './handlers/cron-purge-matches.js';
 import { error } from './lib/auth.js';
@@ -25,6 +26,12 @@ const routes: Route[] = [
   { method: 'POST', regex: /^\/api\/admin\/groups$/, handler: adminGroups, params: [] },
   { method: 'GET', regex: /^\/api\/groups$/, handler: groupsList, params: [] },
   { method: 'GET', regex: /^\/api\/groups\/([^/]+)$/, handler: groupDetail, params: ['slug'] },
+  {
+    method: 'GET',
+    regex: /^\/api\/groups\/([^/]+)\/matches\/([^/]+)$/,
+    handler: groupMatchDetail,
+    params: ['slug', 'matchId'],
+  },
   {
     method: 'GET',
     regex: /^\/api\/groups\/([^/]+)\/matches$/,

@@ -128,6 +128,11 @@ export function roundRating(value: number): number {
   return Math.round(value);
 }
 
+/** Human-readable label for how far apart the two teams' total OVR is. */
+export function formatRatingGap(difference: number): string {
+  return `${roundRating(difference)} OVR gap`;
+}
+
 export function calculateOvr(stats: PlayerStats): number {
   const sum =
     stats.pace +

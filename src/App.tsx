@@ -5,6 +5,7 @@ import { AdminGroupPage } from '@/pages/AdminGroupPage';
 import { AdminLoginPage } from '@/pages/AdminLoginPage';
 import { GroupPage } from '@/pages/GroupPage';
 import { HistoryPage } from '@/pages/HistoryPage';
+import { MatchPage } from '@/pages/MatchPage';
 import { HomePage } from '@/pages/HomePage';
 import { getAdminToken } from '@/lib/utils';
 
@@ -36,6 +37,7 @@ export default function App() {
           }
         />
         <Route path="/:slug/history" element={<HistoryPage />} />
+        <Route path="/:slug/match/:matchId" element={<MatchPage />} />
         <Route path="/:slug" element={<GroupPage />} />
       </Routes>
     </Layout>

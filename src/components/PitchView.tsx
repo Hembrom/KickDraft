@@ -1,4 +1,4 @@
-import { roundRating, getMatchSizeLabel } from '@shared/types';
+import { formatRatingGap, getMatchSizeLabel, roundRating } from '@shared/types';
 import { enrichMatchWithRoster } from '@shared/match-utils';
 import { assignPitchRows, getFormationLabel, getPitchSlotRole } from '@shared/pitch-formation';
 import type { GeneratedTeam, MatchRecord, Player } from '@shared/types';
@@ -80,7 +80,10 @@ export function PitchView({ match, roster = [] }: { match: MatchRecord; roster?:
       <div className="border-b border-slate-200/80 bg-white/90 px-4 py-3">
         <p className="text-sm text-slate-500">Match lineup</p>
         <p className="font-display text-lg font-bold text-slate-900">
-          {matchLabel} · {formationLabel} · Rating diff {roundRating(match.ratingDifference)}
+          {matchLabel} · {formationLabel} · {formatRatingGap(match.ratingDifference)}
+        </p>
+        <p className="mt-0.5 text-xs text-slate-500">
+          Team strength gap — sum of each team&apos;s OVR ratings. Lower means a fairer split.
         </p>
       </div>
 

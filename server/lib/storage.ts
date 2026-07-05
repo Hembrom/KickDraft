@@ -394,6 +394,23 @@ export async function listMatches(slug: string): Promise<MatchRecord[]> {
   return (data ?? []).map((row) => rowToMatch(row as MatchRow));
 }
 
+export async function getMatch(slug: string, matchId: string): Promise<MatchRecord | null> {
+  if (useLocalStorage()) {
+    return readJsonLocal<MatchRecord>(groupPath(slug, 'matches', `${matchId}.json`));
+  }
+
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('matches')
+    .select('*')
+    .eq('group_slug', slug)
+    .eq('id', matchId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? rowToMatch(data as MatchRow) : null;
+}
+
 export async function purgeOldMatches(days = 30) {
   if (useLocalStorage()) return purgeOldMatchesLocal(days);
 
