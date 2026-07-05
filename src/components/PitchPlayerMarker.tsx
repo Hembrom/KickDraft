@@ -63,10 +63,12 @@ export function PitchPlayerMarker({
   player,
   pitchRole,
   className,
+  compact = false,
 }: {
   player: Player;
   pitchRole?: PlayerPosition;
   className?: string;
+  compact?: boolean;
 }) {
   const p = normalizePlayer(player);
   const markerRef = useRef<HTMLDivElement>(null);
@@ -99,7 +101,8 @@ export function PitchPlayerMarker({
       <div
         ref={markerRef}
         className={cn(
-          'relative z-10 flex w-[76px] flex-col items-center',
+          'relative z-10 flex flex-col items-center',
+          compact ? 'w-[54px]' : 'w-[76px]',
           open && 'z-50',
           className,
         )}
@@ -108,17 +111,27 @@ export function PitchPlayerMarker({
         onFocus={showPopup}
         onBlur={hidePopup}
       >
-        <div className="relative h-[52px] w-[52px] overflow-hidden rounded-full border-2 border-white/90 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.35)] ring-1 ring-black/10 sm:h-14 sm:w-14">
+        <div
+          className={cn(
+            'relative overflow-hidden rounded-full border-2 border-white/90 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.35)] ring-1 ring-black/10',
+            compact ? 'h-10 w-10' : 'h-[52px] w-[52px] sm:h-14 sm:w-14',
+          )}
+        >
           {p.photoUrl ? (
             <img src={p.photoUrl} alt="" className="h-full w-full object-cover object-top" />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-400">
-              <User className="h-6 w-6" strokeWidth={1.5} />
+              <User className={compact ? 'h-4 w-4' : 'h-6 w-6'} strokeWidth={1.5} />
             </div>
           )}
         </div>
 
-        <p className="mt-1.5 max-w-[88px] truncate text-center text-[9px] font-bold uppercase tracking-wide text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] sm:text-[10px]">
+        <p
+          className={cn(
+            'mt-1 max-w-full truncate text-center font-bold uppercase tracking-wide text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]',
+            compact ? 'text-[7px] leading-tight' : 'text-[9px] sm:text-[10px]',
+          )}
+        >
           {displayName(p.name)}
         </p>
       </div>

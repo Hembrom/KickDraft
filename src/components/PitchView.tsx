@@ -8,6 +8,10 @@ import { PitchPlayerMarker } from './PitchPlayerMarker';
 type PitchLayout = 'horizontal' | 'vertical';
 type TeamSide = 'left' | 'right' | 'top' | 'bottom';
 
+function teamRowCount(team: GeneratedTeam, teamSize: number) {
+  return assignPitchRows(team.players, teamSize).length;
+}
+
 function TeamHalf({
   team,
   teamSize,
@@ -29,27 +33,27 @@ function TeamHalf({
     const displayRows = side === 'top' ? rows : [...rows].reverse();
 
     return (
-      <div className="relative flex flex-1 flex-col px-3 py-4 sm:px-4">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-1 py-1">
         <div
           className={cn(
-            'pointer-events-none absolute flex flex-col gap-0.5',
-            side === 'top' ? 'left-3 top-2 items-start' : 'bottom-2 left-3 items-start',
+            'pointer-events-none absolute z-20 flex flex-col gap-0.5',
+            side === 'top' ? 'left-2 top-1 items-start' : 'bottom-1 left-2 items-start',
           )}
         >
           <span
             className={cn(
-              'rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/90',
+              'rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white/90',
               teamColor,
             )}
           >
             {team.name}
           </span>
-          <span className="text-[10px] font-medium text-white/70">
+          <span className="text-[9px] font-medium text-white/70">
             OVR {roundRating(team.averageRating)}
           </span>
         </div>
 
-        <div className="flex flex-1 flex-col items-stretch justify-around gap-2 pt-6">
+        <div className="flex min-h-0 flex-1 flex-col justify-evenly gap-0.5 px-1 py-5">
           {displayRows.map((row, rowIndex) => {
             const roleIndex = side === 'top' ? rowIndex : rowCount - 1 - rowIndex;
             const slotRole = getPitchSlotRole(roleIndex, rowCount);
@@ -57,10 +61,15 @@ function TeamHalf({
             return (
               <div
                 key={`${side}-row-${rowIndex}`}
-                className="flex flex-row items-center justify-around gap-2 px-1"
+                className="flex min-h-0 flex-row items-end justify-evenly gap-0.5 px-0.5"
               >
                 {row.map((player) => (
-                  <PitchPlayerMarker key={player.id} player={player} pitchRole={slotRole} />
+                  <PitchPlayerMarker
+                    key={player.id}
+                    player={player}
+                    pitchRole={slotRole}
+                    compact
+                  />
                 ))}
               </div>
             );
@@ -133,16 +142,19 @@ function PitchField({
   teamBSize: number;
 }) {
   const isVertical = layout === 'vertical';
+  const maxRows = Math.max(teamRowCount(teamA, teamASize), teamRowCount(teamB, teamBSize));
+  const mobileHeight = Math.max(540, 100 + maxRows * 2 * 58);
 
   return (
     <div
       className={cn(
-        'relative mx-auto w-full overflow-visible',
+        'relative mx-auto w-full',
         isVertical
-          ? 'flex min-h-[480px] max-w-lg flex-col aspect-[3/4]'
-          : 'min-h-[280px] min-w-[920px] max-w-7xl aspect-[2/1]',
+          ? 'flex max-w-lg flex-col overflow-hidden'
+          : 'min-h-[280px] min-w-[920px] max-w-7xl overflow-visible aspect-[2/1]',
       )}
       style={{
+        ...(isVertical ? { height: mobileHeight } : {}),
         background: isVertical
           ? `linear-gradient(180deg,
               rgba(34,120,60,0.95) 0%,
@@ -180,16 +192,16 @@ function PitchField({
         }}
       />
 
-      <div className="pointer-events-none absolute inset-3 rounded-lg border-2 border-white/50 sm:inset-4" />
+      <div className="pointer-events-none absolute inset-2 rounded-lg border-2 border-white/50 sm:inset-4" />
 
       {isVertical ? (
         <>
-          <div className="pointer-events-none absolute top-3 right-4 left-4 h-0.5 bg-white/50" />
-          <div className="pointer-events-none absolute top-1/2 right-4 left-4 h-0.5 -translate-y-1/2 bg-white/50" />
-          <div className="pointer-events-none absolute bottom-3 right-4 left-4 h-0.5 bg-white/50" />
-          <div className="pointer-events-none absolute top-1/2 left-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/50" />
-          <div className="pointer-events-none absolute top-3 left-1/2 h-10 w-20 -translate-x-1/2 border-2 border-t-0 border-white/40" />
-          <div className="pointer-events-none absolute bottom-3 left-1/2 h-10 w-20 -translate-x-1/2 border-2 border-b-0 border-white/40" />
+          <div className="pointer-events-none absolute top-2 right-3 left-3 h-0.5 bg-white/50" />
+          <div className="pointer-events-none absolute top-1/2 right-3 left-3 h-0.5 -translate-y-1/2 bg-white/50" />
+          <div className="pointer-events-none absolute bottom-2 right-3 left-3 h-0.5 bg-white/50" />
+          <div className="pointer-events-none absolute top-1/2 left-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/50" />
+          <div className="pointer-events-none absolute top-2 left-1/2 h-8 w-16 -translate-x-1/2 border-2 border-t-0 border-white/40" />
+          <div className="pointer-events-none absolute bottom-2 left-1/2 h-8 w-16 -translate-x-1/2 border-2 border-b-0 border-white/40" />
         </>
       ) : (
         <>
@@ -200,7 +212,12 @@ function PitchField({
         </>
       )}
 
-      <div className={cn('relative flex h-full', isVertical ? 'flex-col' : 'flex-row')}>
+      <div
+        className={cn(
+          'relative flex min-h-0',
+          isVertical ? 'h-full flex-col' : 'h-full flex-row',
+        )}
+      >
         <TeamHalf
           team={teamA}
           teamSize={teamASize}
@@ -229,7 +246,7 @@ export function PitchView({ match, roster = [] }: { match: MatchRecord; roster?:
       : `${getFormationLabel(teamASize)} / ${getFormationLabel(teamBSize)}`;
 
   return (
-    <section className="card overflow-visible p-0">
+    <section className="card overflow-hidden p-0 sm:overflow-visible">
       <div className="border-b border-slate-200/80 bg-white/90 px-4 py-3">
         <p className="text-sm text-slate-500">Match lineup</p>
         <p className="font-display text-base font-bold text-slate-900 sm:text-lg">
@@ -240,7 +257,7 @@ export function PitchView({ match, roster = [] }: { match: MatchRecord; roster?:
         </p>
       </div>
 
-      <div className="px-2 py-4 sm:overflow-x-auto sm:px-4">
+      <div className="overflow-hidden px-2 py-4 sm:overflow-x-auto sm:px-4">
         <div className="sm:hidden">
           <PitchField
             layout="vertical"
