@@ -79,14 +79,11 @@ function pickGoalkeeperIndex(pool: Player[]): number {
 function outfieldCandidates(pool: Player[], gkSlotFilled: boolean): Player[] {
   if (!gkSlotFilled) return pool;
 
-  const hasOutfield = pool.some((player) => !isGoalkeeperOnly(player) && !isGoalkeeper(player));
+  const hasOutfield = pool.some((player) => !isGoalkeeperOnly(player));
   if (!hasOutfield) return pool;
 
-  return pool.filter((player) => {
-    if (isGoalkeeperOnly(player)) return false;
-    if (isGoalkeeper(player)) return false;
-    return true;
-  });
+  // GK-only players stay out of outfield; dual-role (e.g. DEF+GK) can still play outfield.
+  return pool.filter((player) => !isGoalkeeperOnly(player));
 }
 
 export function getFormationLabel(teamSize: number): string {
@@ -130,7 +127,14 @@ export function assignPitchRows(players: Player[], teamSize: number): Player[][]
   }
 
   if (pool.length > 0) {
-    result[result.length - 1].push(...pool);
+    for (let rowIndex = 0; rowIndex < rows.length && pool.length > 0; rowIndex++) {
+      while (result[rowIndex].length < rows[rowIndex] && pool.length > 0) {
+        const gkSlotFilled = result[0].some(isGoalkeeper);
+        const candidates = outfieldCandidates(pool, gkSlotFilled);
+        const pickIndex = pickBestForRow(pool, candidates, rowIndex, rows.length);
+        result[rowIndex].push(takeAt(pickIndex));
+      }
+    }
   }
 
   return result;
