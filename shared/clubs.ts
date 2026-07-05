@@ -6,6 +6,7 @@ export interface FootballClub {
 }
 
 export const FOOTBALL_CLUBS: FootballClub[] = [
+  { id: 'even-club-ratanpur', name: 'Even Club Ratanpur', league: 'Ratanpur', logo: '/clubs/even-club-ratanpur.png' },
   { id: 'real-madrid', name: 'Real Madrid', league: 'La Liga', logo: '/clubs/real-madrid.svg' },
   { id: 'barcelona', name: 'Barcelona', league: 'La Liga', logo: '/clubs/barcelona.svg' },
   { id: 'atletico-madrid', name: 'Atlético Madrid', league: 'La Liga', logo: '/clubs/atletico-madrid.png' },
