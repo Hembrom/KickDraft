@@ -4,11 +4,19 @@ import { cn } from '@/lib/utils';
 import { normalizePlayer, type Player, type PlayerPosition } from '@shared/types';
 import { User } from 'lucide-react';
 import { FutPlayerCard, FUT_CARD_APEX_PAD, FUT_CARD_HEIGHT, FUT_CARD_WIDTH } from './FutPlayerCard';
-const POPUP_SCALE = 1.8;
+const POPUP_SCALE_DESKTOP = 1.8;
+/** Mobile popup is 60% smaller than desktop (40% of desktop scale). */
+const POPUP_SCALE_MOBILE = POPUP_SCALE_DESKTOP * 0.4;
 const VIEWPORT_MARGIN = 12;
+const MOBILE_MQ = '(max-width: 639px)';
 
-function scaledCardHeight() {
-  return (FUT_CARD_HEIGHT + FUT_CARD_APEX_PAD * 2) * POPUP_SCALE;
+function getPopupScale() {
+  if (typeof window === 'undefined') return POPUP_SCALE_DESKTOP;
+  return window.matchMedia(MOBILE_MQ).matches ? POPUP_SCALE_MOBILE : POPUP_SCALE_DESKTOP;
+}
+
+function scaledCardHeight(scale: number) {
+  return (FUT_CARD_HEIGHT + FUT_CARD_APEX_PAD * 2) * scale;
 }
 
 function displayName(name: string): string {
@@ -25,9 +33,9 @@ interface PopupCoords {
   placement: PopupPlacement;
 }
 
-function computePopupCoords(rect: DOMRect): PopupCoords {
-  const scaledW = FUT_CARD_WIDTH * POPUP_SCALE;
-  const scaledH = scaledCardHeight();
+function computePopupCoords(rect: DOMRect, scale: number): PopupCoords {
+  const scaledW = FUT_CARD_WIDTH * scale;
+  const scaledH = scaledCardHeight(scale);
   const gap = 10;
   const centerX = rect.left + rect.width / 2;
 
@@ -75,11 +83,14 @@ export function PitchPlayerMarker({
   const leaveTimerRef = useRef<number | undefined>(undefined);
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<PopupCoords | null>(null);
+  const [popupScale, setPopupScale] = useState(POPUP_SCALE_DESKTOP);
 
   const updatePosition = useCallback(() => {
     const rect = markerRef.current?.getBoundingClientRect();
     if (!rect) return;
-    setCoords(computePopupCoords(rect));
+    const scale = getPopupScale();
+    setPopupScale(scale);
+    setCoords(computePopupCoords(rect, scale));
   }, []);
 
   const showPopup = useCallback(() => {
@@ -145,8 +156,8 @@ export function PitchPlayerMarker({
                 top: coords.top,
                 transform:
                   coords.placement === 'above'
-                    ? `translate(-50%, -100%) scale(${POPUP_SCALE})`
-                    : `translate(-50%, 0) scale(${POPUP_SCALE})`,
+                    ? `translate(-50%, -100%) scale(${popupScale})`
+                    : `translate(-50%, 0) scale(${popupScale})`,
                 transformOrigin:
                   coords.placement === 'above' ? 'bottom center' : 'top center',
               }}
