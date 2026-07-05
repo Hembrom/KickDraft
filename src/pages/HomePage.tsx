@@ -49,7 +49,7 @@ export function HomePage() {
           {
             icon: Trophy,
             title: 'Smart balancing',
-            text: 'Teams are split by OVR with slight randomness so rematches feel fresh.',
+            text: 'You choose who plays; teams are split fairly from your selected squad.',
           },
           {
             icon: Sparkles,

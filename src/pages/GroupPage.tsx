@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { History, Shuffle, Users } from 'lucide-react';
+import { History, Users, UsersRound } from 'lucide-react';
 import { PlayerCard } from '@/components/PlayerCard';
 import { api, ApiError } from '@/lib/api';
 import {
@@ -158,15 +158,16 @@ export function GroupPage() {
             disabled={!canGenerate}
             onClick={handleGenerate}
           >
-            <Shuffle className="h-4 w-4" />
-            {generating ? 'Generating…' : 'Generate teams'}
+            <UsersRound className="h-4 w-4" />
+            {generating ? 'Generating…' : 'Balance teams'}
           </button>
         </div>
 
         {resolvedFormat !== null && playerRange !== null && selectedCount === 0 ? (
           <p className="mt-3 text-sm text-slate-600">
-            Select who is playing today — pick {playerRange.min}–{playerRange.max} players for{' '}
-            {resolvedFormat}v{resolvedFormat} (e.g. 11 selected → 5v6).
+            Tick the checkbox next to each player who is playing today — pick{' '}
+            {playerRange.min}–{playerRange.max} for {resolvedFormat}v{resolvedFormat} (e.g. 11 → 5v6).
+            Only your selection is used; nobody is picked at random.
           </p>
         ) : null}
 
@@ -198,9 +199,14 @@ export function GroupPage() {
 
       <section>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="inline-flex items-center gap-2 font-display text-xl font-bold">
-            <Users className="h-5 w-5 text-elite-500" /> Today&apos;s availability
-          </h2>
+          <div>
+            <h2 className="inline-flex items-center gap-2 font-display text-xl font-bold">
+              <Users className="h-5 w-5 text-elite-500" /> Today&apos;s availability
+            </h2>
+            <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+              Tap the checkbox to select who showed up — manual only, no random picks.
+            </p>
+          </div>
           <input
             className="input max-w-xs"
             placeholder="Search players…"

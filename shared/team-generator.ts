@@ -78,14 +78,6 @@ export function generateBalancedTeams(
   return { teamA, teamB, ratingDifference };
 }
 
-export function pickPlayersForMatch(players: Player[], count: number): Player[] {
-  if (players.length < count) {
-    throw new Error(`Need at least ${count} players in the squad`);
-  }
-  if (players.length === count) return [...players];
-  return shuffle([...players]).slice(0, count);
-}
-
 export function withRecalculatedOvr(player: Omit<Player, 'ovr'> & { ovr?: number }): Player {
   const ovr = calculateOvr(player);
   return { ...player, ovr };

@@ -33,6 +33,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return error(res, 400, 'Format must be between 5 and 11');
     }
 
+    if (playerIds.length === 0) {
+      return error(res, 400, 'Select players manually — tick who is playing today');
+    }
+
     const split = resolveTeamSizes(format, playerIds.length);
     if (!split) {
       const min = format * 2 - 1;
