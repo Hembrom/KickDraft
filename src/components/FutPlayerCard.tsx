@@ -182,44 +182,56 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
           >
             <div
               className={cn(
-                'relative flex shrink-0 items-start gap-1',
-                compact ? 'h-[58px]' : 'h-[70px]',
+                'grid shrink-0 grid-cols-[auto_minmax(0,1fr)] items-stretch',
+                compact ? 'h-[60px] gap-x-2' : 'h-[72px] gap-x-2.5',
               )}
             >
               <div
                 className={cn(
-                  'relative z-10 shrink-0 leading-none text-[#2f2410]',
-                  compact ? 'w-[38px]' : 'w-[44px]',
+                  'relative z-10 flex flex-col items-start justify-start border-r border-[#5c4a14]/25 text-[#2f2410]',
+                  compact ? 'w-[42px] shrink-0 pr-2' : 'w-[48px] shrink-0 pr-2.5',
                 )}
               >
-                <p className={cn('font-bold tabular-nums tracking-tight', compact ? 'text-[24px]' : 'text-[30px]')}>
+                <p
+                  className={cn(
+                    'w-full text-left font-bold tabular-nums leading-none tracking-tight',
+                    compact ? 'text-[22px]' : 'text-[28px]',
+                  )}
+                >
                   {roundRating(p.ovr)}
                 </p>
-                <p className={cn('mt-0.5 font-bold tracking-wider', compact ? 'text-[9px]' : 'text-[10px]')}>
+                <p
+                  className={cn(
+                    'mt-1 w-full text-left font-bold leading-none tracking-wider',
+                    compact ? 'text-[9px]' : 'text-[10px]',
+                  )}
+                >
                   {position}
                 </p>
-                {p.clubLogoUrl ? (
-                  <img
-                    src={p.clubLogoUrl}
-                    alt=""
-                    className={cn('mt-0.5 object-contain', compact ? 'h-[16px] w-[16px]' : 'h-[18px] w-[18px]')}
-                  />
-                ) : (
-                  <div
-                    className={cn(
-                      'mt-0.5 rounded-full bg-[#2f2410]/10',
-                      compact ? 'h-[16px] w-[16px]' : 'h-[18px] w-[18px]',
-                    )}
-                  />
-                )}
+                <div className={cn('mt-1 flex w-full items-center justify-start', compact ? 'h-4' : 'h-[18px]')}>
+                  {p.clubLogoUrl ? (
+                    <img
+                      src={p.clubLogoUrl}
+                      alt=""
+                      className={cn('object-contain', compact ? 'h-4 w-4' : 'h-[18px] w-[18px]')}
+                    />
+                  ) : (
+                    <div
+                      className={cn(
+                        'rounded-full bg-[#2f2410]/10',
+                        compact ? 'h-4 w-4' : 'h-[18px] w-[18px]',
+                      )}
+                    />
+                  )}
+                </div>
               </div>
 
-              <div className="relative min-w-0 flex-1 self-stretch overflow-hidden">
+              <div className="relative min-w-0 overflow-hidden">
                 {p.photoUrl ? (
                   <img
                     src={p.photoUrl}
                     alt=""
-                    className="absolute inset-0 h-full w-full object-cover object-top"
+                    className="h-full w-full object-cover object-[center_15%]"
                   />
                 ) : (
                   <div className="flex h-full w-full items-end justify-center pb-1 text-[#2f2410]/25">
