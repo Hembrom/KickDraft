@@ -25,8 +25,9 @@ const RIGHT_STATS: { key: keyof PlayerStats; label: string }[] = [
   { key: 'physicality', label: 'PHY' },
 ];
 
-const SHIELD_CLIP =
-  'polygon(50% 0%, 100% 6%, 100% 77%, 50% 91%, 0% 77%, 0% 6%)';
+/** Shield outline — shoulder at 7% keeps the top chevron readable at small sizes. */
+const SHIELD_SHOULDER = 0.07;
+const SHIELD_CLIP = `polygon(50% 0%, 100% ${SHIELD_SHOULDER * 100}%, 100% 77%, 50% 91%, 0% 77%, 0% ${SHIELD_SHOULDER * 100}%)`;
 
 const GOLD_FRAME = `
   linear-gradient(145deg, #fff0a8 0%, #e8c547 22%, #c99818 48%, #f3dd78 72%, #a67c00 100%)
@@ -41,29 +42,36 @@ function displayName(name: string): string {
   return (parts.length > 1 ? parts[parts.length - 1] : parts[0]).toUpperCase();
 }
 
+function shieldPaths(w: number, h: number, inset = 0) {
+  const sy = h * SHIELD_SHOULDER;
+  const apex = w / 2;
+  return {
+    outer: `M ${apex} 0 L ${w - inset} ${sy + inset * 1.1} L ${w - inset} ${h * 0.77 - inset * 0.4} L ${apex} ${h * 0.91 - inset * 0.9} L ${inset} ${h * 0.77 - inset * 0.4} L ${inset} ${sy + inset * 1.1} Z`,
+  };
+}
+
 function CardBorderOverlay({ compact }: { compact: boolean }) {
   const w = compact ? 124 : 148;
   const h = compact ? 196 : 236;
-  const path = `M ${w / 2} 0 L ${w} ${h * 0.06} L ${w} ${h * 0.77} L ${w / 2} ${h * 0.91} L 0 ${h * 0.77} L 0 ${h * 0.06} Z`;
-  const inset = compact ? 4 : 5;
-  const innerPath = `M ${w / 2} ${inset * 0.15} L ${w - inset} ${h * 0.06 + inset * 0.25} L ${w - inset} ${h * 0.77 - inset * 0.5} L ${w / 2} ${h * 0.91 - inset} L ${inset} ${h * 0.77 - inset * 0.5} L ${inset} ${h * 0.06 + inset * 0.25} Z`;
+  const outer = shieldPaths(w, h, 0).outer;
+  const inner = shieldPaths(w, h, compact ? 3.5 : 4).outer;
 
   return (
     <svg
       className="pointer-events-none absolute inset-0 h-full w-full"
       viewBox={`0 0 ${w} ${h}`}
-      preserveAspectRatio="none"
+      preserveAspectRatio="xMidYMid meet"
       aria-hidden
     >
-      <path d={path} fill="none" stroke="#120e06" strokeWidth={compact ? 4 : 4.5} strokeLinejoin="round" />
-      <path d={path} fill="none" stroke="#f5e08a" strokeWidth={compact ? 1.8 : 2} strokeLinejoin="round" />
+      <path d={outer} fill="none" stroke="#120e06" strokeWidth={compact ? 3.5 : 4} strokeLinejoin="miter" />
+      <path d={outer} fill="none" stroke="#f5e08a" strokeWidth={compact ? 1.4 : 1.6} strokeLinejoin="miter" />
       <path
-        d={innerPath}
+        d={inner}
         fill="none"
         stroke="#3d2f0a"
-        strokeWidth={compact ? 1.2 : 1.4}
-        strokeLinejoin="round"
-        opacity={0.85}
+        strokeWidth={compact ? 1 : 1.2}
+        strokeLinejoin="miter"
+        opacity={0.9}
       />
     </svg>
   );
@@ -104,8 +112,7 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
       ? 'GK'
       : (p.positions[0] ?? 'MID');
   const compact = size === 'sm';
-  const frameInset = compact ? 5 : 6;
-  const ringInset = compact ? 2.5 : 3;
+  const frameInset = compact ? 6 : 7;
 
   return (
     <article
@@ -124,20 +131,15 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
 
         <div
           className="absolute"
-          style={{ inset: ringInset, background: '#1a1206' }}
-        />
-
-        <div
-          className="absolute"
           style={{
-            inset: frameInset,
+            inset: frameInset - 1,
             background: GOLD_INNER,
           }}
         />
 
         <div
           className="absolute overflow-hidden"
-          style={{ inset: frameInset + 1.5 }}
+          style={{ inset: frameInset }}
         >
           <div
             className="absolute inset-0"
@@ -165,28 +167,33 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
           <div
             className={cn(
               'relative flex h-full flex-col',
-              compact ? 'px-2.5 pb-5 pt-4' : 'px-3 pb-5 pt-5',
+              compact ? 'px-2.5 pb-5 pt-[18px]' : 'px-3 pb-5 pt-[22px]',
             )}
           >
-            <div className={cn('relative shrink-0', compact ? 'h-[58px]' : 'h-[72px]')}>
-              <div className={cn('relative z-10 leading-none text-[#2f2410]', compact ? 'w-[36px]' : 'w-[42px]')}>
-                <p className={cn('font-bold tabular-nums tracking-tight', compact ? 'text-[26px]' : 'text-[32px]')}>
+            <div className={cn('relative shrink-0', compact ? 'h-[56px]' : 'h-[68px]')}>
+              <div
+                className={cn(
+                  'relative z-10 leading-none text-[#2f2410]',
+                  compact ? 'w-[34px] pl-0.5' : 'w-[40px] pl-0.5',
+                )}
+              >
+                <p className={cn('font-bold tabular-nums tracking-tight', compact ? 'text-[24px]' : 'text-[30px]')}>
                   {roundRating(p.ovr)}
                 </p>
-                <p className={cn('mt-0.5 font-bold tracking-wider', compact ? 'text-[10px]' : 'text-[11px]')}>
+                <p className={cn('mt-0.5 font-bold tracking-wider', compact ? 'text-[9px]' : 'text-[10px]')}>
                   {position}
                 </p>
                 {p.clubLogoUrl ? (
                   <img
                     src={p.clubLogoUrl}
                     alt=""
-                    className={cn('mt-1 object-contain', compact ? 'h-[18px] w-[18px]' : 'h-[20px] w-[20px]')}
+                    className={cn('mt-0.5 object-contain', compact ? 'h-[16px] w-[16px]' : 'h-[18px] w-[18px]')}
                   />
                 ) : (
                   <div
                     className={cn(
-                      'mt-1 rounded-full bg-[#2f2410]/10',
-                      compact ? 'h-[18px] w-[18px]' : 'h-[20px] w-[20px]',
+                      'mt-0.5 rounded-full bg-[#2f2410]/10',
+                      compact ? 'h-[16px] w-[16px]' : 'h-[18px] w-[18px]',
                     )}
                   />
                 )}
@@ -194,12 +201,20 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
 
               <div
                 className={cn(
-                  'absolute bottom-0 right-0 overflow-hidden',
-                  compact ? 'left-[30px] top-1' : 'left-[36px] top-1.5',
+                  'pointer-events-none absolute bottom-0 right-0 overflow-hidden',
+                  compact ? 'left-[28px]' : 'left-[34px]',
+                  compact ? 'top-[-10px]' : 'top-[-12px]',
                 )}
               >
                 {p.photoUrl ? (
-                  <img src={p.photoUrl} alt="" className="h-full w-full object-cover object-top" />
+                  <img
+                    src={p.photoUrl}
+                    alt=""
+                    className={cn(
+                      'absolute right-0 object-cover object-top',
+                      compact ? 'top-0 h-[118%] w-[105%]' : 'top-0 h-[118%] w-[105%]',
+                    )}
+                  />
                 ) : (
                   <div className="flex h-full w-full items-end justify-center pb-1 text-[#2f2410]/25">
                     <User className={compact ? 'h-10 w-10' : 'h-12 w-12'} strokeWidth={1.25} />
