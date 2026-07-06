@@ -1,7 +1,7 @@
 import { type Ref } from 'react';
-import { formatRatingGap, getMatchSizeLabel, roundRating } from '@shared/types';
+import { getMatchSizeLabel } from '@shared/types';
 import { enrichMatchWithRoster } from '@shared/match-utils';
-import { assignPitchRows, getFormationLabel, getPitchSlotRole } from '@shared/pitch-formation';
+import { assignPitchRows, getPitchSlotRole } from '@shared/pitch-formation';
 import type { GeneratedTeam, MatchRecord, Player } from '@shared/types';
 import { cn } from '@/lib/utils';
 import { PitchPlayerMarker } from './PitchPlayerMarker';
@@ -48,9 +48,6 @@ function TeamHalf({
             )}
           >
             {team.name}
-          </span>
-          <span className="text-[9px] font-medium text-white/70">
-            OVR {roundRating(team.averageRating)}
           </span>
         </div>
 
@@ -102,9 +99,6 @@ function TeamHalf({
           )}
         >
           {team.name}
-        </span>
-        <span className="text-[10px] font-medium text-white/70 sm:text-xs">
-          OVR {roundRating(team.averageRating)}
         </span>
       </div>
 
@@ -249,29 +243,14 @@ export function PitchView({
   const teamASize = displayMatch.teamA.players.length;
   const teamBSize = displayMatch.teamB.players.length;
   const matchLabel = getMatchSizeLabel(teamASize, teamBSize);
-  const formationLabel =
-    teamASize === teamBSize
-      ? getFormationLabel(teamASize)
-      : `${getFormationLabel(teamASize)} / ${getFormationLabel(teamBSize)}`;
   const matchTitle = (match.name ?? '').trim();
 
   return (
     <section className="card overflow-hidden p-0 sm:overflow-visible">
       <div className="border-b border-slate-200/80 bg-white/90 px-4 py-3">
         <p className="text-sm text-slate-500">Match lineup</p>
-        {matchTitle ? (
-          <p className="font-display text-lg font-bold text-slate-900">{matchTitle}</p>
-        ) : null}
-        <p
-          className={cn(
-            'font-display font-bold text-slate-900',
-            matchTitle ? 'text-base sm:text-lg' : 'text-lg',
-          )}
-        >
-          {matchLabel} · {formationLabel} · {formatRatingGap(match.ratingDifference)}
-        </p>
-        <p className="mt-0.5 text-xs text-slate-500">
-          Team strength gap — sum of each team&apos;s OVR ratings. Lower means a fairer split.
+        <p className="font-display text-lg font-bold text-slate-900">
+          {matchTitle || matchLabel}
         </p>
       </div>
 

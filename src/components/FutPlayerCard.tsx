@@ -86,13 +86,21 @@ function StatColumn({
   stats,
   player,
   compact,
+  align,
 }: {
   stats: { key: keyof PlayerStats; label: string }[];
   player: Player;
   compact: boolean;
+  align: 'left' | 'right';
 }) {
   return (
-    <div className={cn('flex flex-col', compact ? 'gap-[2px]' : 'gap-[3px]')}>
+    <div
+      className={cn(
+        'flex flex-col',
+        compact ? 'gap-[2px]' : 'gap-[3px]',
+        align === 'right' && 'items-end text-right',
+      )}
+    >
       {stats.map(({ key, label }) => (
         <div
           key={key}
@@ -240,13 +248,13 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
 
             <div
               className={cn(
-                'mt-1 grid shrink-0 grid-cols-[1fr_auto_1fr] items-start px-1',
-                compact ? 'gap-x-2' : 'gap-x-2.5',
+                'mt-1 flex shrink-0 items-start justify-between',
+                compact ? 'gap-2 px-2' : 'gap-2.5 px-2.5',
               )}
             >
-              <StatColumn stats={LEFT_STATS} player={p} compact={compact} />
+              <StatColumn stats={LEFT_STATS} player={p} compact={compact} align="left" />
               <div className="w-px self-stretch bg-[#5c4a14]/45" />
-              <StatColumn stats={RIGHT_STATS} player={p} compact={compact} />
+              <StatColumn stats={RIGHT_STATS} player={p} compact={compact} align="right" />
             </div>
           </div>
         </div>
