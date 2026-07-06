@@ -66,6 +66,14 @@ export function normalizePositions(
   return unique.slice(0, MAX_PLAYER_POSITIONS);
 }
 
+export function canPlayGoalkeeper(player: Player): boolean {
+  return player.positions.includes('GK');
+}
+
+export function isGoalkeeperOnly(player: Player): boolean {
+  return player.positions.length === 1 && player.positions[0] === 'GK';
+}
+
 export function getPositionsLabel(positions: PlayerPosition[]): string {
   return positions.map((position) => getPositionLabel(position)).join(' / ');
 }

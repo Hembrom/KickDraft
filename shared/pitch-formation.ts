@@ -1,4 +1,5 @@
 import type { Player, PlayerPosition } from './types';
+import { canPlayGoalkeeper, isGoalkeeperOnly } from './types';
 
 /** Rows from goal line to attack (GK → outfield). */
 const FORMATIONS: Record<number, number[]> = {
@@ -12,11 +13,7 @@ const FORMATIONS: Record<number, number[]> = {
 };
 
 function isGoalkeeper(player: Player): boolean {
-  return player.positions.includes('GK');
-}
-
-function isGoalkeeperOnly(player: Player): boolean {
-  return player.positions.length === 1 && player.positions[0] === 'GK';
+  return canPlayGoalkeeper(player);
 }
 
 function outfieldPositions(player: Player): PlayerPosition[] {
@@ -72,8 +69,29 @@ function pickGoalkeeperIndex(pool: Player[]): number {
   const primary = pool.findIndex((player) => player.positions[0] === 'GK');
   if (primary !== -1) return primary;
 
-  const secondary = pool.findIndex(isGoalkeeper);
-  return secondary;
+  return pool.findIndex(isGoalkeeper);
+}
+
+/** Last resort when a team has no GK — avoid FWD-primary players like Amit. */
+function pickEmergencyKeeperIndex(pool: Player[]): number {
+  let bestIndex = 0;
+  let bestScore = -1;
+
+  for (let i = 0; i < pool.length; i++) {
+    const positions = outfieldPositions(pool[i]);
+    let score = 0;
+    if (positions[0] === 'DEF') score = 100;
+    else if (positions.includes('DEF') && positions[0] !== 'FWD') score = 50;
+    else if (positions.includes('DEF')) score = 10;
+    else if (positions[0] === 'MID') score = 5;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = i;
+    }
+  }
+
+  return bestIndex;
 }
 
 function outfieldCandidates(pool: Player[], gkSlotFilled: boolean): Player[] {
@@ -113,8 +131,8 @@ export function assignPitchRows(players: Player[], teamSize: number): Player[][]
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
     while (result[rowIndex].length < rows[rowIndex] && pool.length > 0) {
       if (rowIndex === 0 && result[0].length === 0) {
-        const defIndex = pool.findIndex((player) => player.positions.includes('DEF'));
-        result[0].push(takeAt(defIndex !== -1 ? defIndex : 0));
+        const gkIdx = pickGoalkeeperIndex(pool);
+        result[0].push(takeAt(gkIdx !== -1 ? gkIdx : pickEmergencyKeeperIndex(pool)));
         continue;
       }
 

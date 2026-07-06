@@ -1,4 +1,10 @@
-import { normalizePlayer, type MatchRecord, type Player, type PlayerPosition } from './types';
+import {
+  canPlayGoalkeeper,
+  normalizePlayer,
+  type MatchRecord,
+  type Player,
+  type PlayerPosition,
+} from './types';
 
 export function enrichMatchWithRoster(match: MatchRecord, roster: Player[]): MatchRecord {
   const byId = new Map(roster.map((player) => [player.id, normalizePlayer(player)]));
@@ -22,7 +28,9 @@ export function getPitchDisplayPosition(
   slotRole: PlayerPosition,
 ): PlayerPosition {
   if (slotRole === 'GK') {
-    return player.positions.includes('GK') ? 'GK' : slotRole;
+    if (canPlayGoalkeeper(player)) return 'GK';
+    const outfield = player.positions.filter((pos) => pos !== 'GK');
+    return outfield[0] ?? player.positions[0] ?? 'DEF';
   }
   if (player.positions.includes(slotRole)) return slotRole;
   return player.positions[0] ?? slotRole;
