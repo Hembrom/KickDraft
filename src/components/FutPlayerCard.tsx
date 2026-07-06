@@ -249,7 +249,7 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
             <div
               className={cn(
                 'mt-1 flex shrink-0 items-start justify-between',
-                compact ? 'gap-2 pl-1 pr-2' : 'gap-2.5 pl-1.5 pr-2.5',
+                compact ? 'gap-2 pl-0.5 pr-2' : 'gap-2.5 pl-0.5 pr-2.5',
               )}
             >
               <StatColumn stats={LEFT_STATS} player={p} compact={compact} align="left" />
