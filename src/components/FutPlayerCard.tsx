@@ -19,7 +19,6 @@ const LEFT_STATS: { key: keyof PlayerStats; label: string }[] = [
   { key: 'pace', label: 'PAC' },
   { key: 'shooting', label: 'SHO' },
   { key: 'passing', label: 'PAS' },
-  { key: 'stamina', label: 'STA' },
 ];
 
 const RIGHT_STATS: { key: keyof PlayerStats; label: string }[] = [
@@ -247,15 +246,26 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
               {displayName(p.name)}
             </p>
 
-            <div
-              className={cn(
-                'mt-1 flex shrink-0 items-start justify-between',
-                compact ? 'gap-2 pl-0.5 pr-2' : 'gap-2.5 pl-0.5 pr-2.5',
-              )}
-            >
-              <StatColumn stats={LEFT_STATS} player={p} compact={compact} align="left" />
-              <div className="w-px self-stretch bg-[#5c4a14]/45" />
-              <StatColumn stats={RIGHT_STATS} player={p} compact={compact} align="right" />
+            <div className={cn('mt-1 flex shrink-0 flex-col', compact ? 'gap-[2px]' : 'gap-[3px]')}>
+              <div
+                className={cn(
+                  'flex items-start justify-between',
+                  compact ? 'gap-2 pl-0.5 pr-2' : 'gap-2.5 pl-0.5 pr-2.5',
+                )}
+              >
+                <StatColumn stats={LEFT_STATS} player={p} compact={compact} align="left" />
+                <div className="w-px self-stretch bg-[#5c4a14]/45" />
+                <StatColumn stats={RIGHT_STATS} player={p} compact={compact} align="right" />
+              </div>
+              <div
+                className={cn(
+                  'flex items-baseline justify-center gap-1 leading-none text-[#2f2410]',
+                  compact ? 'text-[9px]' : 'text-[10px]',
+                )}
+              >
+                <span className="font-bold tabular-nums">{roundRating(p.stamina)}</span>
+                <span className="font-semibold tracking-wide">STA</span>
+              </div>
             </div>
           </div>
         </div>
