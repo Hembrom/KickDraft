@@ -33,6 +33,12 @@ const routes: Route[] = [
     params: ['slug', 'matchId'],
   },
   {
+    method: 'PUT',
+    regex: /^\/api\/groups\/([^/]+)\/matches\/([^/]+)$/,
+    handler: groupMatchDetail,
+    params: ['slug', 'matchId'],
+  },
+  {
     method: 'GET',
     regex: /^\/api\/groups\/([^/]+)\/matches$/,
     handler: groupMatches,

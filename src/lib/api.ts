@@ -64,6 +64,18 @@ export const api = {
     });
   },
 
+  updateMatch(
+    slug: string,
+    matchId: string,
+    teamAPlayerIds: string[],
+    teamBPlayerIds: string[],
+  ) {
+    return request<MatchRecord>(`/api/groups/${slug}/matches/${matchId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ teamAPlayerIds, teamBPlayerIds }),
+    });
+  },
+
   adminLogin(password: string) {
     return request<{ token: string }>('/api/admin/login', {
       method: 'POST',

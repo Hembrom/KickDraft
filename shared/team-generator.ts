@@ -13,7 +13,7 @@ function shuffle<T>(array: T[]): T[] {
   return copy;
 }
 
-function buildTeam(name: string, players: Player[]): GeneratedTeam {
+export function buildGeneratedTeam(name: string, players: Player[]): GeneratedTeam {
   const totalRating = players.reduce((sum, p) => sum + p.ovr, 0);
   return {
     name,
@@ -278,8 +278,8 @@ function generateEvenTeams(
   optimizeEvenBalance(teamAPlayers, teamBPlayers);
   injectLineupVariety(teamAPlayers, teamBPlayers);
 
-  const teamA = buildTeam('Team A', teamAPlayers);
-  const teamB = buildTeam('Team B', teamBPlayers);
+  const teamA = buildGeneratedTeam('Team A', teamAPlayers);
+  const teamB = buildGeneratedTeam('Team B', teamBPlayers);
   const ratingDifference = roundRating(Math.abs(teamA.totalRating - teamB.totalRating));
 
   return { teamA, teamB, ratingDifference };
@@ -309,8 +309,8 @@ function generateUnevenTeams(
   optimizeUnevenHandicap(smallTeam, largeTeam, UNEVEN_AVG_HANDICAP);
   injectLineupVariety(teamAPlayers, teamBPlayers);
 
-  const teamA = buildTeam('Team A', teamAPlayers);
-  const teamB = buildTeam('Team B', teamBPlayers);
+  const teamA = buildGeneratedTeam('Team A', teamAPlayers);
+  const teamB = buildGeneratedTeam('Team B', teamBPlayers);
   const ratingDifference = roundRating(Math.abs(teamA.totalRating - teamB.totalRating));
 
   return { teamA, teamB, ratingDifference };
@@ -320,6 +320,130 @@ export interface TeamGenerationResult {
   teamA: GeneratedTeam;
   teamB: GeneratedTeam;
   ratingDifference: number;
+}
+
+export interface LockedTeamPlayers {
+  teamA: string[];
+  teamB: string[];
+}
+
+function enforceLockedAssignments(
+  teamAPlayers: Player[],
+  teamBPlayers: Player[],
+  lockedA: Set<string>,
+  lockedB: Set<string>,
+): boolean {
+  const swap = (indexA: number, indexB: number) => {
+    const playerA = teamAPlayers[indexA];
+    teamAPlayers[indexA] = teamBPlayers[indexB];
+    teamBPlayers[indexB] = playerA;
+  };
+
+  for (const playerId of lockedA) {
+    const indexB = teamBPlayers.findIndex((player) => player.id === playerId);
+    if (indexB === -1) continue;
+
+    const lockedBIndex = teamAPlayers.findIndex((player) => lockedB.has(player.id));
+    const unlockedAIndex = teamAPlayers.findIndex((player) => !lockedA.has(player.id));
+    const replacementIndex = lockedBIndex !== -1 ? lockedBIndex : unlockedAIndex;
+    if (replacementIndex === -1) return false;
+    swap(replacementIndex, indexB);
+  }
+
+  for (const playerId of lockedB) {
+    const indexA = teamAPlayers.findIndex((player) => player.id === playerId);
+    if (indexA === -1) continue;
+
+    const unlockedBIndex = teamBPlayers.findIndex((player) => !lockedB.has(player.id));
+    if (unlockedBIndex === -1) return false;
+    swap(indexA, unlockedBIndex);
+  }
+
+  return (
+    [...lockedA].every((id) => teamAPlayers.some((player) => player.id === id)) &&
+    [...lockedB].every((id) => teamBPlayers.some((player) => player.id === id))
+  );
+}
+
+function lockedResultScore(
+  teamAPlayers: Player[],
+  teamBPlayers: Player[],
+  teamASize: number,
+  teamBSize: number,
+): number {
+  const gkCount = teamAPlayers.filter(canPlayGoalkeeper).length +
+    teamBPlayers.filter(canPlayGoalkeeper).length;
+  const missingGkPenalty =
+    gkCount >= 2
+      ? (teamAPlayers.some(canPlayGoalkeeper) ? 0 : 100) +
+        (teamBPlayers.some(canPlayGoalkeeper) ? 0 : 100)
+      : 0;
+
+  if (teamASize === teamBSize) {
+    return Math.abs(teamTotal(teamAPlayers) - teamTotal(teamBPlayers)) + missingGkPenalty;
+  }
+
+  const smallTeam = teamASize < teamBSize ? teamAPlayers : teamBPlayers;
+  const largeTeam = teamASize < teamBSize ? teamBPlayers : teamAPlayers;
+  const gap = teamAverage(smallTeam) - teamAverage(largeTeam);
+  const belowTargetPenalty = gap < UNEVEN_AVG_HANDICAP ? 20 : 0;
+  return Math.abs(gap - UNEVEN_AVG_HANDICAP) + belowTargetPenalty + missingGkPenalty;
+}
+
+/**
+ * Reshuffle while keeping selected players on their current side.
+ * The regular even/odd generators remain unchanged; this chooses the best
+ * valid locked assignment from multiple normal balanced drafts.
+ */
+export function generateBalancedTeamsWithLocks(
+  players: Player[],
+  teamASize: number,
+  teamBSize: number,
+  locked: LockedTeamPlayers,
+): TeamGenerationResult {
+  const playerIds = new Set(players.map((player) => player.id));
+  const lockedA = new Set(locked.teamA);
+  const lockedB = new Set(locked.teamB);
+
+  if (lockedA.size > 4 || lockedB.size > 4) {
+    throw new Error('Lock at most 4 players on each team');
+  }
+  if (lockedA.size > teamASize || lockedB.size > teamBSize) {
+    throw new Error('Too many locked players for this team size');
+  }
+  if ([...lockedA].some((id) => lockedB.has(id))) {
+    throw new Error('A player cannot be locked to both teams');
+  }
+  if ([...lockedA, ...lockedB].some((id) => !playerIds.has(id))) {
+    throw new Error('Locked player was not found in this match');
+  }
+
+  let best: TeamGenerationResult | null = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const generated = generateBalancedTeams(players, teamASize, teamBSize);
+    const teamAPlayers = [...generated.teamA.players];
+    const teamBPlayers = [...generated.teamB.players];
+    if (!enforceLockedAssignments(teamAPlayers, teamBPlayers, lockedA, lockedB)) continue;
+
+    const score = lockedResultScore(teamAPlayers, teamBPlayers, teamASize, teamBSize);
+    if (score >= bestScore) continue;
+
+    const teamA = buildGeneratedTeam('Team A', teamAPlayers);
+    const teamB = buildGeneratedTeam('Team B', teamBPlayers);
+    best = {
+      teamA,
+      teamB,
+      ratingDifference: roundRating(Math.abs(teamA.totalRating - teamB.totalRating)),
+    };
+    bestScore = score;
+  }
+
+  if (!best) {
+    throw new Error('Could not reshuffle while keeping those players locked');
+  }
+  return best;
 }
 
 export function generateBalancedTeams(

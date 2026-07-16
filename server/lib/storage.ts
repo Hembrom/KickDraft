@@ -383,6 +383,24 @@ export async function saveMatch(record: MatchRecord) {
   if (error) throw error;
 }
 
+export async function updateMatch(record: MatchRecord) {
+  if (useLocalStorage()) {
+    await writeJsonLocal(
+      groupPath(record.groupSlug, 'matches', `${record.id}.json`),
+      record,
+    );
+    return;
+  }
+
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('matches')
+    .update(matchToRow(record))
+    .eq('group_slug', record.groupSlug)
+    .eq('id', record.id);
+  if (error) throw error;
+}
+
 export async function listMatches(slug: string): Promise<MatchRecord[]> {
   if (useLocalStorage()) return listMatchesLocal(slug);
 
