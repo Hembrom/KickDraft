@@ -4,6 +4,7 @@ import { Check, Loader2, Pencil, Share2, Shuffle } from 'lucide-react';
 import { PitchView } from '@/components/PitchView';
 import {
   TeamEditor,
+  type EditTab,
   type EditorTeam,
   type SelectedEditorPlayer,
 } from '@/components/TeamEditor';
@@ -27,9 +28,11 @@ export function MatchPage() {
   const [sharing, setSharing] = useState(false);
   const [shuffling, setShuffling] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [editTab, setEditTab] = useState<EditTab>('lock');
   const [saving, setSaving] = useState(false);
   const [draftTeamA, setDraftTeamA] = useState<Player[]>([]);
   const [draftTeamB, setDraftTeamB] = useState<Player[]>([]);
+  const [draftPool, setDraftPool] = useState<Player[]>([]);
   const [lockedA, setLockedA] = useState<Set<string>>(new Set());
   const [lockedB, setLockedB] = useState<Set<string>>(new Set());
   const [selectedEditorPlayer, setSelectedEditorPlayer] =
@@ -95,8 +98,10 @@ export function MatchPage() {
   function startEditing() {
     if (!match) return;
     const current = enrichMatchWithRoster(match, players);
+    setEditTab('lock');
     setDraftTeamA(current.teamA.players);
     setDraftTeamB(current.teamB.players);
+    setDraftPool([]);
     setLockedA(new Set());
     setLockedB(new Set());
     setSelectedEditorPlayer(null);
@@ -107,8 +112,50 @@ export function MatchPage() {
   function cancelEditing() {
     if (saving) return;
     setEditing(false);
+    setEditTab('lock');
+    setDraftPool([]);
     setSelectedEditorPlayer(null);
     setError('');
+  }
+
+  function switchEditTab(nextTab: EditTab) {
+    if (!match || nextTab === editTab) return;
+
+    if (nextTab === 'manual') {
+      const current = enrichMatchWithRoster(match, players);
+      const allPlayers = [...current.teamA.players, ...current.teamB.players].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      );
+      setDraftPool(allPlayers);
+      setDraftTeamA([]);
+      setDraftTeamB([]);
+      setLockedA(new Set());
+      setLockedB(new Set());
+      setSelectedEditorPlayer(null);
+      setError('');
+      setEditTab('manual');
+      return;
+    }
+
+    // Back to lock: restore current match teams if manual assignment is incomplete.
+    const current = enrichMatchWithRoster(match, players);
+    const complete =
+      draftTeamA.length === current.teamA.players.length &&
+      draftTeamB.length === current.teamB.players.length &&
+      draftPool.length === 0;
+
+    if (complete) {
+      setDraftPool([]);
+    } else {
+      setDraftTeamA(current.teamA.players);
+      setDraftTeamB(current.teamB.players);
+      setDraftPool([]);
+    }
+    setLockedA(new Set());
+    setLockedB(new Set());
+    setSelectedEditorPlayer(null);
+    setError('');
+    setEditTab('lock');
   }
 
   function toggleLock(team: EditorTeam, playerId: string) {
@@ -139,6 +186,13 @@ export function MatchPage() {
       for (const id of playerIds) next.delete(id);
       return next;
     });
+  }
+
+  function findPlayerLocation(playerId: string): 'a' | 'b' | 'pool' | null {
+    if (draftTeamA.some((player) => player.id === playerId)) return 'a';
+    if (draftTeamB.some((player) => player.id === playerId)) return 'b';
+    if (draftPool.some((player) => player.id === playerId)) return 'pool';
+    return null;
   }
 
   function swapPlayers(
@@ -185,27 +239,74 @@ export function MatchPage() {
     setError('');
   }
 
+  function returnPlayerToPool(playerId: string) {
+    const location = findPlayerLocation(playerId);
+    if (location !== 'a' && location !== 'b') return;
+
+    const source = location === 'a' ? draftTeamA : draftTeamB;
+    const index = source.findIndex((player) => player.id === playerId);
+    if (index === -1) return;
+
+    const nextSource = [...source];
+    const [player] = nextSource.splice(index, 1);
+    if (location === 'a') setDraftTeamA(nextSource);
+    else setDraftTeamB(nextSource);
+    setDraftPool((current) =>
+      [...current, player].sort((a, b) => a.name.localeCompare(b.name)),
+    );
+    unlockPlayers(playerId);
+    setSelectedEditorPlayer(null);
+    setError('');
+  }
+
   function movePlayerToTeam(playerId: string, targetTeam: EditorTeam) {
     if (!match) return;
 
-    const sourceTeam = draftTeamA.some((player) => player.id === playerId) ? 'a' : 'b';
-    if (sourceTeam === targetTeam) return;
-
-    const sourcePlayers = sourceTeam === 'a' ? draftTeamA : draftTeamB;
-    const targetPlayers = targetTeam === 'a' ? draftTeamA : draftTeamB;
-    const sourceIndex = sourcePlayers.findIndex((player) => player.id === playerId);
-    if (sourceIndex === -1) return;
+    const location = findPlayerLocation(playerId);
+    if (!location || location === targetTeam) return;
 
     const targetCapacity =
       targetTeam === 'a' ? match.teamA.players.length : match.teamB.players.length;
+    const targetPlayers = targetTeam === 'a' ? draftTeamA : draftTeamB;
     const targetLocks = targetTeam === 'a' ? lockedA : lockedB;
+
+    if (location === 'pool') {
+      if (targetPlayers.length >= targetCapacity) {
+        setError(
+          `Team ${targetTeam === 'a' ? 'A' : 'B'} is full (${targetCapacity}). Return someone first.`,
+        );
+        return;
+      }
+      const poolIndex = draftPool.findIndex((player) => player.id === playerId);
+      if (poolIndex === -1) return;
+      const nextPool = [...draftPool];
+      const [player] = nextPool.splice(poolIndex, 1);
+      setDraftPool(nextPool);
+      if (targetTeam === 'a') setDraftTeamA([...draftTeamA, player]);
+      else setDraftTeamB([...draftTeamB, player]);
+      setSelectedEditorPlayer(null);
+      setError('');
+      return;
+    }
+
+    // Moving between teams.
+    const sourcePlayers = location === 'a' ? draftTeamA : draftTeamB;
+    const sourceIndex = sourcePlayers.findIndex((player) => player.id === playerId);
+    if (sourceIndex === -1) return;
+
     const movingPlayer = sourcePlayers[sourceIndex];
     const nextSource = [...sourcePlayers];
     const nextTarget = [...targetPlayers];
-
     nextSource.splice(sourceIndex, 1);
 
     if (nextTarget.length >= targetCapacity) {
+      if (editTab === 'manual') {
+        setError(
+          `Team ${targetTeam === 'a' ? 'A' : 'B'} is full (${targetCapacity}). Return someone first.`,
+        );
+        return;
+      }
+
       const swapOut = nextTarget
         .map((player, index) => ({ player, index }))
         .filter(({ player }) => !targetLocks.has(player.id))
@@ -224,7 +325,7 @@ export function MatchPage() {
       unlockPlayers(playerId);
     }
 
-    if (sourceTeam === 'a') {
+    if (location === 'a') {
       setDraftTeamA(nextSource);
       setDraftTeamB(nextTarget);
     } else {
@@ -267,6 +368,18 @@ export function MatchPage() {
 
   async function saveEditedTeams() {
     if (!match || saving) return;
+
+    const teamACapacity = match.teamA.players.length;
+    const teamBCapacity = match.teamB.players.length;
+    if (
+      draftTeamA.length !== teamACapacity ||
+      draftTeamB.length !== teamBCapacity ||
+      draftPool.length > 0
+    ) {
+      setError(`Assign all players first (${teamACapacity}v${teamBCapacity}).`);
+      return;
+    }
+
     setSaving(true);
     setError('');
     try {
@@ -278,6 +391,8 @@ export function MatchPage() {
       );
       setMatch(updated);
       setEditing(false);
+      setEditTab('lock');
+      setDraftPool([]);
       setSelectedEditorPlayer(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to save teams');
@@ -314,13 +429,18 @@ export function MatchPage() {
 
   const matchLabel = getMatchSizeLabel(match.teamA.players.length, match.teamB.players.length);
   const displayTitle = (match.name ?? '').trim() || `${matchLabel} lineup`;
-  const displayedMatch = editing
-    ? {
-        ...match,
-        teamA: buildGeneratedTeam('Team A', draftTeamA),
-        teamB: buildGeneratedTeam('Team B', draftTeamB),
-      }
-    : match;
+  const teamsComplete =
+    draftTeamA.length === match.teamA.players.length &&
+    draftTeamB.length === match.teamB.players.length &&
+    draftPool.length === 0;
+  const displayedMatch =
+    editing && teamsComplete
+      ? {
+          ...match,
+          teamA: buildGeneratedTeam('Team A', draftTeamA),
+          teamB: buildGeneratedTeam('Team B', draftTeamB),
+        }
+      : match;
 
   return (
     <div className="space-y-6">
@@ -380,36 +500,49 @@ export function MatchPage() {
       </div>
 
       <p className="text-sm text-slate-600">
-        Edit teams lets you lock, reshuffle, swap, and save this lineup. Shuffle again opens a
-        separate lineup link.
+        Edit teams has Lock &amp; shuffle plus Manual assignment. Shuffle again opens a separate
+        lineup link.
       </p>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       {editing ? (
         <TeamEditor
+          tab={editTab}
+          onTabChange={switchEditTab}
           teamAPlayers={draftTeamA}
           teamBPlayers={draftTeamB}
+          poolPlayers={draftPool}
+          teamACapacity={match.teamA.players.length}
+          teamBCapacity={match.teamB.players.length}
           lockedA={lockedA}
           lockedB={lockedB}
           selected={selectedEditorPlayer}
           busy={saving}
+          canSave={teamsComplete}
           onToggleLock={toggleLock}
           onSelect={selectPlayerToSwap}
           onSwap={swapPlayers}
           onReorder={reorderPlayers}
           onMoveToTeam={movePlayerToTeam}
+          onReturnToPool={returnPlayerToPool}
           onShuffle={shuffleUnlocked}
           onSave={saveEditedTeams}
           onCancel={cancelEditing}
         />
       ) : null}
 
-      <PitchView
-        pitchCaptureRef={pitchCaptureRef}
-        match={displayedMatch}
-        roster={players}
-      />
+      {editing && !teamsComplete ? (
+        <p className="text-sm text-slate-500">
+          Pitch preview updates once both teams are fully assigned.
+        </p>
+      ) : (
+        <PitchView
+          pitchCaptureRef={pitchCaptureRef}
+          match={displayedMatch}
+          roster={players}
+        />
+      )}
     </div>
   );
 }
