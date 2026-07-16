@@ -405,11 +405,8 @@ export function generateBalancedTeamsWithLocks(
   const lockedA = new Set(locked.teamA);
   const lockedB = new Set(locked.teamB);
 
-  if (lockedA.size > 4 || lockedB.size > 4) {
-    throw new Error('Lock at most 4 players on each team');
-  }
   if (lockedA.size > teamASize || lockedB.size > teamBSize) {
-    throw new Error('Too many locked players for this team size');
+    throw new Error('Too many players placed for this team size');
   }
   if ([...lockedA].some((id) => lockedB.has(id))) {
     throw new Error('A player cannot be locked to both teams');
