@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { Check, Loader2, Share2 } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Check, Loader2, Share2, Shuffle } from 'lucide-react';
 import { PitchView } from '@/components/PitchView';
 import { api, ApiError } from '@/lib/api';
 import { shareMatchLineup } from '@/lib/share-match';
@@ -9,11 +9,13 @@ import { getMatchSizeLabel, type MatchRecord, type Player } from '@shared/types'
 
 export function MatchPage() {
   const { slug = '', matchId = '' } = useParams();
+  const navigate = useNavigate();
   const [groupName, setGroupName] = useState('');
   const [match, setMatch] = useState<MatchRecord | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [sharing, setSharing] = useState(false);
+  const [shuffling, setShuffling] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const pitchCaptureRef = useRef<HTMLDivElement>(null);
@@ -32,6 +34,24 @@ export function MatchPage() {
       })
       .finally(() => setLoading(false));
   }, [slug, matchId]);
+
+  async function handleShuffleAgain() {
+    if (!match || shuffling) return;
+    setShuffling(true);
+    setError('');
+    try {
+      const newMatch = await api.generateMatch(
+        slug,
+        match.selectedPlayerIds,
+        (match.name ?? '').trim(),
+      );
+      navigate(`/${slug}/match/${newMatch.id}`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to shuffle teams');
+    } finally {
+      setShuffling(false);
+    }
+  }
 
   async function handleShare() {
     if (!match || sharing) return;
@@ -96,8 +116,21 @@ export function MatchPage() {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
+            className="btn-secondary"
+            disabled={shuffling || sharing}
+            onClick={handleShuffleAgain}
+          >
+            {shuffling ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Shuffle className="h-4 w-4" />
+            )}
+            {shuffling ? 'Shuffling…' : 'Shuffle again'}
+          </button>
+          <button
+            type="button"
             className="btn-primary"
-            disabled={sharing}
+            disabled={sharing || shuffling}
             onClick={handleShare}
           >
             {sharing ? (
@@ -119,7 +152,8 @@ export function MatchPage() {
       </div>
 
       <p className="text-sm text-slate-600">
-        Share sends a pitch screenshot (teams on the ground) plus one link with the match name.
+        Shuffle again keeps the same players and opens a new lineup link. Share sends a pitch
+        screenshot plus one link with the match name.
       </p>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
