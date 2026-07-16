@@ -51,6 +51,7 @@ function validatePlayerInput(
           dribbling: existing.dribbling,
           defending: existing.defending,
           physicality: existing.physicality,
+          stamina: existing.stamina,
         }
       : null;
 

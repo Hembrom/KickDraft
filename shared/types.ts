@@ -5,6 +5,7 @@ export interface PlayerStats {
   dribbling: number;
   defending: number;
   physicality: number;
+  stamina: number;
 }
 
 export interface Player extends PlayerStats {
@@ -82,9 +83,24 @@ type LegacyPlayer = Partial<Player> & { position?: PlayerPosition };
 
 export function normalizePlayer(player: LegacyPlayer): Player {
   const { position: legacyPosition, ...rest } = player;
+  const positions = normalizePositions(player.positions, legacyPosition);
+  const stamina =
+    typeof rest.stamina === 'number' && !Number.isNaN(rest.stamina)
+      ? rest.stamina
+      : roundRating(
+          ((rest.pace ?? 50) +
+            (rest.shooting ?? 50) +
+            (rest.passing ?? 50) +
+            (rest.dribbling ?? 50) +
+            (rest.defending ?? 50) +
+            (rest.physicality ?? 50)) /
+            6,
+        );
+
   return {
     ...(rest as Player),
-    positions: normalizePositions(player.positions, legacyPosition),
+    positions,
+    stamina,
   };
 }
 
@@ -129,6 +145,7 @@ export const STAT_KEYS: (keyof PlayerStats)[] = [
   'dribbling',
   'defending',
   'physicality',
+  'stamina',
 ];
 
 export const MATCH_FORMATS = [5, 6, 7, 8, 9, 10, 11] as const;
@@ -150,8 +167,9 @@ export function calculateOvr(stats: PlayerStats): number {
     stats.passing +
     stats.dribbling +
     stats.defending +
-    stats.physicality;
-  return roundRating(sum / 6);
+    stats.physicality +
+    stats.stamina;
+  return roundRating(sum / 7);
 }
 
 export function resolveTeamSizes(

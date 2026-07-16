@@ -16,6 +16,7 @@ const emptyStats = (): PlayerStats => ({
   dribbling: 50,
   defending: 50,
   physicality: 50,
+  stamina: 50,
 });
 
 export function AdminGroupPage() {
@@ -95,6 +96,7 @@ export function AdminGroupPage() {
         dribbling: player.dribbling,
         defending: player.defending,
         physicality: player.physicality,
+        stamina: player.stamina,
       },
     });
     setPhotoFile(null);

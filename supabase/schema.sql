@@ -20,6 +20,7 @@ create table if not exists players (
   dribbling smallint not null,
   defending smallint not null,
   physicality smallint not null,
+  stamina smallint not null,
   ovr smallint not null,
   created_at timestamptz not null,
   updated_at timestamptz not null

@@ -4,7 +4,7 @@ import { normalizePlayer, roundRating, type Player, type PlayerPosition, type Pl
 import { User } from 'lucide-react';
 
 export const FUT_CARD_WIDTH = 124;
-export const FUT_CARD_HEIGHT = 196;
+export const FUT_CARD_HEIGHT = 218;
 /** Room above/below the shield so the chevron tips aren't clipped. */
 export const FUT_CARD_APEX_PAD = 8;
 
@@ -19,6 +19,7 @@ const LEFT_STATS: { key: keyof PlayerStats; label: string }[] = [
   { key: 'pace', label: 'PAC' },
   { key: 'shooting', label: 'SHO' },
   { key: 'passing', label: 'PAS' },
+  { key: 'stamina', label: 'STA' },
 ];
 
 const RIGHT_STATS: { key: keyof PlayerStats; label: string }[] = [
@@ -57,7 +58,7 @@ function shieldPath(w: number, h: number, inset = 0) {
 
 function CardBorderOverlay({ compact }: { compact: boolean }) {
   const w = compact ? FUT_CARD_WIDTH : 148;
-  const h = compact ? FUT_CARD_HEIGHT : 236;
+  const h = compact ? FUT_CARD_HEIGHT : 262;
   const outer = shieldPath(w, h, 0);
   const inner = shieldPath(w, h, compact ? 3.5 : 4);
 
@@ -126,7 +127,7 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
       : (p.positions[0] ?? 'MID');
   const compact = size === 'sm';
   const frameInset = compact ? 6 : 7;
-  const bodyHeight = compact ? FUT_CARD_HEIGHT : 236;
+  const bodyHeight = compact ? FUT_CARD_HEIGHT : 262;
   const bodyWidth = compact ? FUT_CARD_WIDTH : 148;
   const pad = FUT_CARD_APEX_PAD;
 

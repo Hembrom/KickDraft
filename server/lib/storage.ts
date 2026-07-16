@@ -71,6 +71,7 @@ type PlayerRow = {
   dribbling: number;
   defending: number;
   physicality: number;
+  stamina: number;
   ovr: number;
   created_at: string;
   updated_at: string;
@@ -102,6 +103,7 @@ function rowToPlayer(row: PlayerRow): Player {
     dribbling: row.dribbling,
     defending: row.defending,
     physicality: row.physicality,
+    stamina: row.stamina,
     ovr: row.ovr,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -124,6 +126,7 @@ function playerToRow(slug: string, player: Player): PlayerRow {
     dribbling: record.dribbling,
     defending: record.defending,
     physicality: record.physicality,
+    stamina: record.stamina,
     ovr: record.ovr,
     created_at: record.createdAt,
     updated_at: record.updatedAt,
