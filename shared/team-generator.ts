@@ -41,21 +41,24 @@ function assignGoalkeepers(
   return [...outfieldPool, ...gkPool];
 }
 
-/** Highest OVR first; shuffle ties so equal-rated players land on different sides. */
+/** OVR band width when shuffling draft order — nearby ratings can swap for variety. */
+const DRAFT_OVR_BAND = 3;
+
+/** Highest OVR first; shuffle within bands so shuffle-again produces different valid lineups. */
 function sortPlayersForDraft(players: Player[]): Player[] {
   const sorted = [...players].sort((a, b) => b.ovr - a.ovr);
 
-  const tiers: Player[][] = [];
+  const bands: Player[][] = [];
   for (const player of sorted) {
-    const lastTier = tiers[tiers.length - 1];
-    if (!lastTier || lastTier[0].ovr !== player.ovr) {
-      tiers.push([player]);
+    const lastBand = bands[bands.length - 1];
+    if (!lastBand || lastBand[0].ovr - player.ovr > DRAFT_OVR_BAND) {
+      bands.push([player]);
     } else {
-      lastTier.push(player);
+      lastBand.push(player);
     }
   }
 
-  return tiers.flatMap((tier) => shuffle(tier));
+  return bands.flatMap((band) => shuffle(band));
 }
 
 /**
@@ -74,20 +77,27 @@ function distributeByBookendDraft(
   }
 
   const pool = sortPlayersForDraft(players);
-  let pickFromTop = true;
+  let pickFromTop = Math.random() < 0.5;
+  const aFirstInPair = Math.random() < 0.5;
+
+  function assignToTeam(player: Player, slot: number): void {
+    const preferA = aFirstInPair ? slot === 0 : slot === 1;
+
+    if (preferA && teamAPlayers.length < teamASize) {
+      teamAPlayers.push(player);
+    } else if (!preferA && teamBPlayers.length < teamBSize) {
+      teamBPlayers.push(player);
+    } else if (teamAPlayers.length < teamASize) {
+      teamAPlayers.push(player);
+    } else {
+      teamBPlayers.push(player);
+    }
+  }
 
   function pushPair(fromTop: boolean): void {
     for (let slot = 0; slot < 2 && pool.length > 0; slot++) {
       const player = fromTop ? pool.shift()! : pool.pop()!;
-
-      if (slot === 0) {
-        if (teamAPlayers.length < teamASize) teamAPlayers.push(player);
-        else teamBPlayers.push(player);
-      } else if (teamBPlayers.length < teamBSize) {
-        teamBPlayers.push(player);
-      } else {
-        teamAPlayers.push(player);
-      }
+      assignToTeam(player, slot);
     }
   }
 
@@ -136,6 +146,34 @@ function optimizeEvenBalance(teamAPlayers: Player[], teamBPlayers: Player[]): vo
     teamAPlayers[best.ai] = teamBPlayers[best.bi];
     teamBPlayers[best.bi] = swappedA;
   }
+}
+
+/** Random valid cross-team swap so shuffle-again can produce different but still balanced lineups. */
+function injectLineupVariety(teamAPlayers: Player[], teamBPlayers: Player[]): void {
+  const diff = teamTotal(teamAPlayers) - teamTotal(teamBPlayers);
+  const absDiff = Math.abs(diff);
+  const slack = 2;
+
+  const options: { ai: number; bi: number }[] = [];
+  for (let ai = 0; ai < teamAPlayers.length; ai++) {
+    for (let bi = 0; bi < teamBPlayers.length; bi++) {
+      const playerA = teamAPlayers[ai];
+      const playerB = teamBPlayers[bi];
+      if (!canSwapPlayers(playerA, playerB, teamAPlayers, teamBPlayers)) continue;
+
+      const newDiff = diff - 2 * (playerA.ovr - playerB.ovr);
+      if (Math.abs(newDiff) <= absDiff + slack) {
+        options.push({ ai, bi });
+      }
+    }
+  }
+
+  if (options.length === 0) return;
+
+  const pick = options[Math.floor(Math.random() * options.length)]!;
+  const swappedA = teamAPlayers[pick.ai];
+  teamAPlayers[pick.ai] = teamBPlayers[pick.bi];
+  teamBPlayers[pick.bi] = swappedA;
 }
 
 function isSoleGoalkeeperOnTeam(player: Player, team: Player[]): boolean {
@@ -238,6 +276,7 @@ function generateEvenTeams(
   const remaining = assignGoalkeepers(players, teamAPlayers, teamBPlayers);
   distributeByBookendDraft(remaining, teamAPlayers, teamBPlayers, teamASize, teamBSize);
   optimizeEvenBalance(teamAPlayers, teamBPlayers);
+  injectLineupVariety(teamAPlayers, teamBPlayers);
 
   const teamA = buildTeam('Team A', teamAPlayers);
   const teamB = buildTeam('Team B', teamBPlayers);
@@ -268,6 +307,7 @@ function generateUnevenTeams(
 
   draftUnevenAlternating(remaining, smallTeam, largeTeam, smallCap, largeCap);
   optimizeUnevenHandicap(smallTeam, largeTeam, UNEVEN_AVG_HANDICAP);
+  injectLineupVariety(teamAPlayers, teamBPlayers);
 
   const teamA = buildTeam('Team A', teamAPlayers);
   const teamB = buildTeam('Team B', teamBPlayers);
