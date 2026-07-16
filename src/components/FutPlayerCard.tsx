@@ -4,7 +4,7 @@ import { normalizePlayer, roundRating, type Player, type PlayerPosition, type Pl
 import { User } from 'lucide-react';
 
 export const FUT_CARD_WIDTH = 124;
-export const FUT_CARD_HEIGHT = 218;
+export const FUT_CARD_HEIGHT = 206;
 /** Room above/below the shield so the chevron tips aren't clipped. */
 export const FUT_CARD_APEX_PAD = 8;
 
@@ -29,8 +29,8 @@ const RIGHT_STATS: { key: keyof PlayerStats; label: string }[] = [
 
 /** Chevron depth matches top and bottom (14% of shield height). */
 const CHEVRON_DEPTH = 0.14;
-const BOTTOM_SHOULDER = 0.77;
-const BOTTOM_POINT = 0.91;
+const BOTTOM_SHOULDER = 0.80;
+const BOTTOM_POINT = 0.94;
 
 const SHIELD_CLIP = `polygon(50% 0%, 100% ${CHEVRON_DEPTH * 100}%, 100% ${BOTTOM_SHOULDER * 100}%, 50% ${BOTTOM_POINT * 100}%, 0% ${BOTTOM_SHOULDER * 100}%, 0% ${CHEVRON_DEPTH * 100}%)`;
 
@@ -57,7 +57,7 @@ function shieldPath(w: number, h: number, inset = 0) {
 
 function CardBorderOverlay({ compact }: { compact: boolean }) {
   const w = compact ? FUT_CARD_WIDTH : 148;
-  const h = compact ? FUT_CARD_HEIGHT : 262;
+  const h = compact ? FUT_CARD_HEIGHT : 246;
   const outer = shieldPath(w, h, 0);
   const inner = shieldPath(w, h, compact ? 3.5 : 4);
 
@@ -126,7 +126,7 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
       : (p.positions[0] ?? 'MID');
   const compact = size === 'sm';
   const frameInset = compact ? 6 : 7;
-  const bodyHeight = compact ? FUT_CARD_HEIGHT : 262;
+  const bodyHeight = compact ? FUT_CARD_HEIGHT : 246;
   const bodyWidth = compact ? FUT_CARD_WIDTH : 148;
   const pad = FUT_CARD_APEX_PAD;
 
@@ -185,7 +185,7 @@ export function FutPlayerCard({ player, className, size = 'sm', pitchRole }: Fut
           <div
             className={cn(
               'relative flex h-full flex-col',
-              compact ? 'px-2.5 pb-5 pt-[20px]' : 'px-3 pb-5 pt-6',
+              compact ? 'px-2.5 pb-2.5 pt-[20px]' : 'px-3 pb-3 pt-6',
             )}
           >
             <div
