@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import {
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   GripVertical,
   Loader2,
   Save,
@@ -89,12 +91,19 @@ function TeamColumn({
         onDropOnTeam(team);
       }}
       className={cn(
-        'min-h-[280px] overflow-hidden rounded-2xl border bg-white transition',
+        'min-h-[180px] overflow-hidden rounded-2xl border bg-white transition xl:min-h-[280px]',
         dropTargetTeam === team ? 'border-elite-400 ring-2 ring-elite-100' : 'border-slate-200',
       )}
     >
       <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2.5">
-        <h3 className="font-display font-bold text-slate-900">{name}</h3>
+        <h3 className="flex items-center gap-1.5 font-display font-bold text-slate-900">
+          {name}
+          {team === 'a' ? (
+            <ArrowUp className="h-4 w-4 text-blue-600 xl:hidden" aria-hidden />
+          ) : (
+            <ArrowDown className="h-4 w-4 text-red-600 xl:hidden" aria-hidden />
+          )}
+        </h3>
         <span className="text-xs text-slate-500">
           {players.length}/{capacity}
         </span>
@@ -190,7 +199,10 @@ function PlayerPool({
       <div className="border-b border-slate-200 px-3 py-2.5">
         <h3 className="font-display font-bold text-slate-900">Players</h3>
         <p className="text-xs text-slate-500">
-          {players.length} left · click ← / → or drag to a team
+          <span className="xl:hidden">{players.length} left · tap ↑ / ↓ to assign</span>
+          <span className="hidden xl:inline">
+            {players.length} left · click ← / → or drag to a team
+          </span>
         </p>
       </div>
       <div className="max-h-[620px] space-y-2 overflow-y-auto p-2">
@@ -226,7 +238,8 @@ function PlayerPool({
                   aria-label={`Move ${player.name} to Team A`}
                   title="Team A"
                 >
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowUp className="h-4 w-4 xl:hidden" />
+                  <ArrowLeft className="hidden h-4 w-4 xl:block" />
                 </button>
                 <button
                   type="button"
@@ -235,7 +248,8 @@ function PlayerPool({
                   aria-label={`Move ${player.name} to Team B`}
                   title="Team B"
                 >
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowDown className="h-4 w-4 xl:hidden" />
+                  <ArrowRight className="hidden h-4 w-4 xl:block" />
                 </button>
               </div>
             </div>
@@ -359,7 +373,7 @@ export function TeamEditor({
         <p className="mt-2 text-sm text-slate-600">
           {tab === 'lock'
             ? 'Place the players you want fixed on each side, then Fill rest of teams to balance the remaining players.'
-            : 'Assign everyone yourself with ← / → or drag and drop. Nothing is auto-filled.'}
+            : 'Assign everyone yourself with the team arrows or drag and drop. Nothing is auto-filled.'}
         </p>
       </div>
 
