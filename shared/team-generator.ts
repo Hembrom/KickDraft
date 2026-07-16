@@ -41,13 +41,8 @@ function assignGoalkeepers(
   return [...outfieldPool, ...gkPool];
 }
 
-function distributeByRatingTiers(
-  players: Player[],
-  teamAPlayers: Player[],
-  teamBPlayers: Player[],
-  teamASize: number,
-  teamBSize: number,
-): void {
+/** Highest OVR first; shuffle ties so equal-rated players land on different sides. */
+function sortPlayersForDraft(players: Player[]): Player[] {
   const sorted = [...players].sort((a, b) => b.ovr - a.ovr);
 
   const tiers: Player[][] = [];
@@ -60,30 +55,87 @@ function distributeByRatingTiers(
     }
   }
 
-  const shuffledTiers = tiers.map((tier) => shuffle(tier));
+  return tiers.flatMap((tier) => shuffle(tier));
+}
 
-  shuffledTiers.forEach((tier, tierIndex) => {
-    tier.forEach((player, i) => {
-      const pickA =
-        tierIndex % 2 === 0
-          ? i % 2 === 0
-          : i % 2 === 1;
+/**
+ * Bookend draft for equal sides only (6v6, 7v7, …).
+ * Alternates strong pairs then weak pairs so low-rated players split early.
+ */
+function distributeByBookendDraft(
+  players: Player[],
+  teamAPlayers: Player[],
+  teamBPlayers: Player[],
+  teamASize: number,
+  teamBSize: number,
+): void {
+  if (teamASize !== teamBSize) {
+    throw new Error('Bookend draft requires equal team sizes');
+  }
 
-      if (pickA && teamAPlayers.length < teamASize) {
-        teamAPlayers.push(player);
-      } else if (!pickA && teamBPlayers.length < teamBSize) {
+  const pool = sortPlayersForDraft(players);
+  let pickFromTop = true;
+
+  function pushPair(fromTop: boolean): void {
+    for (let slot = 0; slot < 2 && pool.length > 0; slot++) {
+      const player = fromTop ? pool.shift()! : pool.pop()!;
+
+      if (slot === 0) {
+        if (teamAPlayers.length < teamASize) teamAPlayers.push(player);
+        else teamBPlayers.push(player);
+      } else if (teamBPlayers.length < teamBSize) {
         teamBPlayers.push(player);
-      } else if (teamAPlayers.length < teamASize) {
-        teamAPlayers.push(player);
       } else {
-        teamBPlayers.push(player);
+        teamAPlayers.push(player);
       }
-    });
-  });
+    }
+  }
+
+  while (pool.length > 0) {
+    pushPair(pickFromTop);
+    pickFromTop = !pickFromTop;
+  }
 }
 
 function teamAverage(team: Player[]): number {
   return team.reduce((sum, player) => sum + player.ovr, 0) / team.length;
+}
+
+function teamTotal(team: Player[]): number {
+  return team.reduce((sum, player) => sum + player.ovr, 0);
+}
+
+function optimizeEvenBalance(teamAPlayers: Player[], teamBPlayers: Player[]): void {
+  const maxIterations = teamAPlayers.length * teamBPlayers.length;
+
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
+    const diff = teamTotal(teamAPlayers) - teamTotal(teamBPlayers);
+    const absDiff = Math.abs(diff);
+    if (absDiff === 0) break;
+
+    let best: { ai: number; bi: number; newAbsDiff: number } | null = null;
+
+    for (let ai = 0; ai < teamAPlayers.length; ai++) {
+      for (let bi = 0; bi < teamBPlayers.length; bi++) {
+        const playerA = teamAPlayers[ai];
+        const playerB = teamBPlayers[bi];
+        if (!canSwapPlayers(playerA, playerB, teamAPlayers, teamBPlayers)) continue;
+
+        const newDiff = diff - 2 * (playerA.ovr - playerB.ovr);
+        const newAbsDiff = Math.abs(newDiff);
+
+        if (newAbsDiff < absDiff && (!best || newAbsDiff < best.newAbsDiff)) {
+          best = { ai, bi, newAbsDiff };
+        }
+      }
+    }
+
+    if (!best) break;
+
+    const swappedA = teamAPlayers[best.ai];
+    teamAPlayers[best.ai] = teamBPlayers[best.bi];
+    teamBPlayers[best.bi] = swappedA;
+  }
 }
 
 function isSoleGoalkeeperOnTeam(player: Player, team: Player[]): boolean {
@@ -171,15 +223,21 @@ function optimizeUnevenHandicap(
   }
 }
 
+/** Equal sides (12 → 6v6, 14 → 7v7): bookend draft + total-balance swaps. */
 function generateEvenTeams(
   players: Player[],
   teamASize: number,
   teamBSize: number,
 ): TeamGenerationResult {
+  if (teamASize !== teamBSize) {
+    throw new Error('Even team generation requires equal team sizes');
+  }
+
   const teamAPlayers: Player[] = [];
   const teamBPlayers: Player[] = [];
   const remaining = assignGoalkeepers(players, teamAPlayers, teamBPlayers);
-  distributeByRatingTiers(remaining, teamAPlayers, teamBPlayers, teamASize, teamBSize);
+  distributeByBookendDraft(remaining, teamAPlayers, teamBPlayers, teamASize, teamBSize);
+  optimizeEvenBalance(teamAPlayers, teamBPlayers);
 
   const teamA = buildTeam('Team A', teamAPlayers);
   const teamB = buildTeam('Team B', teamBPlayers);
@@ -188,11 +246,16 @@ function generateEvenTeams(
   return { teamA, teamB, ratingDifference };
 }
 
+/** Uneven sides (11 → 6v5, 13 → 7v6): alternating draft + avg-OVR handicap for smaller team. */
 function generateUnevenTeams(
   players: Player[],
   teamASize: number,
   teamBSize: number,
 ): TeamGenerationResult {
+  if (teamASize === teamBSize) {
+    throw new Error('Uneven team generation requires different team sizes');
+  }
+
   const teamAPlayers: Player[] = [];
   const teamBPlayers: Player[] = [];
   const remaining = assignGoalkeepers(players, teamAPlayers, teamBPlayers);
@@ -229,6 +292,8 @@ export function generateBalancedTeams(
     throw new Error(`Need exactly ${total} players for ${teamASize}v${teamBSize}`);
   }
 
+  // Even player count → equal sides (bookend). Odd count → uneven sides (handicap).
+  // e.g. 12 → 6v6, 14 → 7v7 | 11 → 6v5, 13 → 7v6
   if (teamASize === teamBSize) {
     return generateEvenTeams(players, teamASize, teamBSize);
   }
