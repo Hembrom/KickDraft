@@ -41,6 +41,111 @@ function assignGoalkeepers(
   return [...outfieldPool, ...gkPool];
 }
 
+/**
+ * Ensure the 4 highest-stamina players in the squad are split 2 per side.
+ * Runs after GKs so a keeper already placed counts toward that side's quota.
+ */
+function distributeStaminaLeaders(
+  allPlayers: Player[],
+  teamAPlayers: Player[],
+  teamBPlayers: Player[],
+  teamASize: number,
+  teamBSize: number,
+): void {
+  if (allPlayers.length < 4) return;
+
+  const topFour = [...allPlayers].sort((a, b) => b.stamina - a.stamina).slice(0, 4);
+  const assignedIds = new Set(
+    [...teamAPlayers, ...teamBPlayers].map((player) => player.id),
+  );
+
+  let needA = 2 - topFour.filter((player) => teamAPlayers.some((p) => p.id === player.id)).length;
+  let needB = 2 - topFour.filter((player) => teamBPlayers.some((p) => p.id === player.id)).length;
+
+  const unplacedLeaders = shuffle(
+    topFour.filter((player) => !assignedIds.has(player.id)),
+  );
+
+  for (const player of unplacedLeaders) {
+    if (needA > 0 && teamAPlayers.length < teamASize) {
+      teamAPlayers.push(player);
+      needA--;
+      continue;
+    }
+    if (needB > 0 && teamBPlayers.length < teamBSize) {
+      teamBPlayers.push(player);
+      needB--;
+      continue;
+    }
+    if (teamAPlayers.length < teamASize) {
+      teamAPlayers.push(player);
+    } else if (teamBPlayers.length < teamBSize) {
+      teamBPlayers.push(player);
+    }
+  }
+}
+
+function remainingPlayers(
+  allPlayers: Player[],
+  teamAPlayers: Player[],
+  teamBPlayers: Player[],
+): Player[] {
+  const assignedIds = new Set(
+    [...teamAPlayers, ...teamBPlayers].map((player) => player.id),
+  );
+  return allPlayers.filter((player) => !assignedIds.has(player.id));
+}
+
+/** Re-check top-4 stamina split after balance swaps — keeps 2 leaders per side when possible. */
+function enforceStaminaLeaderSplit(
+  allPlayers: Player[],
+  teamAPlayers: Player[],
+  teamBPlayers: Player[],
+): void {
+  if (allPlayers.length < 4) return;
+
+  const topFourIds = new Set(
+    [...allPlayers].sort((a, b) => b.stamina - a.stamina).slice(0, 4).map((player) => player.id),
+  );
+
+  const countLeaders = (team: Player[]) =>
+    team.filter((player) => topFourIds.has(player.id)).length;
+
+  const maxAttempts = teamAPlayers.length * teamBPlayers.length;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const leadersA = countLeaders(teamAPlayers);
+    const leadersB = countLeaders(teamBPlayers);
+    if (leadersA === 2 && leadersB === 2) return;
+
+    let best: { ai: number; bi: number; score: number } | null = null;
+
+    for (let ai = 0; ai < teamAPlayers.length; ai++) {
+      for (let bi = 0; bi < teamBPlayers.length; bi++) {
+        const playerA = teamAPlayers[ai];
+        const playerB = teamBPlayers[bi];
+        if (!canSwapPlayers(playerA, playerB, teamAPlayers, teamBPlayers)) continue;
+
+        const aIsLeader = topFourIds.has(playerA.id);
+        const bIsLeader = topFourIds.has(playerB.id);
+        const nextA = leadersA + (bIsLeader ? 1 : 0) - (aIsLeader ? 1 : 0);
+        const nextB = leadersB + (aIsLeader ? 1 : 0) - (bIsLeader ? 1 : 0);
+        const score = Math.abs(nextA - 2) + Math.abs(nextB - 2);
+        const currentScore = Math.abs(leadersA - 2) + Math.abs(leadersB - 2);
+
+        if (score < currentScore && (!best || score < best.score)) {
+          best = { ai, bi, score };
+        }
+      }
+    }
+
+    if (!best) break;
+
+    const swappedA = teamAPlayers[best.ai];
+    teamAPlayers[best.ai] = teamBPlayers[best.bi];
+    teamBPlayers[best.bi] = swappedA;
+  }
+}
+
 /** OVR band width when shuffling draft order — nearby ratings can swap for variety. */
 const DRAFT_OVR_BAND = 3;
 
@@ -113,6 +218,43 @@ function teamAverage(team: Player[]): number {
 
 function teamTotal(team: Player[]): number {
   return team.reduce((sum, player) => sum + player.ovr, 0);
+}
+
+function teamStaminaTotal(team: Player[]): number {
+  return team.reduce((sum, player) => sum + player.stamina, 0);
+}
+
+function optimizeStaminaBalance(teamAPlayers: Player[], teamBPlayers: Player[]): void {
+  const maxIterations = teamAPlayers.length * teamBPlayers.length;
+
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
+    const diff = teamStaminaTotal(teamAPlayers) - teamStaminaTotal(teamBPlayers);
+    const absDiff = Math.abs(diff);
+    if (absDiff <= 4) break;
+
+    let best: { ai: number; bi: number; newAbsDiff: number } | null = null;
+
+    for (let ai = 0; ai < teamAPlayers.length; ai++) {
+      for (let bi = 0; bi < teamBPlayers.length; bi++) {
+        const playerA = teamAPlayers[ai];
+        const playerB = teamBPlayers[bi];
+        if (!canSwapPlayers(playerA, playerB, teamAPlayers, teamBPlayers)) continue;
+
+        const newDiff = diff - 2 * (playerA.stamina - playerB.stamina);
+        const newAbsDiff = Math.abs(newDiff);
+
+        if (newAbsDiff < absDiff && (!best || newAbsDiff < best.newAbsDiff)) {
+          best = { ai, bi, newAbsDiff };
+        }
+      }
+    }
+
+    if (!best) break;
+
+    const swappedA = teamAPlayers[best.ai];
+    teamAPlayers[best.ai] = teamBPlayers[best.bi];
+    teamBPlayers[best.bi] = swappedA;
+  }
 }
 
 function optimizeEvenBalance(teamAPlayers: Player[], teamBPlayers: Player[]): void {
@@ -273,10 +415,14 @@ function generateEvenTeams(
 
   const teamAPlayers: Player[] = [];
   const teamBPlayers: Player[] = [];
-  const remaining = assignGoalkeepers(players, teamAPlayers, teamBPlayers);
+  assignGoalkeepers(players, teamAPlayers, teamBPlayers);
+  distributeStaminaLeaders(players, teamAPlayers, teamBPlayers, teamASize, teamBSize);
+  const remaining = remainingPlayers(players, teamAPlayers, teamBPlayers);
   distributeByBookendDraft(remaining, teamAPlayers, teamBPlayers, teamASize, teamBSize);
   optimizeEvenBalance(teamAPlayers, teamBPlayers);
+  optimizeStaminaBalance(teamAPlayers, teamBPlayers);
   injectLineupVariety(teamAPlayers, teamBPlayers);
+  enforceStaminaLeaderSplit(players, teamAPlayers, teamBPlayers);
 
   const teamA = buildGeneratedTeam('Team A', teamAPlayers);
   const teamB = buildGeneratedTeam('Team B', teamBPlayers);
@@ -297,7 +443,8 @@ function generateUnevenTeams(
 
   const teamAPlayers: Player[] = [];
   const teamBPlayers: Player[] = [];
-  const remaining = assignGoalkeepers(players, teamAPlayers, teamBPlayers);
+  assignGoalkeepers(players, teamAPlayers, teamBPlayers);
+  distributeStaminaLeaders(players, teamAPlayers, teamBPlayers, teamASize, teamBSize);
 
   const smallIsA = teamASize < teamBSize;
   const smallTeam = smallIsA ? teamAPlayers : teamBPlayers;
@@ -305,9 +452,12 @@ function generateUnevenTeams(
   const smallCap = Math.min(teamASize, teamBSize);
   const largeCap = Math.max(teamASize, teamBSize);
 
+  const remaining = remainingPlayers(players, teamAPlayers, teamBPlayers);
   draftUnevenAlternating(remaining, smallTeam, largeTeam, smallCap, largeCap);
   optimizeUnevenHandicap(smallTeam, largeTeam, UNEVEN_AVG_HANDICAP);
+  optimizeStaminaBalance(teamAPlayers, teamBPlayers);
   injectLineupVariety(teamAPlayers, teamBPlayers);
+  enforceStaminaLeaderSplit(players, teamAPlayers, teamBPlayers);
 
   const teamA = buildGeneratedTeam('Team A', teamAPlayers);
   const teamB = buildGeneratedTeam('Team B', teamBPlayers);

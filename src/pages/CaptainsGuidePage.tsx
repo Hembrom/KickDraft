@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Lock, Pencil, Shuffle, Wand2 } from 'lucide-react';
 
 const APP_URL = 'https://kick-draft.vercel.app';
 const GUIDE_URL = `${APP_URL}/guide`;
@@ -17,8 +17,8 @@ export function CaptainsGuidePage() {
           How to make teams in 5 minutes
         </h1>
         <p className="text-slate-600">
-          Pick who is coming → balanced sides → share on WhatsApp. No random picks — you choose
-          the squad.
+          Pick who is coming → balanced sides → tweak if needed → share on WhatsApp. You choose
+          the squad; the app balances OVR and stamina.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link to={`/${NEWTOWN_SLUG}`} className="btn-primary inline-flex">
@@ -69,15 +69,39 @@ export function CaptainsGuidePage() {
           </figcaption>
         </figure>
         <p className="text-sm text-slate-600">
-          <strong>Size is automatic:</strong> 10 players → 5v5 · 11 → 6v5 · 12 → 6v6
+          <strong>Size is automatic:</strong> 10 → 5v5 · 11 → 6v5 · 12 → 6v6 · 14 → 7v7
         </p>
       </section>
 
       <section className="card space-y-3 p-5">
         <h2 className="font-display text-lg font-bold">4 · Balance teams</h2>
         <p className="text-sm text-slate-600">
-          Tap <strong>Balance teams</strong>. The app splits your selection into two fair sides by
-          rating and position.
+          Tap <strong>Balance teams</strong>. The app builds two fair sides using:
+        </p>
+        <ul className="list-inside list-disc space-y-1 text-sm text-slate-600">
+          <li>
+            <strong>OVR</strong> — average of pace, shooting, passing, dribbling, defending,
+            physicality, and <strong>stamina</strong>
+          </li>
+          <li>
+            <strong>Stamina leaders</strong> — the top 4 stamina players in your selection are
+            split <strong>2 per side</strong> so one team doesn&apos;t get all the engines
+          </li>
+          <li>
+            <strong>Bookend draft</strong> (even sizes like 6v6, 7v7) — strong pairs and weak
+            pairs alternate so low-rated players don&apos;t stack on one team
+          </li>
+          <li>
+            <strong>Handicap</strong> (uneven sizes like 6v5, 7v6) — the smaller side gets a
+            slight rating boost
+          </li>
+          <li>
+            <strong>Goalkeepers</strong> — one keeper per side when possible
+          </li>
+        </ul>
+        <p className="text-sm text-slate-600">
+          Tap a player on the pitch to see their card — <strong>STA</strong> is stamina on the
+          gold card.
         </p>
       </section>
 
@@ -99,7 +123,63 @@ export function CaptainsGuidePage() {
       </section>
 
       <section className="card space-y-4 p-5">
-        <h2 className="font-display text-lg font-bold">6 · Share on WhatsApp</h2>
+        <h2 className="font-display text-lg font-bold">6 · Not happy? Shuffle or edit</h2>
+        <p className="text-sm text-slate-600">
+          On the match page you have two ways to try another split — without re-selecting
+          everyone.
+        </p>
+
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+          <div className="flex items-start gap-3">
+            <Shuffle className="mt-0.5 h-5 w-5 shrink-0 text-elite-600" />
+            <div>
+              <p className="font-semibold text-slate-900">Shuffle again</p>
+              <p className="text-sm text-slate-600">
+                Same players, <strong>completely new teams</strong>, new link. Use this when you
+                want a fresh auto-balance.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <Pencil className="mt-0.5 h-5 w-5 shrink-0 text-elite-600" />
+            <div>
+              <p className="font-semibold text-slate-900">Edit teams</p>
+              <p className="text-sm text-slate-600">
+                Fine-tune the split yourself. Two modes:
+              </p>
+            </div>
+          </div>
+
+          <div className="ml-8 space-y-3 border-l-2 border-elite-200 pl-4">
+            <div className="flex items-start gap-2">
+              <Lock className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+              <div>
+                <p className="text-sm font-semibold text-slate-800">Lock &amp; shuffle</p>
+                <p className="text-sm text-slate-600">
+                  Drag a few players onto Team A or B — e.g. keep mates together or fix a
+                  keeper. Tap <strong>Fill rest of teams</strong>{' '}
+                  <Wand2 className="inline h-3.5 w-3.5 text-slate-500" /> and the app randomly
+                  balances everyone left (OVR + stamina rules still apply).
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Pencil className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+              <div>
+                <p className="text-sm font-semibold text-slate-800">Manual</p>
+                <p className="text-sm text-slate-600">
+                  Assign <strong>every player yourself</strong> with the arrows or drag-and-drop.
+                  Nothing is auto-filled. Save when both teams are full.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="card space-y-4 p-5">
+        <h2 className="font-display text-lg font-bold">7 · Share on WhatsApp</h2>
         <p className="text-sm text-slate-600">
           Tap <strong>Share match</strong>. You get:
         </p>
@@ -133,7 +213,8 @@ export function CaptainsGuidePage() {
         <h2 className="font-display text-lg font-bold">Quick tips</h2>
         <ul className="list-inside list-disc space-y-1 text-sm text-slate-600">
           <li>Need 9–22 players selected for a match</li>
-          <li>Tap a player on the pitch to see their stats card</li>
+          <li>Stamina (STA) counts in OVR and in the top-4 stamina split</li>
+          <li>Shuffle again = new teams; Edit teams = you control some or all placements</li>
           <li>Match history keeps lineups from the last 30 days</li>
         </ul>
       </section>
