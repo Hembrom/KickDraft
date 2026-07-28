@@ -125,6 +125,17 @@ export interface GeneratedTeam {
   averageRating: number;
 }
 
+export const DEFAULT_TEAM_NAMES = {
+  a: 'Team A',
+  b: 'Team B',
+  c: 'Team C',
+} as const;
+
+export function sanitizeTeamName(value: string, fallback: string): string {
+  const trimmed = value.trim().slice(0, 40);
+  return trimmed || fallback;
+}
+
 export type TeamCount = 2 | 3;
 
 export interface MatchRecord {

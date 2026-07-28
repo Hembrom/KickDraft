@@ -70,10 +70,18 @@ export const api = {
     teamAPlayerIds: string[],
     teamBPlayerIds: string[],
     teamCPlayerIds?: string[],
+    teamNames?: { teamA?: string; teamB?: string; teamC?: string },
   ) {
     return request<MatchRecord>(`/api/groups/${slug}/matches/${matchId}`, {
       method: 'PUT',
-      body: JSON.stringify({ teamAPlayerIds, teamBPlayerIds, teamCPlayerIds }),
+      body: JSON.stringify({
+        teamAPlayerIds,
+        teamBPlayerIds,
+        teamCPlayerIds,
+        teamAName: teamNames?.teamA,
+        teamBName: teamNames?.teamB,
+        teamCName: teamNames?.teamC,
+      }),
     });
   },
 

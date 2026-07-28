@@ -58,6 +58,8 @@ function TeamColumn({
   team,
   players,
   capacity,
+  nameEditable = false,
+  onNameChange,
   dropTargetTeam,
   dropTargetId,
   onReturnToPool,
@@ -71,6 +73,8 @@ function TeamColumn({
   team: EditorTeam;
   players: Player[];
   capacity: number;
+  nameEditable?: boolean;
+  onNameChange?: (name: string) => void;
   dropTargetTeam: DragSource | null;
   dropTargetId: string | null;
   onReturnToPool: (playerId: string) => void;
@@ -95,18 +99,31 @@ function TeamColumn({
         dropTargetTeam === team ? 'border-elite-400 ring-2 ring-elite-100' : 'border-slate-200',
       )}
     >
-      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2.5">
-        <h3 className="flex items-center gap-1.5 font-display font-bold text-slate-900">
-          {name}
-          {team === 'a' ? (
-            <ArrowUp className="h-4 w-4 text-blue-600 xl:hidden" aria-hidden />
-          ) : team === 'b' ? (
-            <ArrowDown className="h-4 w-4 text-red-600 xl:hidden" aria-hidden />
+      <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-3 py-2.5">
+        <div className="min-w-0 flex-1">
+          {nameEditable ? (
+            <input
+              className="input w-full py-1.5 font-display text-sm font-bold"
+              value={name}
+              onChange={(event) => onNameChange?.(event.target.value)}
+              placeholder={`Team ${team.toUpperCase()}`}
+              maxLength={40}
+              aria-label={`Team ${team.toUpperCase()} name`}
+            />
           ) : (
-            <span className="text-[10px] font-bold text-amber-700 xl:hidden">C</span>
+            <h3 className="flex items-center gap-1.5 font-display font-bold text-slate-900">
+              {name}
+              {team === 'a' ? (
+                <ArrowUp className="h-4 w-4 text-blue-600 xl:hidden" aria-hidden />
+              ) : team === 'b' ? (
+                <ArrowDown className="h-4 w-4 text-red-600 xl:hidden" aria-hidden />
+              ) : (
+                <span className="text-[10px] font-bold text-amber-700 xl:hidden">C</span>
+              )}
+            </h3>
           )}
-        </h3>
-        <span className="text-xs text-slate-500">
+        </div>
+        <span className="shrink-0 text-xs text-slate-500">
           {players.length}/{capacity}
         </span>
       </div>
@@ -308,6 +325,10 @@ export function TeamEditor({
   teamBPlayers,
   teamCPlayers = [],
   poolPlayers,
+  teamAName,
+  teamBName,
+  teamCName,
+  onTeamNameChange,
   teamACapacity,
   teamBCapacity,
   teamCCapacity = 0,
@@ -328,6 +349,10 @@ export function TeamEditor({
   teamBPlayers: Player[];
   teamCPlayers?: Player[];
   poolPlayers: Player[];
+  teamAName?: string;
+  teamBName?: string;
+  teamCName?: string;
+  onTeamNameChange?: (team: EditorTeam, name: string) => void;
   teamACapacity: number;
   teamBCapacity: number;
   teamCCapacity?: number;
@@ -419,8 +444,12 @@ export function TeamEditor({
         </div>
         <p className="mt-2 text-sm text-slate-600">
           {tab === 'lock'
-            ? 'Place the players you want fixed on each side, then Fill rest of teams to balance the remaining players.'
-            : 'Assign everyone yourself with the team arrows or drag and drop. Nothing is auto-filled.'}
+            ? threeTeam
+              ? 'Name each team, place the players you want fixed, then Fill rest of teams to balance the remainder.'
+              : 'Place the players you want fixed on each side, then Fill rest of teams to balance the remaining players.'
+            : threeTeam
+              ? 'Name each team and assign everyone with A / B / C or drag and drop.'
+              : 'Assign everyone yourself with the team arrows or drag and drop. Nothing is auto-filled.'}
         </p>
       </div>
 
@@ -444,10 +473,12 @@ export function TeamEditor({
           />
         ) : null}
         <TeamColumn
-          name="Team A"
+          name={teamAName ?? 'Team A'}
           team="a"
           players={teamAPlayers}
           capacity={teamACapacity}
+          nameEditable={threeTeam}
+          onNameChange={threeTeam ? (name) => onTeamNameChange?.('a', name) : undefined}
           dropTargetTeam={dropTargetTeam}
           dropTargetId={dropTargetId}
           onReturnToPool={onReturnToPool}
@@ -471,10 +502,12 @@ export function TeamEditor({
           />
         ) : null}
         <TeamColumn
-          name="Team B"
+          name={teamBName ?? 'Team B'}
           team="b"
           players={teamBPlayers}
           capacity={teamBCapacity}
+          nameEditable={threeTeam}
+          onNameChange={threeTeam ? (name) => onTeamNameChange?.('b', name) : undefined}
           dropTargetTeam={dropTargetTeam}
           dropTargetId={dropTargetId}
           onReturnToPool={onReturnToPool}
@@ -489,10 +522,12 @@ export function TeamEditor({
         />
         {threeTeam ? (
           <TeamColumn
-            name="Team C"
+            name={teamCName ?? 'Team C'}
             team="c"
             players={teamCPlayers}
             capacity={teamCCapacity}
+            nameEditable={threeTeam}
+            onNameChange={threeTeam ? (name) => onTeamNameChange?.('c', name) : undefined}
             dropTargetTeam={dropTargetTeam}
             dropTargetId={dropTargetId}
             onReturnToPool={onReturnToPool}

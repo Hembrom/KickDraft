@@ -68,7 +68,7 @@ function SingleTeamLineup({ team, teamSize }: { team: GeneratedTeam; teamSize: n
 function TeamCard({
   teamKey,
   team,
-  defaultOpen = false,
+  defaultOpen = true,
 }: {
   teamKey: TeamKey;
   team: GeneratedTeam;
@@ -156,7 +156,7 @@ export function ThreeTeamMatchView({
         ref={pitchCaptureRef}
         className="space-y-4 p-4 lg:grid lg:grid-cols-3 lg:gap-4 lg:space-y-0"
       >
-        <TeamCard teamKey="a" team={displayMatch.teamA} defaultOpen />
+        <TeamCard teamKey="a" team={displayMatch.teamA} />
         <TeamCard teamKey="b" team={displayMatch.teamB} />
         <TeamCard teamKey="c" team={teamC} />
       </div>

@@ -13,7 +13,7 @@ import {
   generateBalancedTeamsWithLocks,
   generateBalancedThreeTeamsWithLocks,
 } from '@shared/team-generator';
-import { getMatchLabel, isThreeTeamMatch, type MatchRecord, type Player } from '@shared/types';
+import { getMatchLabel, isThreeTeamMatch, sanitizeTeamName, DEFAULT_TEAM_NAMES, type MatchRecord, type Player } from '@shared/types';
 
 function teamLabel(team: EditorTeam): string {
   if (team === 'a') return 'A';
@@ -36,6 +36,9 @@ export function MatchPage() {
   const [draftTeamA, setDraftTeamA] = useState<Player[]>([]);
   const [draftTeamB, setDraftTeamB] = useState<Player[]>([]);
   const [draftTeamC, setDraftTeamC] = useState<Player[]>([]);
+  const [draftTeamAName, setDraftTeamAName] = useState<string>(DEFAULT_TEAM_NAMES.a);
+  const [draftTeamBName, setDraftTeamBName] = useState<string>(DEFAULT_TEAM_NAMES.b);
+  const [draftTeamCName, setDraftTeamCName] = useState<string>(DEFAULT_TEAM_NAMES.c);
   const [draftPool, setDraftPool] = useState<Player[]>([]);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
@@ -105,11 +108,15 @@ export function MatchPage() {
   }
 
   function resetDraft(tab: EditTab) {
+    if (!match) return;
     setEditTab(tab);
     setDraftTeamA([]);
     setDraftTeamB([]);
     setDraftTeamC([]);
     setDraftPool(editablePlayers());
+    setDraftTeamAName(match.teamA.name);
+    setDraftTeamBName(match.teamB.name);
+    setDraftTeamCName(match.teamC?.name ?? DEFAULT_TEAM_NAMES.c);
     setError('');
   }
 
@@ -127,7 +134,16 @@ export function MatchPage() {
     setDraftTeamB([]);
     setDraftTeamC([]);
     setDraftPool([]);
+    setDraftTeamAName(DEFAULT_TEAM_NAMES.a);
+    setDraftTeamBName(DEFAULT_TEAM_NAMES.b);
+    setDraftTeamCName(DEFAULT_TEAM_NAMES.c);
     setError('');
+  }
+
+  function updateDraftTeamName(team: EditorTeam, name: string) {
+    if (team === 'a') setDraftTeamAName(name);
+    else if (team === 'b') setDraftTeamBName(name);
+    else setDraftTeamCName(name);
   }
 
   function switchEditTab(nextTab: EditTab) {
@@ -315,6 +331,13 @@ export function MatchPage() {
         draftTeamA.map((player) => player.id),
         draftTeamB.map((player) => player.id),
         threeWay ? draftTeamC.map((player) => player.id) : undefined,
+        threeWay
+          ? {
+              teamA: sanitizeTeamName(draftTeamAName, DEFAULT_TEAM_NAMES.a),
+              teamB: sanitizeTeamName(draftTeamBName, DEFAULT_TEAM_NAMES.b),
+              teamC: sanitizeTeamName(draftTeamCName, DEFAULT_TEAM_NAMES.c),
+            }
+          : undefined,
       );
       setMatch(updated);
       setEditing(false);
@@ -368,9 +391,22 @@ export function MatchPage() {
     editing && teamsComplete
       ? {
           ...match,
-          teamA: buildGeneratedTeam('Team A', draftTeamA),
-          teamB: buildGeneratedTeam('Team B', draftTeamB),
-          ...(threeWay ? { teamC: buildGeneratedTeam('Team C', draftTeamC) } : {}),
+          teamA: buildGeneratedTeam(
+            sanitizeTeamName(draftTeamAName, DEFAULT_TEAM_NAMES.a),
+            draftTeamA,
+          ),
+          teamB: buildGeneratedTeam(
+            sanitizeTeamName(draftTeamBName, DEFAULT_TEAM_NAMES.b),
+            draftTeamB,
+          ),
+          ...(threeWay
+            ? {
+                teamC: buildGeneratedTeam(
+                  sanitizeTeamName(draftTeamCName, DEFAULT_TEAM_NAMES.c),
+                  draftTeamC,
+                ),
+              }
+            : {}),
         }
       : match;
 
@@ -432,8 +468,9 @@ export function MatchPage() {
       </div>
 
       <p className="text-sm text-slate-600">
-        Edit teams has Lock &amp; shuffle plus Manual assignment{threeWay ? ' across A, B, and C' : ''}.
-        Shuffle again opens a separate lineup link.
+        Edit teams has Lock &amp; shuffle plus Manual assignment
+        {threeWay ? ' — rename teams and assign across A, B, and C' : ''}. Shuffle again opens a
+        separate lineup link.
       </p>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
@@ -447,6 +484,10 @@ export function MatchPage() {
           teamBPlayers={draftTeamB}
           teamCPlayers={draftTeamC}
           poolPlayers={draftPool}
+          teamAName={draftTeamAName}
+          teamBName={draftTeamBName}
+          teamCName={draftTeamCName}
+          onTeamNameChange={updateDraftTeamName}
           teamACapacity={match.teamA.players.length}
           teamBCapacity={match.teamB.players.length}
           teamCCapacity={match.teamC?.players.length ?? 0}

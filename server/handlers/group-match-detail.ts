@@ -7,7 +7,7 @@ import {
 } from '../lib/storage.js';
 import { error, json, readBody } from '../lib/auth.js';
 import { buildGeneratedTeam } from '../../shared/team-generator.js';
-import { isThreeTeamMatch, roundRating, slugify } from '../../shared/types.js';
+import { isThreeTeamMatch, roundRating, sanitizeTeamName, slugify } from '../../shared/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const slug = slugify(String(req.query.slug ?? ''));
@@ -33,6 +33,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       teamAPlayerIds?: string[];
       teamBPlayerIds?: string[];
       teamCPlayerIds?: string[];
+      teamAName?: string;
+      teamBName?: string;
+      teamCName?: string;
     }>(req);
     const teamAPlayerIds = body.teamAPlayerIds ?? [];
     const teamBPlayerIds = body.teamBPlayerIds ?? [];
@@ -73,17 +76,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const teamA = buildGeneratedTeam(
-      'Team A',
+      typeof body.teamAName === 'string'
+        ? sanitizeTeamName(body.teamAName, match.teamA.name)
+        : match.teamA.name,
       teamAPlayers as NonNullable<(typeof teamAPlayers)[number]>[],
     );
     const teamB = buildGeneratedTeam(
-      'Team B',
+      typeof body.teamBName === 'string'
+        ? sanitizeTeamName(body.teamBName, match.teamB.name)
+        : match.teamB.name,
       teamBPlayers as NonNullable<(typeof teamBPlayers)[number]>[],
     );
 
     if (isThreeWay && match.teamC) {
       const teamC = buildGeneratedTeam(
-        'Team C',
+        typeof body.teamCName === 'string'
+          ? sanitizeTeamName(body.teamCName, match.teamC.name)
+          : match.teamC.name,
         teamCPlayers as NonNullable<(typeof teamCPlayers)[number]>[],
       );
       const totals = [teamA.totalRating, teamB.totalRating, teamC.totalRating];
