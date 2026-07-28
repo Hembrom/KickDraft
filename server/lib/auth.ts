@@ -9,6 +9,19 @@ export function error(res: VercelResponse, status: number, message: string) {
   json(res, status, { error: message });
 }
 
+export function getErrorMessage(err: unknown, fallback = 'Something went wrong'): string {
+  if (err instanceof Error) return err.message;
+  if (
+    err &&
+    typeof err === 'object' &&
+    'message' in err &&
+    typeof (err as { message: unknown }).message === 'string'
+  ) {
+    return (err as { message: string }).message;
+  }
+  return fallback;
+}
+
 export async function readBody<T>(req: VercelRequest): Promise<T> {
   if (req.body && typeof req.body === 'object') {
     return req.body as T;

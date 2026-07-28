@@ -5,7 +5,7 @@ import {
   listMatches,
   saveMatch,
 } from '../lib/storage.js';
-import { error, json, readBody } from '../lib/auth.js';
+import { error, getErrorMessage, json, readBody } from '../lib/auth.js';
 import { generateBalancedTeams, generateBalancedThreeTeams } from '../../shared/team-generator.js';
 import {
   formatFromPlayerCount,
@@ -121,8 +121,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await saveMatch(record);
       return json(res, 201, record);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to generate teams';
-      return error(res, 400, message);
+      return error(res, 400, getErrorMessage(err, 'Failed to generate teams'));
     }
   }
 

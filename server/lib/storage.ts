@@ -9,6 +9,7 @@ import {
   type Player,
   type PlayerPosition,
 } from '../../shared/types.js';
+import { getErrorMessage } from './auth.js';
 import { getSupabase, isSupabaseConfigured } from './supabase-client.js';
 import {
   listMatchesLocal,
@@ -152,19 +153,40 @@ function rowToMatch(row: MatchRow): MatchRecord {
 }
 
 function matchToRow(record: MatchRecord) {
-  return {
+  const row: MatchRow = {
     id: record.id,
     group_slug: record.groupSlug,
     date: record.date,
     name: record.name,
     format: record.format,
     selected_player_ids: record.selectedPlayerIds,
-    team_count: record.teamCount ?? 2,
     team_a: record.teamA,
     team_b: record.teamB,
-    team_c: record.teamC ?? null,
     rating_difference: record.ratingDifference,
   };
+
+  if (record.teamCount === 3 || record.teamC) {
+    row.team_count = record.teamCount ?? 3;
+    row.team_c = record.teamC ?? null;
+  }
+
+  return row;
+}
+
+function threeWayMigrationMessage(): string {
+  return (
+    'Three-way split needs a Supabase update. In the SQL editor, run: ' +
+    'alter table matches add column if not exists team_c jsonb; ' +
+    'alter table matches add column if not exists team_count smallint not null default 2;'
+  );
+}
+
+function rethrowMatchSaveError(err: unknown, record: MatchRecord): never {
+  const message = getErrorMessage(err);
+  if (record.teamCount === 3 && /team_c|team_count|schema cache/i.test(message)) {
+    throw new Error(threeWayMigrationMessage());
+  }
+  throw err instanceof Error ? err : new Error(message);
 }
 
 // --- Local JSON fallback (dev without Supabase) ---
@@ -389,7 +411,7 @@ export async function saveMatch(record: MatchRecord) {
 
   const supabase = getSupabase();
   const { error } = await supabase.from('matches').insert(matchToRow(record));
-  if (error) throw error;
+  if (error) rethrowMatchSaveError(error, record);
 }
 
 export async function updateMatch(record: MatchRecord) {
@@ -407,7 +429,7 @@ export async function updateMatch(record: MatchRecord) {
     .update(matchToRow(record))
     .eq('group_slug', record.groupSlug)
     .eq('id', record.id);
-  if (error) throw error;
+  if (error) rethrowMatchSaveError(error, record);
 }
 
 export async function listMatches(slug: string): Promise<MatchRecord[]> {
