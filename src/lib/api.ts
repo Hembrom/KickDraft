@@ -64,6 +64,22 @@ export const api = {
     });
   },
 
+  updateMatchTeamNames(
+    slug: string,
+    matchId: string,
+    teamNames: { teamA?: string; teamB?: string; teamC?: string },
+  ) {
+    return request<MatchRecord>(`/api/groups/${slug}/matches/${matchId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        namesOnly: true,
+        teamAName: teamNames.teamA,
+        teamBName: teamNames.teamB,
+        teamCName: teamNames.teamC,
+      }),
+    });
+  },
+
   updateMatch(
     slug: string,
     matchId: string,

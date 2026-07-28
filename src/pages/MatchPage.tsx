@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Check, Loader2, Pencil, Share2, Shuffle } from 'lucide-react';
+import { Check, Loader2, Pencil, Share2, Shuffle, Tag } from 'lucide-react';
 import { PitchView } from '@/components/PitchView';
 import { ThreeTeamMatchView } from '@/components/ThreeTeamMatchView';
 import { TeamEditor, type EditTab, type EditorTeam } from '@/components/TeamEditor';
+import { TeamNameEditor } from '@/components/TeamNameEditor';
 import { api, ApiError } from '@/lib/api';
 import { shareMatchLineup } from '@/lib/share-match';
 import { formatDate } from '@/lib/utils';
@@ -31,6 +32,7 @@ export function MatchPage() {
   const [sharing, setSharing] = useState(false);
   const [shuffling, setShuffling] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [renamingTeams, setRenamingTeams] = useState(false);
   const [editTab, setEditTab] = useState<EditTab>('lock');
   const [saving, setSaving] = useState(false);
   const [draftTeamA, setDraftTeamA] = useState<Player[]>([]);
@@ -118,6 +120,46 @@ export function MatchPage() {
     setDraftTeamBName(match.teamB.name);
     setDraftTeamCName(match.teamC?.name ?? DEFAULT_TEAM_NAMES.c);
     setError('');
+  }
+
+  function startRenamingTeams() {
+    if (!match) return;
+    setRenamingTeams(true);
+    setDraftTeamAName(match.teamA.name);
+    setDraftTeamBName(match.teamB.name);
+    setDraftTeamCName(match.teamC?.name ?? DEFAULT_TEAM_NAMES.c);
+    setError('');
+  }
+
+  function cancelRenamingTeams() {
+    if (saving) return;
+    setRenamingTeams(false);
+    setDraftTeamAName(DEFAULT_TEAM_NAMES.a);
+    setDraftTeamBName(DEFAULT_TEAM_NAMES.b);
+    setDraftTeamCName(DEFAULT_TEAM_NAMES.c);
+    setError('');
+  }
+
+  async function saveRenamedTeams() {
+    if (!match || saving) return;
+
+    setSaving(true);
+    setError('');
+    try {
+      const updated = await api.updateMatchTeamNames(slug, match.id, {
+        teamA: sanitizeTeamName(draftTeamAName, match.teamA.name),
+        teamB: sanitizeTeamName(draftTeamBName, match.teamB.name),
+        ...(isThreeTeamMatch(match)
+          ? { teamC: sanitizeTeamName(draftTeamCName, match.teamC?.name ?? DEFAULT_TEAM_NAMES.c) }
+          : {}),
+      });
+      setMatch(updated);
+      setRenamingTeams(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to save team names');
+    } finally {
+      setSaving(false);
+    }
   }
 
   function startEditing() {
@@ -424,7 +466,16 @@ export function MatchPage() {
           <button
             type="button"
             className="btn-secondary"
-            disabled={editing || shuffling || sharing}
+            disabled={editing || renamingTeams || shuffling || sharing}
+            onClick={startRenamingTeams}
+          >
+            <Tag className="h-4 w-4" />
+            Rename teams
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={editing || renamingTeams || shuffling || sharing}
             onClick={startEditing}
           >
             <Pencil className="h-4 w-4" />
@@ -433,7 +484,7 @@ export function MatchPage() {
           <button
             type="button"
             className="btn-secondary"
-            disabled={editing || shuffling || sharing}
+            disabled={editing || renamingTeams || shuffling || sharing}
             onClick={handleShuffleAgain}
           >
             {shuffling ? (
@@ -446,7 +497,7 @@ export function MatchPage() {
           <button
             type="button"
             className="btn-primary"
-            disabled={editing || sharing || shuffling}
+            disabled={editing || renamingTeams || sharing || shuffling}
             onClick={handleShare}
           >
             {sharing ? (
@@ -468,12 +519,26 @@ export function MatchPage() {
       </div>
 
       <p className="text-sm text-slate-600">
-        Edit teams has Lock &amp; shuffle plus Manual assignment
-        {threeWay ? ' — rename teams and assign across A, B, and C' : ''}. Shuffle again opens a
-        separate lineup link.
+        Edit teams moves players. Rename teams changes labels only. Shuffle again opens a separate
+        lineup link.
       </p>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+      {renamingTeams ? (
+        <TeamNameEditor
+          teamCount={threeWay ? 3 : 2}
+          teamAName={draftTeamAName}
+          teamBName={draftTeamBName}
+          teamCName={draftTeamCName}
+          onTeamANameChange={setDraftTeamAName}
+          onTeamBNameChange={setDraftTeamBName}
+          onTeamCNameChange={setDraftTeamCName}
+          busy={saving}
+          onSave={saveRenamedTeams}
+          onCancel={cancelRenamingTeams}
+        />
+      ) : null}
 
       {editing ? (
         <TeamEditor
@@ -507,7 +572,7 @@ export function MatchPage() {
         <p className="text-sm text-slate-500">
           Lineup preview updates once all teams are fully assigned.
         </p>
-      ) : threeWay ? (
+      ) : renamingTeams ? null : threeWay ? (
         <ThreeTeamMatchView
           pitchCaptureRef={pitchCaptureRef}
           match={displayedMatch}

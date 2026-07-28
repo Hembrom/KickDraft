@@ -30,6 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'PUT') {
     const body = await readBody<{
+      namesOnly?: boolean;
       teamAPlayerIds?: string[];
       teamBPlayerIds?: string[];
       teamCPlayerIds?: string[];
@@ -37,10 +38,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       teamBName?: string;
       teamCName?: string;
     }>(req);
-    const teamAPlayerIds = body.teamAPlayerIds ?? [];
-    const teamBPlayerIds = body.teamBPlayerIds ?? [];
-    const teamCPlayerIds = body.teamCPlayerIds ?? [];
     const isThreeWay = isThreeTeamMatch(match);
+    const namesOnly = body.namesOnly === true;
+
+    const teamAPlayerIds = namesOnly
+      ? match.teamA.players.map((player) => player.id)
+      : (body.teamAPlayerIds ?? []);
+    const teamBPlayerIds = namesOnly
+      ? match.teamB.players.map((player) => player.id)
+      : (body.teamBPlayerIds ?? []);
+    const teamCPlayerIds = namesOnly
+      ? (match.teamC?.players.map((player) => player.id) ?? [])
+      : (body.teamCPlayerIds ?? []);
     const submittedIds = isThreeWay
       ? [...teamAPlayerIds, ...teamBPlayerIds, ...teamCPlayerIds]
       : [...teamAPlayerIds, ...teamBPlayerIds];
