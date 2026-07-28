@@ -84,8 +84,10 @@ type MatchRow = {
   name?: string;
   format: number;
   selected_player_ids: string[];
+  team_count?: number;
   team_a: GeneratedTeam;
   team_b: GeneratedTeam;
+  team_c?: GeneratedTeam | null;
   rating_difference: number;
 };
 
@@ -141,8 +143,10 @@ function rowToMatch(row: MatchRow): MatchRecord {
     name: row.name ?? '',
     format: row.format,
     selectedPlayerIds: row.selected_player_ids,
+    teamCount: row.team_count === 3 ? 3 : 2,
     teamA: row.team_a,
     teamB: row.team_b,
+    teamC: row.team_c ?? undefined,
     ratingDifference: Number(row.rating_difference),
   };
 }
@@ -155,8 +159,10 @@ function matchToRow(record: MatchRecord) {
     name: record.name,
     format: record.format,
     selected_player_ids: record.selectedPlayerIds,
+    team_count: record.teamCount ?? 2,
     team_a: record.teamA,
     team_b: record.teamB,
+    team_c: record.teamC ?? null,
     rating_difference: record.ratingDifference,
   };
 }

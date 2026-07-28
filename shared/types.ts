@@ -125,6 +125,8 @@ export interface GeneratedTeam {
   averageRating: number;
 }
 
+export type TeamCount = 2 | 3;
+
 export interface MatchRecord {
   id: string;
   groupSlug: string;
@@ -133,8 +135,11 @@ export interface MatchRecord {
   name: string;
   format: number;
   selectedPlayerIds: string[];
+  /** 2 = standard sides, 3 = three-way split. Defaults to 2 for older matches. */
+  teamCount?: TeamCount;
   teamA: GeneratedTeam;
   teamB: GeneratedTeam;
+  teamC?: GeneratedTeam;
   ratingDifference: number;
 }
 
@@ -193,6 +198,52 @@ export function resolveTeamSizes(
 
 export function getMatchSizeLabel(teamASize: number, teamBSize: number): string {
   return `${teamASize}v${teamBSize}`;
+}
+
+export function getThreeWayMatchSizeLabel(
+  teamASize: number,
+  teamBSize: number,
+  teamCSize: number,
+): string {
+  return `${teamASize}v${teamBSize}v${teamCSize}`;
+}
+
+export function isThreeTeamMatch(match: MatchRecord): boolean {
+  return match.teamCount === 3 && Boolean(match.teamC);
+}
+
+export function getMatchLabel(match: MatchRecord): string {
+  if (isThreeTeamMatch(match) && match.teamC) {
+    return getThreeWayMatchSizeLabel(
+      match.teamA.players.length,
+      match.teamB.players.length,
+      match.teamC.players.length,
+    );
+  }
+  return getMatchSizeLabel(match.teamA.players.length, match.teamB.players.length);
+}
+
+/** 12–22 players → three teams, sizes differ by at most one (e.g. 14 → 5v5v4). */
+export function teamSizesFromThreeWaySplit(
+  playerCount: number,
+): [number, number, number] | null {
+  const minPlayers = 12;
+  const maxPlayers = 22;
+  if (playerCount < minPlayers || playerCount > maxPlayers) return null;
+
+  const base = Math.floor(playerCount / 3);
+  const remainder = playerCount % 3;
+  const sizes: [number, number, number] = [base, base, base];
+  for (let i = 0; i < remainder; i++) {
+    sizes[i]++;
+  }
+  return sizes;
+}
+
+export function formatFromThreeWayPlayerCount(playerCount: number): number | null {
+  const sizes = teamSizesFromThreeWaySplit(playerCount);
+  if (!sizes) return null;
+  return Math.max(...sizes);
 }
 
 /** Derive sides from headcount — 11 players → 6v5, 12 → 6v6, etc. */

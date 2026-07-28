@@ -6,12 +6,15 @@ import {
   saveMatch,
 } from '../lib/storage.js';
 import { error, json, readBody } from '../lib/auth.js';
-import { generateBalancedTeams } from '../../shared/team-generator.js';
+import { generateBalancedTeams, generateBalancedThreeTeams } from '../../shared/team-generator.js';
 import {
   formatFromPlayerCount,
+  formatFromThreeWayPlayerCount,
   slugify,
   teamSizesFromPlayerCount,
+  teamSizesFromThreeWaySplit,
   type MatchRecord,
+  type TeamCount,
 } from '../../shared/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -30,22 +33,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === 'POST') {
-    const body = await readBody<{ playerIds?: string[]; name?: string }>(req);
+    const body = await readBody<{ playerIds?: string[]; name?: string; teamCount?: TeamCount }>(req);
     const playerIds = body.playerIds ?? [];
     const name = typeof body.name === 'string' ? body.name.trim() : '';
+    const teamCount: TeamCount = body.teamCount === 3 ? 3 : 2;
 
     if (playerIds.length === 0) {
       return error(res, 400, 'Select players manually — tick who is playing today');
-    }
-
-    const split = teamSizesFromPlayerCount(playerIds.length);
-    if (!split) {
-      return error(res, 400, 'Select 9–22 players for a match (e.g. 11 → 6v5, 12 → 6v6)');
-    }
-
-    const format = formatFromPlayerCount(playerIds.length);
-    if (!format) {
-      return error(res, 400, 'Could not determine match size from player count');
     }
 
     const { players: allPlayers } = await getGroupPlayers(slug);
@@ -58,6 +52,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
+      if (teamCount === 3) {
+        const sizes = teamSizesFromThreeWaySplit(playerIds.length);
+        if (!sizes) {
+          return error(res, 400, 'Select 12–22 players for a three-way split (e.g. 15 → 5v5v5)');
+        }
+
+        const format = formatFromThreeWayPlayerCount(playerIds.length);
+        if (!format) {
+          return error(res, 400, 'Could not determine match size from player count');
+        }
+
+        const [teamASize, teamBSize, teamCSize] = sizes;
+        const { teamA, teamB, teamC, ratingDifference } = generateBalancedThreeTeams(
+          selected,
+          teamASize,
+          teamBSize,
+          teamCSize,
+        );
+
+        const record: MatchRecord = {
+          id: crypto.randomUUID(),
+          groupSlug: slug,
+          date: new Date().toISOString(),
+          name,
+          format,
+          teamCount: 3,
+          selectedPlayerIds: selected.map((p) => p.id),
+          teamA,
+          teamB,
+          teamC,
+          ratingDifference,
+        };
+
+        await saveMatch(record);
+        return json(res, 201, record);
+      }
+
+      const split = teamSizesFromPlayerCount(playerIds.length);
+      if (!split) {
+        return error(res, 400, 'Select 9–22 players for a match (e.g. 11 → 6v5, 12 → 6v6)');
+      }
+
+      const format = formatFromPlayerCount(playerIds.length);
+      if (!format) {
+        return error(res, 400, 'Could not determine match size from player count');
+      }
+
       const { teamA, teamB, ratingDifference } = generateBalancedTeams(
         selected,
         split.teamASize,
@@ -70,6 +111,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         date: new Date().toISOString(),
         name,
         format,
+        teamCount: 2,
         selectedPlayerIds: selected.map((p) => p.id),
         teamA,
         teamB,

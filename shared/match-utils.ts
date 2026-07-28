@@ -20,6 +20,9 @@ export function enrichMatchWithRoster(match: MatchRecord, roster: Player[]): Mat
     ...match,
     teamA: { ...match.teamA, players: enrichPlayers(match.teamA.players) },
     teamB: { ...match.teamB, players: enrichPlayers(match.teamB.players) },
+    ...(match.teamC
+      ? { teamC: { ...match.teamC, players: enrichPlayers(match.teamC.players) } }
+      : {}),
   };
 }
 

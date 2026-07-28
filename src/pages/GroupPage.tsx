@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { History, Users, UsersRound } from 'lucide-react';
+import { History, Split, Users, UsersRound } from 'lucide-react';
 import { PlayerCard } from '@/components/PlayerCard';
 import { api, ApiError } from '@/lib/api';
 import {
   getMatchSizeLabel,
   getPositionsLabel,
+  getThreeWayMatchSizeLabel,
   teamSizesFromPlayerCount,
+  teamSizesFromThreeWaySplit,
   type Player,
 } from '@shared/types';
 
@@ -24,7 +26,7 @@ export function GroupPage() {
   const [matchName, setMatchName] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
+  const [generating, setGenerating] = useState<'two' | 'three' | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -56,8 +58,13 @@ export function GroupPage() {
 
   const selectedCount = selected.size;
   const teamSizes = teamSizesFromPlayerCount(selectedCount);
+  const threeWaySizes = teamSizesFromThreeWaySplit(selectedCount);
   const matchLabel = teamSizes ? getMatchSizeLabel(teamSizes.teamASize, teamSizes.teamBSize) : null;
-  const canGenerate = teamSizes !== null && !generating;
+  const threeWayLabel = threeWaySizes
+    ? getThreeWayMatchSizeLabel(threeWaySizes[0], threeWaySizes[1], threeWaySizes[2])
+    : null;
+  const canGenerateTwo = teamSizes !== null && generating === null;
+  const canGenerateThree = threeWaySizes !== null && generating === null;
 
   function togglePlayer(id: string) {
     setSelected((prev) => {
@@ -72,17 +79,24 @@ export function GroupPage() {
     setSelected(new Set());
   }
 
-  async function handleGenerate() {
-    if (!teamSizes) return;
-    setGenerating(true);
+  async function handleGenerate(teamCount: 2 | 3) {
+    if (teamCount === 2 && !teamSizes) return;
+    if (teamCount === 3 && !threeWaySizes) return;
+
+    setGenerating(teamCount === 3 ? 'three' : 'two');
     setError('');
     try {
-      const match = await api.generateMatch(slug, Array.from(selected), matchName.trim());
+      const match = await api.generateMatch(
+        slug,
+        Array.from(selected),
+        matchName.trim(),
+        teamCount,
+      );
       navigate(`/${slug}/match/${match.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to generate teams');
     } finally {
-      setGenerating(false);
+      setGenerating(null);
     }
   }
 
@@ -138,7 +152,7 @@ export function GroupPage() {
             <button
               type="button"
               className="btn-secondary"
-              disabled={selectedCount === 0}
+              disabled={selectedCount === 0 || generating !== null}
               onClick={clearSelection}
             >
               Clear selection
@@ -147,31 +161,53 @@ export function GroupPage() {
             <button
               type="button"
               className="btn-primary"
-              disabled={!canGenerate}
-              onClick={handleGenerate}
+              disabled={!canGenerateTwo}
+              onClick={() => handleGenerate(2)}
             >
               <UsersRound className="h-4 w-4" />
-              {generating ? 'Generating…' : 'Balance teams'}
+              {generating === 'two' ? 'Generating…' : 'Balance teams'}
+            </button>
+
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={!canGenerateThree}
+              onClick={() => handleGenerate(3)}
+            >
+              <Split className="h-4 w-4" />
+              {generating === 'three' ? 'Splitting…' : 'Three-way split'}
             </button>
           </div>
         </div>
 
         {selectedCount === 0 ? (
           <p className="mt-3 text-sm text-slate-600">
-            Tick who is coming or will show up (9–22 players). Size is automatic — 11 selected
-            → 6v5, 12 → 6v6, 10 → 5v5.
+            Tick who is coming. Two teams: 9–22 players (11 → 6v5, 12 → 6v6). Three teams: 12–22
+            players (15 → 5v5v5, 21 → 7v7v7).
           </p>
         ) : null}
 
-        {selectedCount > 0 && !teamSizes ? (
+        {selectedCount > 0 && !teamSizes && !threeWaySizes ? (
           <p className="mt-3 text-sm text-amber-700">
-            {selectedCount} selected — need 9–22 players for a match.
+            {selectedCount} selected — need at least 9 for two teams or 12 for three teams.
           </p>
         ) : null}
 
-        {canGenerate && teamSizes && matchLabel ? (
+        {canGenerateTwo && teamSizes && matchLabel ? (
           <p className="mt-3 text-sm text-emerald-700">
-            Ready — {selectedCount} players → {matchLabel}. Teams balanced from your selection.
+            Two teams — {selectedCount} players → {matchLabel}.
+          </p>
+        ) : null}
+
+        {canGenerateThree && threeWaySizes && threeWayLabel ? (
+          <p className="mt-3 text-sm text-emerald-700">
+            Three teams — {selectedCount} players → {threeWayLabel}.
+          </p>
+        ) : null}
+
+        {selectedCount >= 9 && selectedCount < 12 ? (
+          <p className="mt-2 text-sm text-slate-500">
+            Three-way split unlocks at 12+ players. Use Balance teams for now.
           </p>
         ) : null}
 

@@ -37,8 +37,14 @@ create table if not exists matches (
   selected_player_ids uuid[] not null default '{}',
   team_a jsonb not null,
   team_b jsonb not null,
+  team_c jsonb,
+  team_count smallint not null default 2,
   rating_difference numeric not null
 );
+
+-- Existing databases: run once if matches already exists without three-way columns
+-- alter table matches add column if not exists team_c jsonb;
+-- alter table matches add column if not exists team_count smallint not null default 2;
 
 create index if not exists matches_group_slug_idx on matches (group_slug);
 create index if not exists matches_date_idx on matches (date desc);

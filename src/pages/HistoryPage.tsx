@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
-import { formatRatingGap, getMatchSizeLabel, type MatchRecord } from '@shared/types';
+import { formatRatingGap, getMatchLabel, type MatchRecord } from '@shared/types';
 
 export function HistoryPage() {
   const { slug = '' } = useParams();
@@ -50,12 +50,10 @@ export function HistoryPage() {
             >
               <div>
                 <p className="font-semibold text-slate-900">
-                  {match.name.trim() || getMatchSizeLabel(match.teamA.players.length, match.teamB.players.length)}
+                  {match.name.trim() || getMatchLabel(match)}
                 </p>
                 <p className="text-xs text-slate-500">
-                  {match.name.trim()
-                    ? `${getMatchSizeLabel(match.teamA.players.length, match.teamB.players.length)} · `
-                    : ''}
+                  {match.name.trim() ? `${getMatchLabel(match)} · ` : ''}
                   {formatRatingGap(match.ratingDifference)} · {formatDate(match.date)}
                 </p>
               </div>

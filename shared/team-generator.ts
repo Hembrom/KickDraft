@@ -616,3 +616,344 @@ export function withRecalculatedOvr(player: Omit<Player, 'ovr'> & { ovr?: number
   const ovr = calculateOvr(player);
   return { ...player, ovr };
 }
+
+// --- Three-way split (Team A / B / C) ---
+
+export interface TeamGenerationThreeResult {
+  teamA: GeneratedTeam;
+  teamB: GeneratedTeam;
+  teamC: GeneratedTeam;
+  ratingDifference: number;
+}
+
+export interface LockedThreeTeamPlayers {
+  teamA: string[];
+  teamB: string[];
+  teamC: string[];
+}
+
+function remainingPlayersMulti(allPlayers: Player[], teams: Player[][]): Player[] {
+  const assignedIds = new Set(teams.flat().map((player) => player.id));
+  return allPlayers.filter((player) => !assignedIds.has(player.id));
+}
+
+function assignGoalkeepersThree(
+  players: Player[],
+  teams: Player[][],
+  sizes: number[],
+): Player[] {
+  const gkPool = shuffle(players.filter(canPlayGoalkeeper));
+  const outfieldPool = players.filter((player) => !canPlayGoalkeeper(player));
+
+  for (let i = 0; i < 3 && gkPool.length > 0; i++) {
+    if (teams[i].length < sizes[i]) {
+      teams[i].push(gkPool.shift()!);
+    }
+  }
+
+  return [...outfieldPool, ...gkPool];
+}
+
+function distributeStaminaLeadersThree(
+  allPlayers: Player[],
+  teams: Player[][],
+  sizes: number[],
+): void {
+  const leaderCount = Math.min(6, allPlayers.length);
+  if (leaderCount < 3) return;
+
+  const topLeaders = [...allPlayers].sort((a, b) => b.stamina - a.stamina).slice(0, leaderCount);
+  const targets = [2, 2, 2];
+
+  for (let teamIndex = 0; teamIndex < 3; teamIndex++) {
+    targets[teamIndex] -= topLeaders.filter((player) =>
+      teams[teamIndex].some((assigned) => assigned.id === player.id),
+    ).length;
+  }
+
+  const assignedIds = new Set(teams.flat().map((player) => player.id));
+  const unplaced = shuffle(topLeaders.filter((player) => !assignedIds.has(player.id)));
+
+  for (const player of unplaced) {
+    const order = shuffle([0, 1, 2]);
+    for (const teamIndex of order) {
+      if (targets[teamIndex] > 0 && teams[teamIndex].length < sizes[teamIndex]) {
+        teams[teamIndex].push(player);
+        targets[teamIndex]--;
+        break;
+      }
+    }
+  }
+}
+
+function assignToTeamSlot(
+  teams: Player[][],
+  sizes: number[],
+  player: Player,
+  preferredIndex: number,
+): void {
+  const order = [preferredIndex, (preferredIndex + 1) % 3, (preferredIndex + 2) % 3];
+  for (const teamIndex of order) {
+    if (teams[teamIndex].length < sizes[teamIndex]) {
+      teams[teamIndex].push(player);
+      return;
+    }
+  }
+}
+
+function distributeByThreeWayBookendDraft(
+  players: Player[],
+  teams: Player[][],
+  sizes: number[],
+): void {
+  const pool = sortPlayersForDraft(players);
+  let pickFromTop = Math.random() < 0.5;
+
+  while (pool.length > 0) {
+    for (let slot = 0; slot < 3 && pool.length > 0; slot++) {
+      const player = pickFromTop ? pool.shift()! : pool.pop()!;
+      assignToTeamSlot(teams, sizes, player, slot);
+    }
+    pickFromTop = !pickFromTop;
+  }
+}
+
+function teamSpread(teams: Player[][]): number {
+  const totals = teams.map((team) => teamTotal(team));
+  return Math.max(...totals) - Math.min(...totals);
+}
+
+function canSwapThreePlayers(
+  playerFrom: Player,
+  playerTo: Player,
+  fromTeam: Player[],
+  toTeam: Player[],
+): boolean {
+  return (
+    canSwapPlayers(playerFrom, playerTo, fromTeam, toTeam) &&
+    canSwapPlayers(playerTo, playerFrom, toTeam, fromTeam)
+  );
+}
+
+function optimizeThreeTeamBalance(teams: Player[][]): void {
+  const maxIterations = 120;
+
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
+    const spread = teamSpread(teams);
+    if (spread <= 2) break;
+
+    let best: { i: number; j: number; ai: number; bi: number; newSpread: number } | null = null;
+
+    for (let i = 0; i < 3; i++) {
+      for (let j = i + 1; j < 3; j++) {
+        for (let ai = 0; ai < teams[i].length; ai++) {
+          for (let bi = 0; bi < teams[j].length; bi++) {
+            const playerI = teams[i][ai];
+            const playerJ = teams[j][bi];
+            if (!canSwapThreePlayers(playerI, playerJ, teams[i], teams[j])) continue;
+
+            const totals = teams.map((team) => teamTotal(team));
+            totals[i] += playerJ.ovr - playerI.ovr;
+            totals[j] += playerI.ovr - playerJ.ovr;
+            const newSpread = Math.max(...totals) - Math.min(...totals);
+
+            if (newSpread < spread && (!best || newSpread < best.newSpread)) {
+              best = { i, j, ai, bi, newSpread };
+            }
+          }
+        }
+      }
+    }
+
+    if (!best) break;
+
+    const swapped = teams[best.i][best.ai];
+    teams[best.i][best.ai] = teams[best.j][best.bi];
+    teams[best.j][best.bi] = swapped;
+  }
+}
+
+function optimizeThreeTeamStamina(teams: Player[][]): void {
+  const maxIterations = 120;
+
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
+    const totals = teams.map((team) => teamStaminaTotal(team));
+    const spread = Math.max(...totals) - Math.min(...totals);
+    if (spread <= 4) break;
+
+    let best: { i: number; j: number; ai: number; bi: number; newSpread: number } | null = null;
+
+    for (let i = 0; i < 3; i++) {
+      for (let j = i + 1; j < 3; j++) {
+        for (let ai = 0; ai < teams[i].length; ai++) {
+          for (let bi = 0; bi < teams[j].length; bi++) {
+            const playerI = teams[i][ai];
+            const playerJ = teams[j][bi];
+            if (!canSwapThreePlayers(playerI, playerJ, teams[i], teams[j])) continue;
+
+            const nextTotals = [...totals];
+            nextTotals[i] += playerJ.stamina - playerI.stamina;
+            nextTotals[j] += playerI.stamina - playerJ.stamina;
+            const newSpread = Math.max(...nextTotals) - Math.min(...nextTotals);
+
+            if (newSpread < spread && (!best || newSpread < best.newSpread)) {
+              best = { i, j, ai, bi, newSpread };
+            }
+          }
+        }
+      }
+    }
+
+    if (!best) break;
+
+    const swapped = teams[best.i][best.ai];
+    teams[best.i][best.ai] = teams[best.j][best.bi];
+    teams[best.j][best.bi] = swapped;
+  }
+}
+
+function injectThreeTeamVariety(teams: Player[][]): void {
+  const spread = teamSpread(teams);
+  const slack = 2;
+  const options: { i: number; j: number; ai: number; bi: number }[] = [];
+
+  for (let i = 0; i < 3; i++) {
+    for (let j = i + 1; j < 3; j++) {
+      const totals = teams.map((team) => teamTotal(team));
+      for (let ai = 0; ai < teams[i].length; ai++) {
+        for (let bi = 0; bi < teams[j].length; bi++) {
+          const playerI = teams[i][ai];
+          const playerJ = teams[j][bi];
+          if (!canSwapThreePlayers(playerI, playerJ, teams[i], teams[j])) continue;
+
+          const nextTotals = [...totals];
+          nextTotals[i] += playerJ.ovr - playerI.ovr;
+          nextTotals[j] += playerI.ovr - playerJ.ovr;
+          const newSpread = Math.max(...nextTotals) - Math.min(...nextTotals);
+          if (newSpread <= spread + slack) {
+            options.push({ i, j, ai, bi });
+          }
+        }
+      }
+    }
+  }
+
+  if (options.length === 0) return;
+  const pick = options[Math.floor(Math.random() * options.length)]!;
+  const swapped = teams[pick.i][pick.ai];
+  teams[pick.i][pick.ai] = teams[pick.j][pick.bi];
+  teams[pick.j][pick.bi] = swapped;
+}
+
+export function generateBalancedThreeTeams(
+  players: Player[],
+  teamASize: number,
+  teamBSize: number,
+  teamCSize: number,
+): TeamGenerationThreeResult {
+  const total = teamASize + teamBSize + teamCSize;
+  if (players.length !== total) {
+    throw new Error(`Need exactly ${total} players for ${teamASize}v${teamBSize}v${teamCSize}`);
+  }
+
+  const teams: Player[][] = [[], [], []];
+  const sizes = [teamASize, teamBSize, teamCSize];
+
+  assignGoalkeepersThree(players, teams, sizes);
+  distributeStaminaLeadersThree(players, teams, sizes);
+  distributeByThreeWayBookendDraft(remainingPlayersMulti(players, teams), teams, sizes);
+  optimizeThreeTeamBalance(teams);
+  optimizeThreeTeamStamina(teams);
+  injectThreeTeamVariety(teams);
+
+  const teamA = buildGeneratedTeam('Team A', teams[0]);
+  const teamB = buildGeneratedTeam('Team B', teams[1]);
+  const teamC = buildGeneratedTeam('Team C', teams[2]);
+  const ratingDifference = roundRating(teamSpread(teams));
+
+  return { teamA, teamB, teamC, ratingDifference };
+}
+
+function enforceLockedThreeTeamAssignments(
+  teams: Player[][],
+  locked: [Set<string>, Set<string>, Set<string>],
+): boolean {
+  for (let target = 0; target < 3; target++) {
+    for (const playerId of locked[target]) {
+      const currentTeam = teams.findIndex((team) => team.some((player) => player.id === playerId));
+      if (currentTeam === target) continue;
+      if (currentTeam === -1) return false;
+
+      const unlockedIndex = teams[target].findIndex((player) => !locked[target].has(player.id));
+      if (unlockedIndex === -1) return false;
+
+      const wrongIndex = teams[currentTeam].findIndex((player) => player.id === playerId);
+      if (wrongIndex === -1) return false;
+
+      const swapped = teams[target][unlockedIndex];
+      teams[target][unlockedIndex] = teams[currentTeam][wrongIndex];
+      teams[currentTeam][wrongIndex] = swapped;
+    }
+  }
+
+  return locked.every((teamLocked, index) =>
+    [...teamLocked].every((id) => teams[index].some((player) => player.id === id)),
+  );
+}
+
+export function generateBalancedThreeTeamsWithLocks(
+  players: Player[],
+  teamASize: number,
+  teamBSize: number,
+  teamCSize: number,
+  locked: LockedThreeTeamPlayers,
+): TeamGenerationThreeResult {
+  const playerIds = new Set(players.map((player) => player.id));
+  const lockedSets: [Set<string>, Set<string>, Set<string>] = [
+    new Set(locked.teamA),
+    new Set(locked.teamB),
+    new Set(locked.teamC),
+  ];
+  const sizes = [teamASize, teamBSize, teamCSize];
+
+  if (lockedSets.some((set, index) => set.size > sizes[index])) {
+    throw new Error('Too many players placed for this team size');
+  }
+
+  const allLocked = [...lockedSets[0], ...lockedSets[1], ...lockedSets[2]];
+  if (new Set(allLocked).size !== allLocked.length) {
+    throw new Error('A player cannot be locked to more than one team');
+  }
+  if (allLocked.some((id) => !playerIds.has(id))) {
+    throw new Error('Locked player was not found in this match');
+  }
+
+  let best: TeamGenerationThreeResult | null = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const generated = generateBalancedThreeTeams(players, teamASize, teamBSize, teamCSize);
+    const teams: Player[][] = [
+      [...generated.teamA.players],
+      [...generated.teamB.players],
+      [...generated.teamC.players],
+    ];
+    if (!enforceLockedThreeTeamAssignments(teams, lockedSets)) continue;
+
+    const score = teamSpread(teams);
+    if (score >= bestScore) continue;
+
+    best = {
+      teamA: buildGeneratedTeam('Team A', teams[0]),
+      teamB: buildGeneratedTeam('Team B', teams[1]),
+      teamC: buildGeneratedTeam('Team C', teams[2]),
+      ratingDifference: roundRating(score),
+    };
+    bestScore = score;
+  }
+
+  if (!best) {
+    throw new Error('Could not reshuffle while keeping those players locked');
+  }
+  return best;
+}

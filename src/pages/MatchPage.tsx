@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Check, Loader2, Pencil, Share2, Shuffle } from 'lucide-react';
 import { PitchView } from '@/components/PitchView';
+import { ThreeTeamMatchView } from '@/components/ThreeTeamMatchView';
 import { TeamEditor, type EditTab, type EditorTeam } from '@/components/TeamEditor';
 import { api, ApiError } from '@/lib/api';
 import { shareMatchLineup } from '@/lib/share-match';
@@ -10,8 +11,15 @@ import { enrichMatchWithRoster } from '@shared/match-utils';
 import {
   buildGeneratedTeam,
   generateBalancedTeamsWithLocks,
+  generateBalancedThreeTeamsWithLocks,
 } from '@shared/team-generator';
-import { getMatchSizeLabel, type MatchRecord, type Player } from '@shared/types';
+import { getMatchLabel, isThreeTeamMatch, type MatchRecord, type Player } from '@shared/types';
+
+function teamLabel(team: EditorTeam): string {
+  if (team === 'a') return 'A';
+  if (team === 'b') return 'B';
+  return 'C';
+}
 
 export function MatchPage() {
   const { slug = '', matchId = '' } = useParams();
@@ -27,6 +35,7 @@ export function MatchPage() {
   const [saving, setSaving] = useState(false);
   const [draftTeamA, setDraftTeamA] = useState<Player[]>([]);
   const [draftTeamB, setDraftTeamB] = useState<Player[]>([]);
+  const [draftTeamC, setDraftTeamC] = useState<Player[]>([]);
   const [draftPool, setDraftPool] = useState<Player[]>([]);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
@@ -56,6 +65,7 @@ export function MatchPage() {
         slug,
         match.selectedPlayerIds,
         (match.name ?? '').trim(),
+        match.teamCount === 3 ? 3 : 2,
       );
       navigate(`/${slug}/match/${newMatch.id}`);
     } catch (err) {
@@ -89,15 +99,16 @@ export function MatchPage() {
   function editablePlayers(): Player[] {
     if (!match) return [];
     const current = enrichMatchWithRoster(match, players);
-    return [...current.teamA.players, ...current.teamB.players].sort((a, b) =>
-      a.name.localeCompare(b.name),
-    );
+    const roster = [...current.teamA.players, ...current.teamB.players];
+    if (current.teamC) roster.push(...current.teamC.players);
+    return roster.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   function resetDraft(tab: EditTab) {
     setEditTab(tab);
     setDraftTeamA([]);
     setDraftTeamB([]);
+    setDraftTeamC([]);
     setDraftPool(editablePlayers());
     setError('');
   }
@@ -114,6 +125,7 @@ export function MatchPage() {
     setEditTab('lock');
     setDraftTeamA([]);
     setDraftTeamB([]);
+    setDraftTeamC([]);
     setDraftPool([]);
     setError('');
   }
@@ -123,9 +135,22 @@ export function MatchPage() {
     resetDraft(nextTab);
   }
 
-  function findPlayerLocation(playerId: string): 'a' | 'b' | 'pool' | null {
+  function getDraftTeam(team: EditorTeam): Player[] {
+    if (team === 'a') return draftTeamA;
+    if (team === 'b') return draftTeamB;
+    return draftTeamC;
+  }
+
+  function setDraftTeam(team: EditorTeam, players: Player[]) {
+    if (team === 'a') setDraftTeamA(players);
+    else if (team === 'b') setDraftTeamB(players);
+    else setDraftTeamC(players);
+  }
+
+  function findPlayerLocation(playerId: string): EditorTeam | 'pool' | null {
     if (draftTeamA.some((player) => player.id === playerId)) return 'a';
     if (draftTeamB.some((player) => player.id === playerId)) return 'b';
+    if (draftTeamC.some((player) => player.id === playerId)) return 'c';
     if (draftPool.some((player) => player.id === playerId)) return 'pool';
     return null;
   }
@@ -138,25 +163,25 @@ export function MatchPage() {
   ) {
     if (fromTeam === toTeam || fromPlayerId === toPlayerId) return;
 
-    const playerAId = fromTeam === 'a' ? fromPlayerId : toPlayerId;
-    const playerBId = fromTeam === 'b' ? fromPlayerId : toPlayerId;
-    const indexA = draftTeamA.findIndex((player) => player.id === playerAId);
-    const indexB = draftTeamB.findIndex((player) => player.id === playerBId);
-    if (indexA === -1 || indexB === -1) return;
+    const fromList = getDraftTeam(fromTeam);
+    const toList = getDraftTeam(toTeam);
+    const fromIndex = fromList.findIndex((player) => player.id === fromPlayerId);
+    const toIndex = toList.findIndex((player) => player.id === toPlayerId);
+    if (fromIndex === -1 || toIndex === -1) return;
 
-    const nextA = [...draftTeamA];
-    const nextB = [...draftTeamB];
-    const fromA = nextA[indexA];
-    nextA[indexA] = nextB[indexB];
-    nextB[indexB] = fromA;
-    setDraftTeamA(nextA);
-    setDraftTeamB(nextB);
+    const nextFrom = [...fromList];
+    const nextTo = [...toList];
+    const swapped = nextFrom[fromIndex];
+    nextFrom[fromIndex] = nextTo[toIndex];
+    nextTo[toIndex] = swapped;
+    setDraftTeam(fromTeam, nextFrom);
+    setDraftTeam(toTeam, nextTo);
     setError('');
   }
 
   function reorderPlayers(team: EditorTeam, fromPlayerId: string, toPlayerId: string) {
     if (fromPlayerId === toPlayerId) return;
-    const list = team === 'a' ? draftTeamA : draftTeamB;
+    const list = getDraftTeam(team);
     const fromIndex = list.findIndex((player) => player.id === fromPlayerId);
     const toIndex = list.findIndex((player) => player.id === toPlayerId);
     if (fromIndex === -1 || toIndex === -1) return;
@@ -164,23 +189,21 @@ export function MatchPage() {
     const next = [...list];
     const [moved] = next.splice(fromIndex, 1);
     next.splice(toIndex, 0, moved);
-    if (team === 'a') setDraftTeamA(next);
-    else setDraftTeamB(next);
+    setDraftTeam(team, next);
     setError('');
   }
 
   function returnPlayerToPool(playerId: string) {
     const location = findPlayerLocation(playerId);
-    if (location !== 'a' && location !== 'b') return;
+    if (!location || location === 'pool') return;
 
-    const source = location === 'a' ? draftTeamA : draftTeamB;
+    const source = getDraftTeam(location);
     const index = source.findIndex((player) => player.id === playerId);
     if (index === -1) return;
 
     const nextSource = [...source];
     const [player] = nextSource.splice(index, 1);
-    if (location === 'a') setDraftTeamA(nextSource);
-    else setDraftTeamB(nextSource);
+    setDraftTeam(location, nextSource);
     setDraftPool((current) =>
       [...current, player].sort((a, b) => a.name.localeCompare(b.name)),
     );
@@ -193,16 +216,20 @@ export function MatchPage() {
     const location = findPlayerLocation(playerId);
     if (!location || location === targetTeam) return;
 
-    const player = [...draftTeamA, ...draftTeamB, ...draftPool].find((p) => p.id === playerId);
+    const player = [...draftTeamA, ...draftTeamB, ...draftTeamC, ...draftPool].find(
+      (p) => p.id === playerId,
+    );
     if (!player) return;
 
     const targetCapacity =
-      targetTeam === 'a' ? match.teamA.players.length : match.teamB.players.length;
-    const targetPlayers = targetTeam === 'a' ? draftTeamA : draftTeamB;
+      targetTeam === 'a'
+        ? match.teamA.players.length
+        : targetTeam === 'b'
+          ? match.teamB.players.length
+          : match.teamC?.players.length ?? 0;
+    const targetPlayers = getDraftTeam(targetTeam);
     if (targetPlayers.length >= targetCapacity) {
-      setError(
-        `Team ${targetTeam === 'a' ? 'A' : 'B'} is full (${targetCapacity}). Return someone first.`,
-      );
+      setError(`Team ${teamLabel(targetTeam)} is full (${targetCapacity}). Return someone first.`);
       return;
     }
 
@@ -214,24 +241,46 @@ export function MatchPage() {
     setDraftTeamB((current) =>
       targetTeam === 'b' ? [...without(current), player] : without(current),
     );
+    setDraftTeamC((current) =>
+      targetTeam === 'c' ? [...without(current), player] : without(current),
+    );
     setError('');
   }
 
   function fillRestOfTeams() {
     if (!match) return;
     try {
-      const all = [...draftTeamA, ...draftTeamB, ...draftPool];
-      const result = generateBalancedTeamsWithLocks(
-        all,
-        match.teamA.players.length,
-        match.teamB.players.length,
-        {
-          teamA: draftTeamA.map((player) => player.id),
-          teamB: draftTeamB.map((player) => player.id),
-        },
-      );
-      setDraftTeamA(result.teamA.players);
-      setDraftTeamB(result.teamB.players);
+      const all = [...draftTeamA, ...draftTeamB, ...draftTeamC, ...draftPool];
+
+      if (isThreeTeamMatch(match) && match.teamC) {
+        const result = generateBalancedThreeTeamsWithLocks(
+          all,
+          match.teamA.players.length,
+          match.teamB.players.length,
+          match.teamC.players.length,
+          {
+            teamA: draftTeamA.map((player) => player.id),
+            teamB: draftTeamB.map((player) => player.id),
+            teamC: draftTeamC.map((player) => player.id),
+          },
+        );
+        setDraftTeamA(result.teamA.players);
+        setDraftTeamB(result.teamB.players);
+        setDraftTeamC(result.teamC.players);
+      } else {
+        const result = generateBalancedTeamsWithLocks(
+          all,
+          match.teamA.players.length,
+          match.teamB.players.length,
+          {
+            teamA: draftTeamA.map((player) => player.id),
+            teamB: draftTeamB.map((player) => player.id),
+          },
+        );
+        setDraftTeamA(result.teamA.players);
+        setDraftTeamB(result.teamB.players);
+      }
+
       setDraftPool([]);
       setError('');
     } catch (err) {
@@ -244,12 +293,16 @@ export function MatchPage() {
 
     const teamACapacity = match.teamA.players.length;
     const teamBCapacity = match.teamB.players.length;
+    const teamCCapacity = match.teamC?.players.length ?? 0;
+    const threeWay = isThreeTeamMatch(match);
+
     if (
       draftTeamA.length !== teamACapacity ||
       draftTeamB.length !== teamBCapacity ||
+      (threeWay && draftTeamC.length !== teamCCapacity) ||
       draftPool.length > 0
     ) {
-      setError(`Assign all players first (${teamACapacity}v${teamBCapacity}).`);
+      setError(`Assign all players first (${getMatchLabel(match)}).`);
       return;
     }
 
@@ -261,12 +314,14 @@ export function MatchPage() {
         match.id,
         draftTeamA.map((player) => player.id),
         draftTeamB.map((player) => player.id),
+        threeWay ? draftTeamC.map((player) => player.id) : undefined,
       );
       setMatch(updated);
       setEditing(false);
       setEditTab('lock');
       setDraftTeamA([]);
       setDraftTeamB([]);
+      setDraftTeamC([]);
       setDraftPool([]);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to save teams');
@@ -301,11 +356,13 @@ export function MatchPage() {
     );
   }
 
-  const matchLabel = getMatchSizeLabel(match.teamA.players.length, match.teamB.players.length);
+  const threeWay = isThreeTeamMatch(match);
+  const matchLabel = getMatchLabel(match);
   const displayTitle = (match.name ?? '').trim() || `${matchLabel} lineup`;
   const teamsComplete =
     draftTeamA.length === match.teamA.players.length &&
     draftTeamB.length === match.teamB.players.length &&
+    (!threeWay || draftTeamC.length === (match.teamC?.players.length ?? 0)) &&
     draftPool.length === 0;
   const displayedMatch =
     editing && teamsComplete
@@ -313,6 +370,7 @@ export function MatchPage() {
           ...match,
           teamA: buildGeneratedTeam('Team A', draftTeamA),
           teamB: buildGeneratedTeam('Team B', draftTeamB),
+          ...(threeWay ? { teamC: buildGeneratedTeam('Team C', draftTeamC) } : {}),
         }
       : match;
 
@@ -374,8 +432,8 @@ export function MatchPage() {
       </div>
 
       <p className="text-sm text-slate-600">
-        Edit teams has Lock &amp; shuffle plus Manual assignment. Shuffle again opens a separate
-        lineup link.
+        Edit teams has Lock &amp; shuffle plus Manual assignment{threeWay ? ' across A, B, and C' : ''}.
+        Shuffle again opens a separate lineup link.
       </p>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
@@ -384,11 +442,14 @@ export function MatchPage() {
         <TeamEditor
           tab={editTab}
           onTabChange={switchEditTab}
+          teamCount={threeWay ? 3 : 2}
           teamAPlayers={draftTeamA}
           teamBPlayers={draftTeamB}
+          teamCPlayers={draftTeamC}
           poolPlayers={draftPool}
           teamACapacity={match.teamA.players.length}
           teamBCapacity={match.teamB.players.length}
+          teamCCapacity={match.teamC?.players.length ?? 0}
           busy={saving}
           canSave={teamsComplete}
           onMoveToTeam={movePlayerToTeam}
@@ -403,14 +464,16 @@ export function MatchPage() {
 
       {editing && !teamsComplete ? (
         <p className="text-sm text-slate-500">
-          Pitch preview updates once both teams are fully assigned.
+          Lineup preview updates once all teams are fully assigned.
         </p>
-      ) : (
-        <PitchView
+      ) : threeWay ? (
+        <ThreeTeamMatchView
           pitchCaptureRef={pitchCaptureRef}
           match={displayedMatch}
           roster={players}
         />
+      ) : (
+        <PitchView pitchCaptureRef={pitchCaptureRef} match={displayedMatch} roster={players} />
       )}
     </div>
   );

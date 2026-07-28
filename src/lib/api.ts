@@ -57,10 +57,10 @@ export const api = {
     return request<MatchRecord>(`/api/groups/${slug}/matches/${matchId}`);
   },
 
-  generateMatch(slug: string, playerIds: string[], name: string) {
+  generateMatch(slug: string, playerIds: string[], name: string, teamCount: 2 | 3 = 2) {
     return request<MatchRecord>(`/api/groups/${slug}/matches`, {
       method: 'POST',
-      body: JSON.stringify({ playerIds, name }),
+      body: JSON.stringify({ playerIds, name, teamCount }),
     });
   },
 
@@ -69,10 +69,11 @@ export const api = {
     matchId: string,
     teamAPlayerIds: string[],
     teamBPlayerIds: string[],
+    teamCPlayerIds?: string[],
   ) {
     return request<MatchRecord>(`/api/groups/${slug}/matches/${matchId}`, {
       method: 'PUT',
-      body: JSON.stringify({ teamAPlayerIds, teamBPlayerIds }),
+      body: JSON.stringify({ teamAPlayerIds, teamBPlayerIds, teamCPlayerIds }),
     });
   },
 

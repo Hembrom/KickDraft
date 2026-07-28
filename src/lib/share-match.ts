@@ -1,9 +1,9 @@
 import { toPng } from 'html-to-image';
 import { formatDate } from '@/lib/utils';
-import { getMatchSizeLabel, type MatchRecord } from '@shared/types';
+import { getMatchLabel, type MatchRecord } from '@shared/types';
 
 export function buildShareCaption(match: MatchRecord, url: string): string {
-  const sizeLabel = getMatchSizeLabel(match.teamA.players.length, match.teamB.players.length);
+  const sizeLabel = getMatchLabel(match);
   const title = (match.name ?? '').trim() || `${sizeLabel} lineup`;
   return `${title}\n${sizeLabel} · ${formatDate(match.date)}\n${url}`;
 }

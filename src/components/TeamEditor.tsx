@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { PositionBadge } from './PlayerCard';
 import { roundRating, type Player } from '@shared/types';
 
-export type EditorTeam = 'a' | 'b';
+export type EditorTeam = 'a' | 'b' | 'c';
 export type EditTab = 'lock' | 'manual';
 
 type DragSource = EditorTeam | 'pool';
@@ -100,8 +100,10 @@ function TeamColumn({
           {name}
           {team === 'a' ? (
             <ArrowUp className="h-4 w-4 text-blue-600 xl:hidden" aria-hidden />
-          ) : (
+          ) : team === 'b' ? (
             <ArrowDown className="h-4 w-4 text-red-600 xl:hidden" aria-hidden />
+          ) : (
+            <span className="text-[10px] font-bold text-amber-700 xl:hidden">C</span>
           )}
         </h3>
         <span className="text-xs text-slate-500">
@@ -169,6 +171,7 @@ function TeamColumn({
 function PlayerPool({
   players,
   dropTargetTeam,
+  threeTeam,
   onMoveToTeam,
   onDragStart,
   onDropOnPool,
@@ -176,6 +179,7 @@ function PlayerPool({
 }: {
   players: Player[];
   dropTargetTeam: DragSource | null;
+  threeTeam?: boolean;
   onMoveToTeam: (playerId: string, targetTeam: EditorTeam) => void;
   onDragStart: (source: DragSource, playerId: string) => void;
   onDropOnPool: () => void;
@@ -199,9 +203,11 @@ function PlayerPool({
       <div className="border-b border-slate-200 px-3 py-2.5">
         <h3 className="font-display font-bold text-slate-900">Players</h3>
         <p className="text-xs text-slate-500">
-          <span className="xl:hidden">{players.length} left · tap ↑ / ↓ to assign</span>
+          <span className="xl:hidden">
+            {players.length} left · tap {threeTeam ? 'A / B / C' : '↑ / ↓'} to assign
+          </span>
           <span className="hidden xl:inline">
-            {players.length} left · click ← / → or drag to a team
+            {players.length} left · click team arrows or drag to a team
           </span>
         </p>
       </div>
@@ -231,26 +237,60 @@ function PlayerPool({
               <PlayerAvatar player={player} />
               <PlayerSummary player={player} />
               <div className="flex shrink-0 items-center gap-1">
-                <button
-                  type="button"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:text-blue-700"
-                  onClick={() => onMoveToTeam(player.id, 'a')}
-                  aria-label={`Move ${player.name} to Team A`}
-                  title="Team A"
-                >
-                  <ArrowUp className="h-4 w-4 xl:hidden" />
-                  <ArrowLeft className="hidden h-4 w-4 xl:block" />
-                </button>
-                <button
-                  type="button"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-red-300 hover:text-red-700"
-                  onClick={() => onMoveToTeam(player.id, 'b')}
-                  aria-label={`Move ${player.name} to Team B`}
-                  title="Team B"
-                >
-                  <ArrowDown className="h-4 w-4 xl:hidden" />
-                  <ArrowRight className="hidden h-4 w-4 xl:block" />
-                </button>
+                {threeTeam ? (
+                  <>
+                    <button
+                      type="button"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs font-bold text-blue-700 hover:border-blue-300"
+                      onClick={() => onMoveToTeam(player.id, 'a')}
+                      aria-label={`Move ${player.name} to Team A`}
+                      title="Team A"
+                    >
+                      A
+                    </button>
+                    <button
+                      type="button"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs font-bold text-red-700 hover:border-red-300"
+                      onClick={() => onMoveToTeam(player.id, 'b')}
+                      aria-label={`Move ${player.name} to Team B`}
+                      title="Team B"
+                    >
+                      B
+                    </button>
+                    <button
+                      type="button"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs font-bold text-amber-700 hover:border-amber-300"
+                      onClick={() => onMoveToTeam(player.id, 'c')}
+                      aria-label={`Move ${player.name} to Team C`}
+                      title="Team C"
+                    >
+                      C
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:text-blue-700"
+                      onClick={() => onMoveToTeam(player.id, 'a')}
+                      aria-label={`Move ${player.name} to Team A`}
+                      title="Team A"
+                    >
+                      <ArrowUp className="h-4 w-4 xl:hidden" />
+                      <ArrowLeft className="hidden h-4 w-4 xl:block" />
+                    </button>
+                    <button
+                      type="button"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-red-300 hover:text-red-700"
+                      onClick={() => onMoveToTeam(player.id, 'b')}
+                      aria-label={`Move ${player.name} to Team B`}
+                      title="Team B"
+                    >
+                      <ArrowDown className="h-4 w-4 xl:hidden" />
+                      <ArrowRight className="hidden h-4 w-4 xl:block" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))
@@ -263,11 +303,14 @@ function PlayerPool({
 export function TeamEditor({
   tab,
   onTabChange,
+  teamCount = 2,
   teamAPlayers,
   teamBPlayers,
+  teamCPlayers = [],
   poolPlayers,
   teamACapacity,
   teamBCapacity,
+  teamCCapacity = 0,
   busy,
   canSave,
   onMoveToTeam,
@@ -280,11 +323,14 @@ export function TeamEditor({
 }: {
   tab: EditTab;
   onTabChange: (tab: EditTab) => void;
+  teamCount?: 2 | 3;
   teamAPlayers: Player[];
   teamBPlayers: Player[];
+  teamCPlayers?: Player[];
   poolPlayers: Player[];
   teamACapacity: number;
   teamBCapacity: number;
+  teamCCapacity?: number;
   busy: boolean;
   canSave: boolean;
   onMoveToTeam: (playerId: string, targetTeam: EditorTeam) => void;
@@ -295,6 +341,7 @@ export function TeamEditor({
   onSave: () => void;
   onCancel: () => void;
 }) {
+  const threeTeam = teamCount === 3;
   const [dragging, setDragging] = useState<DragPayload | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropTargetTeam, setDropTargetTeam] = useState<DragSource | null>(null);
@@ -377,7 +424,25 @@ export function TeamEditor({
         </p>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.95fr)_minmax(0,1fr)]">
+      <div
+        className={cn(
+          'grid gap-4',
+          threeTeam
+            ? 'xl:grid-cols-[minmax(280px,0.95fr)_repeat(3,minmax(0,1fr))]'
+            : 'xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.95fr)_minmax(0,1fr)]',
+        )}
+      >
+        {threeTeam ? (
+          <PlayerPool
+            players={poolPlayers}
+            dropTargetTeam={dropTargetTeam}
+            threeTeam
+            onMoveToTeam={onMoveToTeam}
+            onDragStart={(source, playerId) => setDragging({ source, playerId })}
+            onDropOnPool={handleDropOnPool}
+            onDragEnd={resetDrag}
+          />
+        ) : null}
         <TeamColumn
           name="Team A"
           team="a"
@@ -395,14 +460,16 @@ export function TeamEditor({
           onDropOnTeam={handleDropOnTeam}
           onDragEnd={resetDrag}
         />
-        <PlayerPool
-          players={poolPlayers}
-          dropTargetTeam={dropTargetTeam}
-          onMoveToTeam={onMoveToTeam}
-          onDragStart={(source, playerId) => setDragging({ source, playerId })}
-          onDropOnPool={handleDropOnPool}
-          onDragEnd={resetDrag}
-        />
+        {!threeTeam ? (
+          <PlayerPool
+            players={poolPlayers}
+            dropTargetTeam={dropTargetTeam}
+            onMoveToTeam={onMoveToTeam}
+            onDragStart={(source, playerId) => setDragging({ source, playerId })}
+            onDropOnPool={handleDropOnPool}
+            onDragEnd={resetDrag}
+          />
+        ) : null}
         <TeamColumn
           name="Team B"
           team="b"
@@ -420,6 +487,25 @@ export function TeamEditor({
           onDropOnTeam={handleDropOnTeam}
           onDragEnd={resetDrag}
         />
+        {threeTeam ? (
+          <TeamColumn
+            name="Team C"
+            team="c"
+            players={teamCPlayers}
+            capacity={teamCCapacity}
+            dropTargetTeam={dropTargetTeam}
+            dropTargetId={dropTargetId}
+            onReturnToPool={onReturnToPool}
+            onDragStart={(source, playerId) => setDragging({ source, playerId })}
+            onDragOverPlayer={(team, playerId) => {
+              setDropTargetTeam(team);
+              setDropTargetId(playerId);
+            }}
+            onDropOnPlayer={handleDropOnPlayer}
+            onDropOnTeam={handleDropOnTeam}
+            onDragEnd={resetDrag}
+          />
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-2">
