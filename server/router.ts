@@ -3,6 +3,7 @@ import adminLogin from './handlers/admin-login.js';
 import adminGroups from './handlers/admin-groups.js';
 import adminGroupPlayers from './handlers/admin-group-players.js';
 import adminGroupUpload from './handlers/admin-group-upload.js';
+import adminGroupRatings from './handlers/admin-group-ratings.js';
 import adminSettings from './handlers/admin-settings.js';
 import groupsList from './handlers/groups-list.js';
 import groupDetail from './handlers/group-detail.js';
@@ -79,6 +80,12 @@ const routes: Route[] = [
     method: 'POST',
     regex: /^\/api\/groups\/([^/]+)\/matches$/,
     handler: groupMatches,
+    params: ['slug'],
+  },
+  {
+    method: 'GET',
+    regex: /^\/api\/admin\/groups\/([^/]+)\/ratings$/,
+    handler: adminGroupRatings,
     params: ['slug'],
   },
   {

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Trash2, Upload } from 'lucide-react';
 import { ClubSelect } from '@/components/ClubSelect';
 import { PlayerCard } from '@/components/PlayerCard';
+import { AdminPeerRatingsPanel } from '@/components/AdminPeerRatingsPanel';
 import { api, ApiError } from '@/lib/api';
 import { getClubById, resolveClubId } from '@shared/clubs';
 import { calculateOvr, getPositionsLabel, MAX_PLAYER_POSITIONS, PLAYER_POSITIONS, roundRating, STAT_KEYS, STAT_MAX, STAT_MIN, type Player, type PlayerPosition, type PlayerStats } from '@shared/types';
@@ -37,6 +38,7 @@ export function AdminGroupPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [tab, setTab] = useState<'roster' | 'ratings'>('roster');
 
   const previewOvr = useMemo(() => calculateOvr(form.stats), [form.stats]);
 
@@ -198,11 +200,42 @@ export function AdminGroupPage() {
           <h1 className="font-display text-3xl font-bold text-slate-900">{groupName}</h1>
           <p className="text-sm text-slate-500">/{slug}</p>
         </div>
-        <Link to={`/${slug}`} className="btn-secondary">
-          View public page
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <div className="flex rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+            <button
+              type="button"
+              className={cn(
+                'rounded-xl px-3 py-2 text-sm font-medium transition',
+                tab === 'roster'
+                  ? 'bg-elite-600 text-white'
+                  : 'text-slate-600 hover:bg-elite-50 hover:text-elite-700',
+              )}
+              onClick={() => setTab('roster')}
+            >
+              Roster
+            </button>
+            <button
+              type="button"
+              className={cn(
+                'rounded-xl px-3 py-2 text-sm font-medium transition',
+                tab === 'ratings'
+                  ? 'bg-elite-600 text-white'
+                  : 'text-slate-600 hover:bg-elite-50 hover:text-elite-700',
+              )}
+              onClick={() => setTab('ratings')}
+            >
+              Peer ratings
+            </button>
+          </div>
+          <Link to={`/${slug}`} className="btn-secondary">
+            View public page
+          </Link>
+        </div>
       </div>
 
+      {tab === 'ratings' ? (
+        <AdminPeerRatingsPanel slug={slug} />
+      ) : (
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -371,6 +404,7 @@ export function AdminGroupPage() {
           </form>
         </section>
       </div>
+      )}
     </div>
   );
 }

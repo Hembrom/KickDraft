@@ -218,6 +218,30 @@ export const api = {
     ).then(withPlayers);
   },
 
+  adminGetPeerRatings(slug: string) {
+    return request<{
+      group: GroupMeta;
+      cooldownDays: number;
+      ratings: Array<{
+        id: string;
+        raterPlayerId: string;
+        ratedPlayerId: string;
+        raterName: string;
+        ratedName: string;
+        pace: number;
+        shooting: number;
+        passing: number;
+        dribbling: number;
+        defending: number;
+        physicality: number;
+        stamina: number;
+        ovr: number;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+    }>(`/api/admin/groups/${slug}/ratings`, { headers: adminHeaders() });
+  },
+
   adminCreatePlayer(slug: string, payload: Record<string, unknown>) {
     return request<Player>(`/api/admin/groups/${slug}/players`, {
       method: 'POST',

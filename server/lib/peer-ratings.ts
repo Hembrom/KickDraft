@@ -331,6 +331,24 @@ export async function upsertPeerRating(input: {
   return rowToRating(data as RatingRow);
 }
 
+export async function listRatingsByGroup(groupSlug: string): Promise<PeerRating[]> {
+  if (useLocal()) {
+    const store = await readLocalStore();
+    return store.ratings
+      .filter((r) => r.groupSlug === groupSlug)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }
+
+  const { data, error } = await getSupabase()
+    .from('peer_ratings')
+    .select('*')
+    .eq('group_slug', groupSlug)
+    .order('updated_at', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((row) => rowToRating(row as RatingRow));
+}
+
 export async function listRatingsByRater(raterPlayerId: string): Promise<PeerRating[]> {
   if (useLocal()) {
     const store = await readLocalStore();
