@@ -155,7 +155,7 @@ export function ClaimPlayerPage() {
               Tap an available card to claim (permanent)
             </p>
           )}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {sortedPlayers.map((player) => {
               const isClaimed = claimedIds.has(player.id);
               const busy = claimingId === player.id;
@@ -166,13 +166,13 @@ export function ClaimPlayerPage() {
                   disabled={isClaimed || busy || elsewhere}
                   onClick={() => void handleClaim(player.id)}
                   className={cn(
-                    'card flex flex-col overflow-hidden p-0 text-left transition',
+                    'card flex items-center gap-2.5 p-2.5 text-left transition',
                     isClaimed || elsewhere
                       ? 'cursor-not-allowed opacity-55'
                       : 'hover:border-elite-300 hover:shadow-md',
                   )}
                 >
-                  <div className="relative aspect-square w-full bg-elite-50">
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-elite-50 ring-1 ring-slate-200">
                     {player.photoUrl ? (
                       <img
                         src={player.photoUrl}
@@ -181,24 +181,24 @@ export function ClaimPlayerPage() {
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-slate-300">
-                        <User className="h-12 w-12" strokeWidth={1.25} />
+                        <User className="h-5 w-5" strokeWidth={1.25} />
                       </div>
                     )}
                     {isClaimed ? (
-                      <span className="absolute left-2 top-2 rounded-md bg-slate-900/75 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                        Claimed
+                      <span className="absolute inset-x-0 bottom-0 bg-slate-900/75 py-px text-center text-[8px] font-bold uppercase tracking-wide text-white">
+                        Taken
                       </span>
                     ) : null}
                   </div>
-                  <div className="flex flex-1 flex-col gap-1 p-3">
-                    <p className="truncate font-semibold text-slate-900">{player.name}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-900">{player.name}</p>
                     {!isClaimed && !elsewhere ? (
-                      <span className="mt-auto inline-flex items-center gap-1 text-xs font-semibold text-elite-700">
-                        <Check className="h-3.5 w-3.5" />
-                        {busy ? 'Claiming…' : signedIn ? 'Claim this player' : 'Sign in to claim'}
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-elite-700">
+                        <Check className="h-3 w-3" />
+                        {busy ? 'Claiming…' : signedIn ? 'Claim' : 'Sign in to claim'}
                       </span>
                     ) : (
-                      <span className="mt-auto text-xs text-slate-500">Unavailable</span>
+                      <span className="text-[11px] text-slate-500">Unavailable</span>
                     )}
                   </div>
                 </button>
