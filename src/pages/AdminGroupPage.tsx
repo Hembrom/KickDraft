@@ -4,6 +4,7 @@ import { ArrowLeft, Save, Trash2, Upload } from 'lucide-react';
 import { ClubSelect } from '@/components/ClubSelect';
 import { PlayerCard } from '@/components/PlayerCard';
 import { AdminPeerRatingsPanel } from '@/components/AdminPeerRatingsPanel';
+import { AdminClaimsPanel } from '@/components/AdminClaimsPanel';
 import { api, ApiError } from '@/lib/api';
 import { getClubById, resolveClubId } from '@shared/clubs';
 import { calculateOvr, getPositionsLabel, MAX_PLAYER_POSITIONS, PLAYER_POSITIONS, roundRating, STAT_KEYS, STAT_MAX, STAT_MIN, type Player, type PlayerPosition, type PlayerStats } from '@shared/types';
@@ -38,7 +39,7 @@ export function AdminGroupPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState<'roster' | 'ratings'>('roster');
+  const [tab, setTab] = useState<'roster' | 'ratings' | 'claims'>('roster');
 
   const previewOvr = useMemo(() => calculateOvr(form.stats), [form.stats]);
 
@@ -226,6 +227,18 @@ export function AdminGroupPage() {
             >
               Peer ratings
             </button>
+            <button
+              type="button"
+              className={cn(
+                'rounded-xl px-3 py-2 text-sm font-medium transition',
+                tab === 'claims'
+                  ? 'bg-elite-600 text-white'
+                  : 'text-slate-600 hover:bg-elite-50 hover:text-elite-700',
+              )}
+              onClick={() => setTab('claims')}
+            >
+              Claims
+            </button>
           </div>
           <Link to={`/${slug}`} className="btn-secondary">
             View public page
@@ -235,6 +248,8 @@ export function AdminGroupPage() {
 
       {tab === 'ratings' ? (
         <AdminPeerRatingsPanel slug={slug} />
+      ) : tab === 'claims' ? (
+        <AdminClaimsPanel slug={slug} />
       ) : (
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section>

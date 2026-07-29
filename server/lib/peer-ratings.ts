@@ -172,6 +172,47 @@ export async function listClaimedPlayerIds(groupSlug: string): Promise<Set<strin
   return new Set((data ?? []).map((row) => row.player_id as string));
 }
 
+export async function listClaimsByGroup(groupSlug: string): Promise<PlayerClaim[]> {
+  if (useLocal()) {
+    const store = await readLocalStore();
+    return store.claims
+      .filter((c) => c.groupSlug === groupSlug)
+      .sort((a, b) => new Date(b.claimedAt).getTime() - new Date(a.claimedAt).getTime());
+  }
+
+  const { data, error } = await getSupabase()
+    .from('player_claims')
+    .select('*')
+    .eq('group_slug', groupSlug)
+    .order('claimed_at', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((row) => rowToClaim(row as ClaimRow));
+}
+
+export async function deleteClaim(groupSlug: string, playerId: string): Promise<boolean> {
+  if (useLocal()) {
+    const store = await readLocalStore();
+    const before = store.claims.length;
+    store.claims = store.claims.filter(
+      (c) => !(c.groupSlug === groupSlug && c.playerId === playerId),
+    );
+    if (store.claims.length === before) return false;
+    await writeLocalStore(store);
+    return true;
+  }
+
+  const { data, error } = await getSupabase()
+    .from('player_claims')
+    .delete()
+    .eq('group_slug', groupSlug)
+    .eq('player_id', playerId)
+    .select('player_id');
+
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
+}
+
 export async function createClaim(input: {
   googleUserId: string;
   email: string;

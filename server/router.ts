@@ -4,6 +4,7 @@ import adminGroups from './handlers/admin-groups.js';
 import adminGroupPlayers from './handlers/admin-group-players.js';
 import adminGroupUpload from './handlers/admin-group-upload.js';
 import adminGroupRatings from './handlers/admin-group-ratings.js';
+import adminGroupClaims from './handlers/admin-group-claims.js';
 import adminSettings from './handlers/admin-settings.js';
 import groupsList from './handlers/groups-list.js';
 import groupDetail from './handlers/group-detail.js';
@@ -92,6 +93,18 @@ const routes: Route[] = [
     method: 'DELETE',
     regex: /^\/api\/admin\/groups\/([^/]+)\/ratings$/,
     handler: adminGroupRatings,
+    params: ['slug'],
+  },
+  {
+    method: 'GET',
+    regex: /^\/api\/admin\/groups\/([^/]+)\/claims$/,
+    handler: adminGroupClaims,
+    params: ['slug'],
+  },
+  {
+    method: 'DELETE',
+    regex: /^\/api\/admin\/groups\/([^/]+)\/claims$/,
+    handler: adminGroupClaims,
     params: ['slug'],
   },
   {

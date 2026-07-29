@@ -255,6 +255,30 @@ export const api = {
     );
   },
 
+  adminGetClaims(slug: string) {
+    return request<{
+      group: GroupMeta;
+      claims: Array<{
+        googleUserId: string;
+        email: string;
+        playerId: string;
+        playerName: string;
+        photoUrl: string | null;
+        claimedAt: string;
+      }>;
+    }>(`/api/admin/groups/${slug}/claims`, { headers: adminHeaders() });
+  },
+
+  adminUnclaimPlayer(slug: string, playerId: string) {
+    return request<{ ok: boolean }>(
+      `/api/admin/groups/${slug}/claims?playerId=${encodeURIComponent(playerId)}`,
+      {
+        method: 'DELETE',
+        headers: adminHeaders(),
+      },
+    );
+  },
+
   adminCreatePlayer(slug: string, payload: Record<string, unknown>) {
     return request<Player>(`/api/admin/groups/${slug}/players`, {
       method: 'POST',
