@@ -1,9 +1,9 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { LogIn, Save, User, X } from 'lucide-react';
+import { LogIn, Save, User } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
-import { cn } from '@/lib/utils';
 import {
+  getBrowserSupabase,
   getGoogleSession,
   isGoogleAuthConfigured,
   signInWithGoogle,
@@ -46,18 +46,6 @@ function clampStat(value: number) {
   return Math.min(STAT_MAX, Math.max(STAT_MIN, Math.round(value)));
 }
 
-function statsFromRating(rating: PeerRating): PlayerStats {
-  return {
-    pace: clampStat(rating.pace),
-    shooting: clampStat(rating.shooting),
-    passing: clampStat(rating.passing),
-    dribbling: clampStat(rating.dribbling),
-    defending: clampStat(rating.defending),
-    physicality: clampStat(rating.physicality),
-    stamina: clampStat(rating.stamina),
-  };
-}
-
 function formatCooldown(ms: number) {
   const days = Math.ceil(ms / (24 * 60 * 60 * 1000));
   return `${days} day${days === 1 ? '' : 's'}`;
@@ -66,7 +54,6 @@ function formatCooldown(ms: number) {
 export function RatePlayersPage() {
   const { slug = '' } = useParams();
   const navigate = useNavigate();
-  const panelRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [targets, setTargets] = useState<RateTarget[]>([]);
@@ -75,19 +62,14 @@ export function RatePlayersPage() {
   const [saving, setSaving] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
 
-  const activeTarget = useMemo(
-    () => targets.find((t) => t.player.id === activeId) ?? null,
-    [targets, activeId],
-  );
-
-  async function load() {
+  async function loadTargets() {
     setLoading(true);
     setError('');
     try {
       const session = await getGoogleSession();
       setSignedIn(Boolean(session));
       if (!session) {
-        setLoading(false);
+        setTargets([]);
         return;
       }
 
@@ -115,18 +97,41 @@ export function RatePlayersPage() {
   }
 
   useEffect(() => {
-    void load();
-  }, [slug]);
+    if (!isGoogleAuthConfigured()) {
+      setLoading(false);
+      return;
+    }
 
-  useEffect(() => {
-    if (!activeTarget) return;
-    panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [activeTarget]);
+    void loadTargets();
+
+    const { data } = getBrowserSupabase().auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session));
+      if (session) void loadTargets();
+      else {
+        setTargets([]);
+        setLoading(false);
+      }
+    });
+
+    return () => data.subscription.unsubscribe();
+  }, [slug]);
 
   function startRate(target: RateTarget) {
     if (!target.canRate) return;
     setActiveId(target.player.id);
-    setStats(target.myRating ? statsFromRating(target.myRating) : emptyStats());
+    if (target.myRating) {
+      setStats({
+        pace: clampStat(target.myRating.pace),
+        shooting: clampStat(target.myRating.shooting),
+        passing: clampStat(target.myRating.passing),
+        dribbling: clampStat(target.myRating.dribbling),
+        defending: clampStat(target.myRating.defending),
+        physicality: clampStat(target.myRating.physicality),
+        stamina: clampStat(target.myRating.stamina),
+      });
+    } else {
+      setStats(emptyStats());
+    }
   }
 
   async function submit(e: FormEvent) {
@@ -137,7 +142,7 @@ export function RatePlayersPage() {
     try {
       await api.submitRating(slug, activeId, stats);
       setActiveId(null);
-      await load();
+      await loadTargets();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to save rating');
     } finally {
@@ -152,7 +157,7 @@ export function RatePlayersPage() {
   }
 
   return (
-    <div className={cn('space-y-6', activeTarget && 'pb-72')}>
+    <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm text-slate-500">
@@ -162,12 +167,16 @@ export function RatePlayersPage() {
           </p>
           <h1 className="font-display text-3xl font-bold text-slate-900">Rate teammates</h1>
           <p className="mt-1 max-w-xl text-sm text-slate-600">
-            Tap a player card to open the rating sliders. You can update each teammate again after
-            two weeks.
+            Rate others only — not yourself. Tap <strong>Rate</strong> to open the sliders. You can
+            update each teammate again after two weeks.
           </p>
         </div>
         {signedIn ? (
-          <button type="button" className="btn-secondary" onClick={() => void signOutGoogle().then(load)}>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => void signOutGoogle().then(loadTargets)}
+          >
             Sign out
           </button>
         ) : (
@@ -184,131 +193,102 @@ export function RatePlayersPage() {
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {loading ? <p className="text-sm text-slate-500">Loading…</p> : null}
 
-      {!loading && signedIn ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {targets.map((target) => {
-            const selected = activeId === target.player.id;
-            return (
-              <button
-                key={target.player.id}
-                type="button"
-                disabled={!target.canRate}
-                onClick={() => startRate(target)}
-                className={cn(
-                  'card flex flex-col overflow-hidden p-0 text-left transition',
-                  selected && 'border-elite-400 ring-2 ring-elite-200',
-                  target.canRate
-                    ? 'hover:border-elite-300 hover:shadow-md'
-                    : 'cursor-not-allowed opacity-60',
-                )}
-              >
-                <div className="relative aspect-square w-full bg-elite-50">
-                  {target.player.photoUrl ? (
-                    <img
-                      src={target.player.photoUrl}
-                      alt={target.player.name}
-                      className="h-full w-full object-cover object-top"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-slate-300">
-                      <User className="h-12 w-12" strokeWidth={1.25} />
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-1 flex-col gap-1 p-3">
-                  <p className="truncate font-semibold text-slate-900">{target.player.name}</p>
-                  <p className="text-xs text-slate-500">
-                    Peer OVR {target.peerOvr != null ? roundRating(target.peerOvr) : '—'} ·{' '}
-                    {target.ratingCount} rating{target.ratingCount === 1 ? '' : 's'}
-                  </p>
-                  {target.canRate ? (
-                    <span className="mt-auto text-xs font-semibold text-elite-700">
-                      {selected ? 'Rating…' : target.myRating ? 'Update rating' : 'Tap to rate'}
-                    </span>
-                  ) : (
-                    <span className="mt-auto text-[11px] font-medium text-amber-700">
-                      Again in {formatCooldown(target.cooldownRemainingMs)}
-                    </span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
+      {!loading && !signedIn ? (
+        <div className="card space-y-3 p-5">
+          <p className="text-sm text-slate-600">Sign in with Google to rate teammates.</p>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => void signInWithGoogle(`/${slug}/rate`)}
+          >
+            <LogIn className="h-4 w-4" /> Continue with Google
+          </button>
         </div>
       ) : null}
 
-      {activeTarget ? (
-        <form
-          ref={panelRef}
-          onSubmit={submit}
-          className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-4 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur sm:p-5"
-        >
-          <div className="mx-auto max-w-6xl space-y-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-elite-50 ring-1 ring-slate-200">
-                  {activeTarget.player.photoUrl ? (
-                    <img
-                      src={activeTarget.player.photoUrl}
-                      alt=""
-                      className="h-full w-full object-cover object-top"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-slate-300">
-                      <User className="h-5 w-5" />
-                    </div>
-                  )}
+      {!loading && signedIn ? (
+        <div className="space-y-3">
+          {targets.length === 0 ? (
+            <p className="text-sm text-slate-500">No teammates to rate yet.</p>
+          ) : null}
+
+          {targets.map((target) => (
+            <div key={target.player.id} className="card space-y-3 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-elite-50 ring-1 ring-slate-200">
+                    {target.player.photoUrl ? (
+                      <img
+                        src={target.player.photoUrl}
+                        alt={target.player.name}
+                        className="h-full w-full object-cover object-top"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-slate-300">
+                        <User className="h-6 w-6" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-slate-900">{target.player.name}</p>
+                    <p className="text-xs text-slate-500">
+                      Peer avg OVR{' '}
+                      {target.peerOvr != null ? roundRating(target.peerOvr) : '—'} ·{' '}
+                      {target.ratingCount} rating{target.ratingCount === 1 ? '' : 's'}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-slate-900">
-                    Rating {activeTarget.player.name}
+                {target.canRate ? (
+                  <button type="button" className="btn-secondary" onClick={() => startRate(target)}>
+                    {activeId === target.player.id
+                      ? 'Rating…'
+                      : target.myRating
+                        ? 'Update rating'
+                        : 'Rate'}
+                  </button>
+                ) : (
+                  <p className="text-xs font-medium text-amber-700">
+                    Available again in {formatCooldown(target.cooldownRemainingMs)}
                   </p>
+                )}
+              </div>
+
+              {activeId === target.player.id ? (
+                <form onSubmit={submit} className="space-y-3 border-t border-slate-100 pt-3">
                   <p className="text-sm font-display font-bold text-elite-600">
                     Your rating OVR {roundRating(calculateOvr(stats))}
                   </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="rounded-xl p-2 text-slate-500 hover:bg-slate-100"
-                onClick={() => setActiveId(null)}
-                aria-label="Close rating panel"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="grid max-h-[40vh] gap-3 overflow-y-auto sm:grid-cols-2">
-              {STAT_KEYS.map((key) => (
-                <div key={key}>
-                  <div className="mb-1 flex justify-between text-xs capitalize text-slate-500">
-                    <span>{key}</span>
-                    <span className="font-semibold text-slate-800">{stats[key]}</span>
+                  {STAT_KEYS.map((key) => (
+                    <div key={key}>
+                      <div className="mb-1 flex justify-between text-xs capitalize text-slate-500">
+                        <span>{key}</span>
+                        <span className="font-semibold text-slate-800">{stats[key]}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={STAT_MIN}
+                        max={STAT_MAX}
+                        value={stats[key]}
+                        onChange={(e) =>
+                          setStats((current) => ({ ...current, [key]: Number(e.target.value) }))
+                        }
+                        className="h-6 w-full accent-elite-600"
+                      />
+                    </div>
+                  ))}
+                  <div className="flex gap-2">
+                    <button type="submit" className="btn-primary" disabled={saving}>
+                      <Save className="h-4 w-4" /> {saving ? 'Saving…' : 'Save rating'}
+                    </button>
+                    <button type="button" className="btn-secondary" onClick={() => setActiveId(null)}>
+                      Cancel
+                    </button>
                   </div>
-                  <input
-                    type="range"
-                    min={STAT_MIN}
-                    max={STAT_MAX}
-                    value={stats[key]}
-                    onChange={(e) =>
-                      setStats((current) => ({ ...current, [key]: Number(e.target.value) }))
-                    }
-                    className="w-full accent-elite-600"
-                  />
-                </div>
-              ))}
+                </form>
+              ) : null}
             </div>
-
-            <div className="flex flex-wrap gap-2">
-              <button type="submit" className="btn-primary" disabled={saving}>
-                <Save className="h-4 w-4" /> {saving ? 'Saving…' : 'Save rating'}
-              </button>
-              <button type="button" className="btn-secondary" onClick={() => setActiveId(null)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </form>
+          ))}
+        </div>
       ) : null}
     </div>
   );
