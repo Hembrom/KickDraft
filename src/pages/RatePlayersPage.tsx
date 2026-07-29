@@ -212,7 +212,7 @@ export function RatePlayersPage() {
       ) : listPlayers.length === 0 ? (
         <p className="text-sm text-slate-500">No players in this group yet.</p>
       ) : (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {listPlayers.map((player) => {
             const target = targetById.get(player.id);
             const isActive = activeId === player.id && hasClaim;
