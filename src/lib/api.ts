@@ -126,13 +126,16 @@ export const api = {
   async getClaimStatus(slug: string) {
     const data = await request<{
       group: GroupMeta;
+      players: Player[];
       claim: PlayerClaim | null;
       alreadyClaimedElsewhere: boolean;
       unclaimedPlayers: Player[];
       claimedPlayerIds: string[];
+      signedIn: boolean;
     }>(`/api/groups/${slug}/claim`, { headers: await playerHeaders() });
     return {
       ...data,
+      players: data.players.map(normalizePlayer),
       unclaimedPlayers: data.unclaimedPlayers.map(normalizePlayer),
     };
   },
