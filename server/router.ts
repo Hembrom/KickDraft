@@ -3,11 +3,15 @@ import adminLogin from './handlers/admin-login.js';
 import adminGroups from './handlers/admin-groups.js';
 import adminGroupPlayers from './handlers/admin-group-players.js';
 import adminGroupUpload from './handlers/admin-group-upload.js';
+import adminSettings from './handlers/admin-settings.js';
 import groupsList from './handlers/groups-list.js';
 import groupDetail from './handlers/group-detail.js';
 import groupMatches from './handlers/group-matches.js';
 import groupMatchDetail from './handlers/group-match-detail.js';
 import groupImage from './handlers/group-image.js';
+import groupClaim from './handlers/group-claim.js';
+import groupRatings from './handlers/group-ratings.js';
+import me from './handlers/me.js';
 import cronPurgeMatches from './handlers/cron-purge-matches.js';
 import { error } from './lib/auth.js';
 
@@ -24,8 +28,35 @@ const routes: Route[] = [
   { method: 'POST', regex: /^\/api\/admin\/login$/, handler: adminLogin, params: [] },
   { method: 'GET', regex: /^\/api\/admin\/groups$/, handler: adminGroups, params: [] },
   { method: 'POST', regex: /^\/api\/admin\/groups$/, handler: adminGroups, params: [] },
+  { method: 'GET', regex: /^\/api\/admin\/settings$/, handler: adminSettings, params: [] },
+  { method: 'PUT', regex: /^\/api\/admin\/settings$/, handler: adminSettings, params: [] },
+  { method: 'GET', regex: /^\/api\/me$/, handler: me, params: [] },
   { method: 'GET', regex: /^\/api\/groups$/, handler: groupsList, params: [] },
   { method: 'GET', regex: /^\/api\/groups\/([^/]+)$/, handler: groupDetail, params: ['slug'] },
+  {
+    method: 'GET',
+    regex: /^\/api\/groups\/([^/]+)\/claim$/,
+    handler: groupClaim,
+    params: ['slug'],
+  },
+  {
+    method: 'POST',
+    regex: /^\/api\/groups\/([^/]+)\/claim$/,
+    handler: groupClaim,
+    params: ['slug'],
+  },
+  {
+    method: 'GET',
+    regex: /^\/api\/groups\/([^/]+)\/ratings$/,
+    handler: groupRatings,
+    params: ['slug'],
+  },
+  {
+    method: 'POST',
+    regex: /^\/api\/groups\/([^/]+)\/ratings$/,
+    handler: groupRatings,
+    params: ['slug'],
+  },
   {
     method: 'GET',
     regex: /^\/api\/groups\/([^/]+)\/matches\/([^/]+)$/,

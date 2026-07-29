@@ -188,6 +188,35 @@ export function calculateOvr(stats: PlayerStats): number {
   return roundRating(sum / 7);
 }
 
+/** Players may re-rate the same teammate after this cooldown. */
+export const PEER_RATING_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000;
+
+export const USE_PEER_RATINGS_SETTING_KEY = 'use_peer_ratings';
+
+export interface PlayerClaim {
+  googleUserId: string;
+  email: string;
+  playerId: string;
+  groupSlug: string;
+  claimedAt: string;
+}
+
+export interface PeerRating extends PlayerStats {
+  id: string;
+  groupSlug: string;
+  raterPlayerId: string;
+  ratedPlayerId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PeerRatingSummary {
+  playerId: string;
+  ratingCount: number;
+  stats: PlayerStats | null;
+  ovr: number | null;
+}
+
 export function resolveTeamSizes(
   format: number,
   playerCount: number,

@@ -5,6 +5,7 @@ import {
   listMatches,
   saveMatch,
 } from '../lib/storage.js';
+import { applyEffectiveRatingsForGroup } from '../lib/peer-ratings.js';
 import { error, getErrorMessage, json, readBody } from '../lib/auth.js';
 import { generateBalancedTeams, generateBalancedThreeTeams } from '../../shared/team-generator.js';
 import {
@@ -42,7 +43,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return error(res, 400, 'Select players manually — tick who is playing today');
     }
 
-    const { players: allPlayers } = await getGroupPlayers(slug);
+    const { players: allPlayersRaw } = await getGroupPlayers(slug);
+    const allPlayers = await applyEffectiveRatingsForGroup(slug, allPlayersRaw);
     const selected = playerIds
       .map((id) => allPlayers.find((p) => p.id === id))
       .filter((p): p is NonNullable<typeof p> => Boolean(p));

@@ -1,6 +1,14 @@
-import type { GroupMeta, MatchRecord, Player } from '@shared/types';
+import type {
+  GroupMeta,
+  MatchRecord,
+  Player,
+  PlayerClaim,
+  PlayerStats,
+  PeerRating,
+} from '@shared/types';
 import { normalizePlayer } from '@shared/types';
 import { getAdminToken } from './utils';
+import { getGoogleAccessToken } from './supabase-auth';
 
 class ApiError extends Error {
   status: number;
@@ -29,6 +37,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 function adminHeaders(): Record<string, string> {
   const token = getAdminToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function playerHeaders(): Promise<Record<string, string>> {
+  const token = await getGoogleAccessToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -101,6 +114,68 @@ export const api = {
     });
   },
 
+  async getMe() {
+    return request<{
+      user: { id: string; email: string } | null;
+      claim: PlayerClaim | null;
+      claimedPlayer: Player | null;
+      usePeerRatings: boolean;
+    }>('/api/me', { headers: await playerHeaders() });
+  },
+
+  async getClaimStatus(slug: string) {
+    const data = await request<{
+      group: GroupMeta;
+      claim: PlayerClaim | null;
+      alreadyClaimedElsewhere: boolean;
+      unclaimedPlayers: Player[];
+      claimedPlayerIds: string[];
+    }>(`/api/groups/${slug}/claim`, { headers: await playerHeaders() });
+    return {
+      ...data,
+      unclaimedPlayers: data.unclaimedPlayers.map(normalizePlayer),
+    };
+  },
+
+  async claimPlayer(slug: string, playerId: string) {
+    const data = await request<{ claim: PlayerClaim; player: Player }>(
+      `/api/groups/${slug}/claim`,
+      {
+        method: 'POST',
+        headers: await playerHeaders(),
+        body: JSON.stringify({ playerId }),
+      },
+    );
+    return { ...data, player: normalizePlayer(data.player) };
+  },
+
+  async getRatings(slug: string) {
+    const data = await request<{
+      claimedPlayerId: string;
+      targets: Array<{
+        player: Player;
+        myRating: PeerRating | null;
+        canRate: boolean;
+        cooldownRemainingMs: number;
+        peerAverage: PlayerStats | null;
+        peerOvr: number | null;
+        ratingCount: number;
+      }>;
+    }>(`/api/groups/${slug}/ratings`, { headers: await playerHeaders() });
+    return {
+      ...data,
+      targets: data.targets.map((t) => ({ ...t, player: normalizePlayer(t.player) })),
+    };
+  },
+
+  async submitRating(slug: string, ratedPlayerId: string, stats: PlayerStats) {
+    return request<{ rating: PeerRating }>(`/api/groups/${slug}/ratings`, {
+      method: 'POST',
+      headers: await playerHeaders(),
+      body: JSON.stringify({ ratedPlayerId, stats }),
+    });
+  },
+
   adminLogin(password: string) {
     return request<{ token: string }>('/api/admin/login', {
       method: 'POST',
@@ -111,6 +186,20 @@ export const api = {
   adminListGroups() {
     return request<{ groups: GroupMeta[] }>('/api/admin/groups', {
       headers: adminHeaders(),
+    });
+  },
+
+  adminGetSettings() {
+    return request<{ usePeerRatings: boolean }>('/api/admin/settings', {
+      headers: adminHeaders(),
+    });
+  },
+
+  adminSetPeerRatings(usePeerRatings: boolean) {
+    return request<{ usePeerRatings: boolean }>('/api/admin/settings', {
+      method: 'PUT',
+      headers: adminHeaders(),
+      body: JSON.stringify({ usePeerRatings }),
     });
   },
 

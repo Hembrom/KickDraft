@@ -3,9 +3,12 @@ import { Layout } from '@/components/Layout';
 import { AdminDashboardPage } from '@/pages/AdminDashboardPage';
 import { AdminGroupPage } from '@/pages/AdminGroupPage';
 import { AdminLoginPage } from '@/pages/AdminLoginPage';
+import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
+import { ClaimPlayerPage } from '@/pages/ClaimPlayerPage';
 import { GroupPage } from '@/pages/GroupPage';
 import { HistoryPage } from '@/pages/HistoryPage';
 import { MatchPage } from '@/pages/MatchPage';
+import { RatePlayersPage } from '@/pages/RatePlayersPage';
 import { CaptainsGuidePage } from '@/pages/CaptainsGuidePage';
 import { HomePage } from '@/pages/HomePage';
 import { getAdminToken } from '@/lib/utils';
@@ -21,6 +24,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/guide" element={<CaptainsGuidePage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/admin" element={<AdminLoginPage />} />
         <Route
           path="/admin/dashboard"
@@ -38,6 +42,8 @@ export default function App() {
             </AdminRoute>
           }
         />
+        <Route path="/:slug/claim" element={<ClaimPlayerPage />} />
+        <Route path="/:slug/rate" element={<RatePlayersPage />} />
         <Route path="/:slug/history" element={<HistoryPage />} />
         <Route path="/:slug/match/:matchId" element={<MatchPage />} />
         <Route path="/:slug" element={<GroupPage />} />

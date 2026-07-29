@@ -13,6 +13,8 @@ export function AdminDashboardPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [usePeerRatings, setUsePeerRatings] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
     if (!getAdminToken()) {
@@ -20,9 +22,11 @@ export function AdminDashboardPage() {
       return;
     }
 
-    api
-      .adminListGroups()
-      .then((data) => setGroups(data.groups))
+    Promise.all([api.adminListGroups(), api.adminGetSettings()])
+      .then(([groupsData, settings]) => {
+        setGroups(groupsData.groups);
+        setUsePeerRatings(settings.usePeerRatings);
+      })
       .catch((err: unknown) => {
         if (err instanceof ApiError && err.status === 401) {
           clearAdminToken();
@@ -33,6 +37,20 @@ export function AdminDashboardPage() {
       })
       .finally(() => setLoading(false));
   }, [navigate]);
+
+  async function togglePeerRatings() {
+    setToggling(true);
+    setError('');
+    try {
+      const next = !usePeerRatings;
+      const result = await api.adminSetPeerRatings(next);
+      setUsePeerRatings(result.usePeerRatings);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to update peer ratings toggle');
+    } finally {
+      setToggling(false);
+    }
+  }
 
   async function createGroup(e: FormEvent) {
     e.preventDefault();
@@ -102,6 +120,26 @@ export function AdminDashboardPage() {
       </form>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+      <section className="card space-y-3 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-lg font-bold text-slate-900">Peer ratings</h2>
+            <p className="text-sm text-slate-500">
+              When on, squad OVR and team balance use the average of player-to-player ratings (admin
+              stats still used until a player has at least one peer rating).
+            </p>
+          </div>
+          <button
+            type="button"
+            className={usePeerRatings ? 'btn-primary' : 'btn-secondary'}
+            disabled={toggling || loading}
+            onClick={() => void togglePeerRatings()}
+          >
+            {toggling ? 'Saving…' : usePeerRatings ? 'Peer ratings ON' : 'Peer ratings OFF'}
+          </button>
+        </div>
+      </section>
 
       <section>
         <h2 className="mb-3 font-display text-xl font-bold text-slate-900">Your groups</h2>

@@ -5,6 +5,7 @@ import {
   groupExists,
   updateMatch,
 } from '../lib/storage.js';
+import { applyEffectiveRatingsForGroup } from '../lib/peer-ratings.js';
 import { error, json, readBody } from '../lib/auth.js';
 import { buildGeneratedTeam } from '../../shared/team-generator.js';
 import { isThreeTeamMatch, roundRating, sanitizeTeamName, slugify } from '../../shared/types.js';
@@ -75,7 +76,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return error(res, 400, 'Teams must contain the same selected players');
     }
 
-    const { players } = await getGroupPlayers(slug);
+    const { players: rawPlayers } = await getGroupPlayers(slug);
+    const players = await applyEffectiveRatingsForGroup(slug, rawPlayers);
     const byId = new Map(players.map((player) => [player.id, player]));
     const teamAPlayers = teamAPlayerIds.map((id) => byId.get(id));
     const teamBPlayers = teamBPlayerIds.map((id) => byId.get(id));

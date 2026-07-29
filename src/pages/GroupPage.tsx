@@ -125,9 +125,14 @@ export function GroupPage() {
             {players.length} in squad · {selectedCount} selected for today
           </p>
         </div>
-        <Link to={`/${slug}/history`} className="btn-secondary">
-          <History className="h-4 w-4" /> Match history
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to={`/${slug}/claim`} className="btn-secondary">
+            Claim / rate
+          </Link>
+          <Link to={`/${slug}/history`} className="btn-secondary">
+            <History className="h-4 w-4" /> Match history
+          </Link>
+        </div>
       </div>
 
       <section className="card p-4 sm:p-5">
