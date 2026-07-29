@@ -191,15 +191,10 @@ export function RatePlayersPage() {
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       {!signedIn && isGoogleAuthConfigured() ? (
-        <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
-          <p className="text-sm text-slate-600">Sign in to claim your card and open the rating sliders.</p>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => void signInWithGoogle(`/${slug}/rate`)}
-          >
-            <LogIn className="h-4 w-4" /> Continue with Google
-          </button>
+        <div className="card p-4">
+          <p className="text-sm text-slate-600">
+            Sign in to claim your card and open the rating sliders.
+          </p>
         </div>
       ) : null}
 
