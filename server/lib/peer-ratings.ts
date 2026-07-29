@@ -349,6 +349,29 @@ export async function listRatingsByGroup(groupSlug: string): Promise<PeerRating[
   return (data ?? []).map((row) => rowToRating(row as RatingRow));
 }
 
+export async function deletePeerRating(groupSlug: string, ratingId: string): Promise<boolean> {
+  if (useLocal()) {
+    const store = await readLocalStore();
+    const before = store.ratings.length;
+    store.ratings = store.ratings.filter(
+      (r) => !(r.id === ratingId && r.groupSlug === groupSlug),
+    );
+    if (store.ratings.length === before) return false;
+    await writeLocalStore(store);
+    return true;
+  }
+
+  const { data, error } = await getSupabase()
+    .from('peer_ratings')
+    .delete()
+    .eq('id', ratingId)
+    .eq('group_slug', groupSlug)
+    .select('id');
+
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
+}
+
 export async function listRatingsByRater(raterPlayerId: string): Promise<PeerRating[]> {
   if (useLocal()) {
     const store = await readLocalStore();

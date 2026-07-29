@@ -89,6 +89,12 @@ const routes: Route[] = [
     params: ['slug'],
   },
   {
+    method: 'DELETE',
+    regex: /^\/api\/admin\/groups\/([^/]+)\/ratings$/,
+    handler: adminGroupRatings,
+    params: ['slug'],
+  },
+  {
     method: 'GET',
     regex: /^\/api\/admin\/groups\/([^/]+)\/players$/,
     handler: adminGroupPlayers,

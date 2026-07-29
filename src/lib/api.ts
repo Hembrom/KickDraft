@@ -245,6 +245,16 @@ export const api = {
     }>(`/api/admin/groups/${slug}/ratings`, { headers: adminHeaders() });
   },
 
+  adminDeletePeerRating(slug: string, ratingId: string) {
+    return request<{ ok: boolean }>(
+      `/api/admin/groups/${slug}/ratings?id=${encodeURIComponent(ratingId)}`,
+      {
+        method: 'DELETE',
+        headers: adminHeaders(),
+      },
+    );
+  },
+
   adminCreatePlayer(slug: string, payload: Record<string, unknown>) {
     return request<Player>(`/api/admin/groups/${slug}/players`, {
       method: 'POST',

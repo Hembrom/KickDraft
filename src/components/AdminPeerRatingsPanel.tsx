@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { roundRating } from '@shared/types';
@@ -37,8 +38,9 @@ export function AdminPeerRatingsPanel({ slug }: { slug: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dayFilter, setDayFilter] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     setLoading(true);
     setError('');
     api
@@ -49,6 +51,31 @@ export function AdminPeerRatingsPanel({ slug }: { slug: string }) {
       })
       .finally(() => setLoading(false));
   }, [slug]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function handleDelete(row: RatingRow) {
+    if (
+      !confirm(
+        `Remove ${row.raterName}'s rating of ${row.ratedName}? They can rate this player again immediately.`,
+      )
+    ) {
+      return;
+    }
+
+    setDeletingId(row.id);
+    setError('');
+    try {
+      await api.adminDeletePeerRating(slug, row.id);
+      setRatings((prev) => prev.filter((r) => r.id !== row.id));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to delete rating');
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   const dayOptions = useMemo(() => {
     const keys = [...new Set(ratings.map((r) => dayKey(r.updatedAt)))].sort((a, b) =>
@@ -74,7 +101,6 @@ export function AdminPeerRatingsPanel({ slug }: { slug: string }) {
   }, [filtered]);
 
   if (loading) return <p className="text-sm text-slate-500">Loading peer ratings…</p>;
-  if (error) return <p className="text-sm text-red-600">{error}</p>;
 
   return (
     <div className="space-y-4">
@@ -82,7 +108,7 @@ export function AdminPeerRatingsPanel({ slug }: { slug: string }) {
         <div>
           <h2 className="font-display text-xl font-bold text-slate-900">Peer ratings</h2>
           <p className="text-sm text-slate-500">
-            Who rated whom · one review per player every 14 days · shows last modified date
+            Who rated whom · remove a rating anytime · player can re-rate after removal
           </p>
         </div>
         <div>
@@ -104,6 +130,8 @@ export function AdminPeerRatingsPanel({ slug }: { slug: string }) {
           </select>
         </div>
       </div>
+
+      {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       {ratings.length === 0 ? (
         <div className="card p-5 text-sm text-slate-600">No peer ratings yet for this group.</div>
@@ -134,6 +162,7 @@ export function AdminPeerRatingsPanel({ slug }: { slug: string }) {
                       <th className="px-3 py-2 font-semibold">PHY</th>
                       <th className="px-3 py-2 font-semibold">STA</th>
                       <th className="px-3 py-2 font-semibold">Modified</th>
+                      <th className="px-3 py-2 font-semibold"> </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -153,6 +182,18 @@ export function AdminPeerRatingsPanel({ slug }: { slug: string }) {
                         <td className="px-3 py-2 tabular-nums">{row.stamina}</td>
                         <td className="px-3 py-2 whitespace-nowrap text-xs text-slate-500">
                           {formatDate(row.updatedAt)}
+                        </td>
+                        <td className="px-3 py-2">
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                            disabled={deletingId === row.id}
+                            onClick={() => void handleDelete(row)}
+                            aria-label={`Remove rating from ${row.raterName} of ${row.ratedName}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            {deletingId === row.id ? 'Removing…' : 'Remove'}
+                          </button>
                         </td>
                       </tr>
                     ))}
