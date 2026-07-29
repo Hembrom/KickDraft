@@ -1,8 +1,8 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { LogIn, Save, User } from 'lucide-react';
-import { PositionBadge } from '@/components/PlayerCard';
 import { api, ApiError } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import {
   getGoogleSession,
   isGoogleAuthConfigured,
@@ -14,7 +14,6 @@ import {
   STAT_MAX,
   STAT_MIN,
   calculateOvr,
-  getPositionsLabel,
   roundRating,
   type Player,
   type PlayerStats,
@@ -58,6 +57,11 @@ export function RatePlayersPage() {
   const [stats, setStats] = useState<PlayerStats>(emptyStats());
   const [saving, setSaving] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+
+  const activeTarget = useMemo(
+    () => targets.find((t) => t.player.id === activeId) ?? null,
+    [targets, activeId],
+  );
 
   async function load() {
     setLoading(true);
@@ -171,94 +175,118 @@ export function RatePlayersPage() {
       {loading ? <p className="text-sm text-slate-500">Loading…</p> : null}
 
       {!loading && signedIn ? (
-        <div className="space-y-3">
-          {targets.map((target) => (
-            <div key={target.player.id} className="card space-y-3 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-elite-50 ring-1 ring-slate-200">
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {targets.map((target) => {
+              const selected = activeId === target.player.id;
+              return (
+                <article
+                  key={target.player.id}
+                  className={cn(
+                    'card flex flex-col overflow-hidden p-0 transition',
+                    selected && 'border-elite-400 ring-2 ring-elite-200',
+                    target.canRate && 'hover:border-elite-200',
+                  )}
+                >
+                  <div className="relative aspect-square w-full bg-elite-50">
                     {target.player.photoUrl ? (
                       <img
                         src={target.player.photoUrl}
                         alt={target.player.name}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover object-top"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-slate-300">
-                        <User className="h-6 w-6" />
+                        <User className="h-12 w-12" strokeWidth={1.25} />
                       </div>
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="flex flex-1 flex-col gap-2 p-3">
+                    <div className="min-w-0">
                       <p className="truncate font-semibold text-slate-900">{target.player.name}</p>
-                      {target.player.positions.map((position) => (
-                        <PositionBadge key={position} position={position} />
-                      ))}
-                      {target.player.clubLogoUrl ? (
-                        <img
-                          src={target.player.clubLogoUrl}
-                          alt=""
-                          className="h-4 w-4 object-contain"
-                        />
-                      ) : null}
+                      <p className="text-xs text-slate-500">
+                        Peer OVR {target.peerOvr != null ? roundRating(target.peerOvr) : '—'} ·{' '}
+                        {target.ratingCount} rating{target.ratingCount === 1 ? '' : 's'}
+                      </p>
                     </div>
-                    <p className="truncate text-xs text-slate-500">
-                      {getPositionsLabel(target.player.positions)}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      Peer avg OVR{' '}
-                      {target.peerOvr != null ? roundRating(target.peerOvr) : '—'} ·{' '}
-                      {target.ratingCount} rating{target.ratingCount === 1 ? '' : 's'}
-                    </p>
+                    {target.canRate ? (
+                      <button
+                        type="button"
+                        className="btn-secondary mt-auto w-full justify-center"
+                        onClick={() => startRate(target)}
+                      >
+                        {selected
+                          ? 'Selected'
+                          : target.myRating
+                            ? 'Update'
+                            : 'Rate'}
+                      </button>
+                    ) : (
+                      <p className="mt-auto text-center text-[11px] font-medium leading-snug text-amber-700">
+                        Again in {formatCooldown(target.cooldownRemainingMs)}
+                      </p>
+                    )}
                   </div>
-                </div>
-                {target.canRate ? (
-                  <button type="button" className="btn-secondary" onClick={() => startRate(target)}>
-                    {target.myRating ? 'Update rating' : 'Rate'}
-                  </button>
-                ) : (
-                  <p className="text-xs font-medium text-amber-700">
-                    Available again in {formatCooldown(target.cooldownRemainingMs)}
-                  </p>
-                )}
-              </div>
+                </article>
+              );
+            })}
+          </div>
 
-              {activeId === target.player.id ? (
-                <form onSubmit={submit} className="space-y-3 border-t border-slate-100 pt-3">
+          {activeTarget ? (
+            <form onSubmit={submit} className="card space-y-4 p-4 sm:p-5">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-elite-50 ring-1 ring-slate-200">
+                  {activeTarget.player.photoUrl ? (
+                    <img
+                      src={activeTarget.player.photoUrl}
+                      alt=""
+                      className="h-full w-full object-cover object-top"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-slate-300">
+                      <User className="h-5 w-5" />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-slate-900">Rating {activeTarget.player.name}</p>
                   <p className="text-sm font-display font-bold text-elite-600">
                     Your rating OVR {roundRating(calculateOvr(stats))}
                   </p>
-                  {STAT_KEYS.map((key) => (
-                    <div key={key}>
-                      <div className="mb-1 flex justify-between text-xs capitalize text-slate-500">
-                        <span>{key}</span>
-                        <span className="font-semibold text-slate-800">{stats[key]}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={STAT_MIN}
-                        max={STAT_MAX}
-                        value={stats[key]}
-                        onChange={(e) =>
-                          setStats((current) => ({ ...current, [key]: Number(e.target.value) }))
-                        }
-                        className="w-full accent-elite-600"
-                      />
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {STAT_KEYS.map((key) => (
+                  <div key={key}>
+                    <div className="mb-1 flex justify-between text-xs capitalize text-slate-500">
+                      <span>{key}</span>
+                      <span className="font-semibold text-slate-800">{stats[key]}</span>
                     </div>
-                  ))}
-                  <div className="flex gap-2">
-                    <button type="submit" className="btn-primary" disabled={saving}>
-                      <Save className="h-4 w-4" /> {saving ? 'Saving…' : 'Save rating'}
-                    </button>
-                    <button type="button" className="btn-secondary" onClick={() => setActiveId(null)}>
-                      Cancel
-                    </button>
+                    <input
+                      type="range"
+                      min={STAT_MIN}
+                      max={STAT_MAX}
+                      value={stats[key]}
+                      onChange={(e) =>
+                        setStats((current) => ({ ...current, [key]: Number(e.target.value) }))
+                      }
+                      className="w-full accent-elite-600"
+                    />
                   </div>
-                </form>
-              ) : null}
-            </div>
-          ))}
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button type="submit" className="btn-primary" disabled={saving}>
+                  <Save className="h-4 w-4" /> {saving ? 'Saving…' : 'Save rating'}
+                </button>
+                <button type="button" className="btn-secondary" onClick={() => setActiveId(null)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : null}
         </div>
       ) : null}
     </div>
