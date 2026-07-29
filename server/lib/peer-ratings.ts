@@ -2,6 +2,8 @@ import {
   calculateOvr,
   PEER_RATING_COOLDOWN_MS,
   STAT_KEYS,
+  STAT_MAX,
+  STAT_MIN,
   USE_PEER_RATINGS_SETTING_KEY,
   type Player,
   type PlayerClaim,
@@ -227,7 +229,7 @@ export function parseStats(input: Partial<PlayerStats>): PlayerStats | null {
   const stats = {} as PlayerStats;
   for (const key of STAT_KEYS) {
     const value = Number(input[key]);
-    if (Number.isNaN(value) || value < 0 || value > 100) return null;
+    if (Number.isNaN(value) || value < STAT_MIN || value > STAT_MAX) return null;
     stats[key] = Math.round(value);
   }
   return stats;

@@ -12,6 +12,8 @@ import {
   calculateOvr,
   slugify,
   STAT_KEYS,
+  STAT_MAX,
+  STAT_MIN,
   MAX_PLAYER_POSITIONS,
   normalizePositions,
   type Player,
@@ -23,7 +25,7 @@ function parseStats(input: Partial<PlayerStats>): PlayerStats | null {
   const stats = {} as PlayerStats;
   for (const key of STAT_KEYS) {
     const value = Number(input[key]);
-    if (Number.isNaN(value) || value < 0 || value > 100) return null;
+    if (Number.isNaN(value) || value < STAT_MIN || value > STAT_MAX) return null;
     stats[key] = Math.round(value);
   }
   return stats;
@@ -55,7 +57,7 @@ function validatePlayerInput(
         }
       : null;
 
-  if (!stats) return { error: 'All stats must be numbers between 0 and 100' };
+  if (!stats) return { error: `All stats must be numbers between ${STAT_MIN} and ${STAT_MAX}` };
 
   const legacy = existing as (Player & { position?: PlayerPosition }) | undefined;
   const positions = normalizePositions(

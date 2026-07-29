@@ -5,7 +5,7 @@ import { ClubSelect } from '@/components/ClubSelect';
 import { PlayerCard } from '@/components/PlayerCard';
 import { api, ApiError } from '@/lib/api';
 import { getClubById, resolveClubId } from '@shared/clubs';
-import { calculateOvr, getPositionsLabel, MAX_PLAYER_POSITIONS, PLAYER_POSITIONS, roundRating, STAT_KEYS, type Player, type PlayerPosition, type PlayerStats } from '@shared/types';
+import { calculateOvr, getPositionsLabel, MAX_PLAYER_POSITIONS, PLAYER_POSITIONS, roundRating, STAT_KEYS, STAT_MAX, STAT_MIN, type Player, type PlayerPosition, type PlayerStats } from '@shared/types';
 import { cn } from '@/lib/utils';
 import { fileToBase64, getAdminToken } from '@/lib/utils';
 
@@ -173,7 +173,10 @@ export function AdminGroupPage() {
   }
 
   function setStat(key: keyof PlayerStats, raw: number) {
-    const value = Math.min(100, Math.max(0, Math.round(Number.isNaN(raw) ? 0 : raw)));
+    const value = Math.min(
+      STAT_MAX,
+      Math.max(STAT_MIN, Math.round(Number.isNaN(raw) ? STAT_MIN : raw)),
+    );
     setForm((f) => ({
       ...f,
       stats: { ...f.stats, [key]: value },
@@ -331,8 +334,8 @@ export function AdminGroupPage() {
                     <span className="text-xs capitalize text-slate-500">{key}</span>
                     <input
                       type="number"
-                      min={0}
-                      max={100}
+                      min={STAT_MIN}
+                      max={STAT_MAX}
                       step={1}
                       value={form.stats[key]}
                       onChange={(e) => setStat(key, Number(e.target.value))}
@@ -342,8 +345,8 @@ export function AdminGroupPage() {
                   </div>
                   <input
                     type="range"
-                    min={0}
-                    max={100}
+                    min={STAT_MIN}
+                    max={STAT_MAX}
                     value={form.stats[key]}
                     onChange={(e) => setStat(key, Number(e.target.value))}
                     className="w-full accent-elite-600"

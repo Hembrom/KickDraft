@@ -10,6 +10,8 @@ import {
 } from '@/lib/supabase-auth';
 import {
   STAT_KEYS,
+  STAT_MAX,
+  STAT_MIN,
   calculateOvr,
   roundRating,
   type Player,
@@ -203,8 +205,8 @@ export function RatePlayersPage() {
                       </div>
                       <input
                         type="range"
-                        min={0}
-                        max={100}
+                        min={STAT_MIN}
+                        max={STAT_MAX}
                         value={stats[key]}
                         onChange={(e) =>
                           setStats((current) => ({ ...current, [key]: Number(e.target.value) }))

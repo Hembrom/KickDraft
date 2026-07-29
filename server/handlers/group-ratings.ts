@@ -11,7 +11,7 @@ import {
   upsertPeerRating,
 } from '../lib/peer-ratings.js';
 import { getGroupPlayers, groupExists } from '../lib/storage.js';
-import { slugify, type PlayerStats } from '../../shared/types.js';
+import { slugify, STAT_MAX, STAT_MIN, type PlayerStats } from '../../shared/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const slug = slugify(String(req.query.slug ?? ''));
@@ -72,7 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const stats = body.stats ? parseStats(body.stats) : null;
-    if (!stats) return error(res, 400, 'All stats must be numbers between 0 and 100');
+    if (!stats) return error(res, 400, `All stats must be numbers between ${STAT_MIN} and ${STAT_MAX}`);
 
     try {
       const { players } = await getGroupPlayers(slug);

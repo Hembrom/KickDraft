@@ -164,6 +164,10 @@ export const STAT_KEYS: (keyof PlayerStats)[] = [
   'stamina',
 ];
 
+/** Allowed range for all player attribute inputs (admin + peer ratings). */
+export const STAT_MIN = 25;
+export const STAT_MAX = 95;
+
 export const MATCH_FORMATS = [5, 6, 7, 8, 9, 10, 11] as const;
 export type MatchFormat = (typeof MATCH_FORMATS)[number];
 
