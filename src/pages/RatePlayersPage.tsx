@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { LogIn, Save } from 'lucide-react';
+import { LogIn, Save, User } from 'lucide-react';
+import { PositionBadge } from '@/components/PlayerCard';
 import { api, ApiError } from '@/lib/api';
 import {
   getGoogleSession,
@@ -13,6 +14,7 @@ import {
   STAT_MAX,
   STAT_MIN,
   calculateOvr,
+  getPositionsLabel,
   roundRating,
   type Player,
   type PlayerStats,
@@ -172,14 +174,44 @@ export function RatePlayersPage() {
         <div className="space-y-3">
           {targets.map((target) => (
             <div key={target.player.id} className="card space-y-3 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="font-semibold text-slate-900">{target.player.name}</p>
-                  <p className="text-xs text-slate-500">
-                    Peer avg OVR{' '}
-                    {target.peerOvr != null ? roundRating(target.peerOvr) : '—'} ·{' '}
-                    {target.ratingCount} rating{target.ratingCount === 1 ? '' : 's'}
-                  </p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-elite-50 ring-1 ring-slate-200">
+                    {target.player.photoUrl ? (
+                      <img
+                        src={target.player.photoUrl}
+                        alt={target.player.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-slate-300">
+                        <User className="h-6 w-6" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="truncate font-semibold text-slate-900">{target.player.name}</p>
+                      {target.player.positions.map((position) => (
+                        <PositionBadge key={position} position={position} />
+                      ))}
+                      {target.player.clubLogoUrl ? (
+                        <img
+                          src={target.player.clubLogoUrl}
+                          alt=""
+                          className="h-4 w-4 object-contain"
+                        />
+                      ) : null}
+                    </div>
+                    <p className="truncate text-xs text-slate-500">
+                      {getPositionsLabel(target.player.positions)}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Peer avg OVR{' '}
+                      {target.peerOvr != null ? roundRating(target.peerOvr) : '—'} ·{' '}
+                      {target.ratingCount} rating{target.ratingCount === 1 ? '' : 's'}
+                    </p>
+                  </div>
                 </div>
                 {target.canRate ? (
                   <button type="button" className="btn-secondary" onClick={() => startRate(target)}>
