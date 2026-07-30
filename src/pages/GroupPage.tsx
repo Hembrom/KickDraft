@@ -129,6 +129,9 @@ export function GroupPage() {
           <Link to={`/${slug}/claim`} className="btn-secondary">
             Claim / rate
           </Link>
+          <Link to={`/${slug}/reviews`} className="btn-secondary">
+            Who rated whom
+          </Link>
           <Link to={`/${slug}/history`} className="btn-secondary">
             <History className="h-4 w-4" /> Match history
           </Link>

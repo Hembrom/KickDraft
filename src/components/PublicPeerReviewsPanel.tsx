@@ -96,7 +96,6 @@ export function PublicPeerReviewsPanel({ slug }: { slug: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-xl font-bold text-slate-900">Who rated whom</h2>
           <p className="text-sm text-slate-500">
             Public peer reviews from the last {windowDays} days (up to 2 per rater → rated pair).
           </p>
