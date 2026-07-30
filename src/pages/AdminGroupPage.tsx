@@ -1,6 +1,6 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, Upload } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Trash2, Upload } from 'lucide-react';
 import { ClubSelect } from '@/components/ClubSelect';
 import { PlayerCard } from '@/components/PlayerCard';
 import { AdminPeerRatingsPanel } from '@/components/AdminPeerRatingsPanel';
@@ -24,6 +24,8 @@ const emptyStats = (): PlayerStats => ({
 export function AdminGroupPage() {
   const { slug = '' } = useParams();
   const navigate = useNavigate();
+  const formSectionRef = useRef<HTMLElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const [groupName, setGroupName] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
   const [search, setSearch] = useState('');
@@ -79,6 +81,14 @@ export function AdminGroupPage() {
       photoUrl: '',
     });
     setPhotoFile(null);
+  }
+
+  function startAddPlayer() {
+    resetForm();
+    requestAnimationFrame(() => {
+      formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      nameInputRef.current?.focus();
+    });
   }
 
   function startEdit(player: Player) {
@@ -234,7 +244,18 @@ export function AdminGroupPage() {
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="font-display text-xl font-bold text-slate-900">Players</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-xl font-bold text-slate-900">Players</h2>
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-elite-200 bg-elite-50 text-elite-700 transition hover:bg-elite-100"
+                onClick={startAddPlayer}
+                aria-label="Add new player"
+                title="Add new player"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
             <input
               className="input max-w-xs"
               placeholder="Search…"
@@ -266,7 +287,7 @@ export function AdminGroupPage() {
           </div>
         </section>
 
-        <section className="card p-5">
+        <section ref={formSectionRef} className="card p-5">
           <h2 className="mb-4 font-display text-xl font-bold text-slate-900">
             {editing ? 'Edit player' : 'Add player'}
           </h2>
@@ -275,6 +296,7 @@ export function AdminGroupPage() {
             <div>
               <label className="label">Name</label>
               <input
+                ref={nameInputRef}
                 className="input"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
