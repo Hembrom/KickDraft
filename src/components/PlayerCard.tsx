@@ -1,5 +1,13 @@
 import { cn } from '@/lib/utils';
-import { getPositionLabel, getPositionsLabel, normalizePlayer, roundRating, type Player, type PlayerPosition } from '@shared/types';
+import {
+  getPositionLabel,
+  getPositionsLabel,
+  normalizePlayer,
+  roundRating,
+  STAT_KEYS,
+  type Player,
+  type PlayerPosition,
+} from '@shared/types';
 import { Check, User } from 'lucide-react';
 
 interface PlayerCardProps {
@@ -8,6 +16,16 @@ interface PlayerCardProps {
   selectable?: boolean;
   onToggle?: () => void;
 }
+
+const STAT_LABELS: Record<(typeof STAT_KEYS)[number], string> = {
+  pace: 'PAC',
+  shooting: 'SHO',
+  passing: 'PAS',
+  dribbling: 'DRI',
+  defending: 'DEF',
+  physicality: 'PHY',
+  stamina: 'STA',
+};
 
 export function PositionBadge({
   position,
@@ -42,6 +60,33 @@ function SelectionCheckbox({ selected }: { selected: boolean }) {
       aria-hidden
     >
       <Check className={cn('h-4 w-4 sm:h-3.5 sm:w-3.5', selected ? 'opacity-100' : 'opacity-0')} strokeWidth={3} />
+    </div>
+  );
+}
+
+function AttributesTooltip({ player }: { player: Player }) {
+  return (
+    <div
+      className={cn(
+        'pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-56 -translate-x-1/2',
+        'rounded-xl border border-slate-200 bg-white p-3 shadow-lg',
+        'opacity-0 transition duration-150',
+        'group-hover:opacity-100 group-focus-within:opacity-100',
+      )}
+      role="tooltip"
+    >
+      <p className="mb-2 text-center text-xs font-semibold text-slate-500">Attributes</p>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+        {STAT_KEYS.map((key) => (
+          <div key={key} className="flex items-center justify-between text-xs">
+            <span className="font-semibold tracking-wide text-slate-500">{STAT_LABELS[key]}</span>
+            <span className="tabular-nums font-bold text-slate-900">{roundRating(player[key])}</span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 border-t border-slate-100 pt-2 text-center text-sm font-display font-bold text-elite-600">
+        OVR {roundRating(player.ovr)}
+      </p>
     </div>
   );
 }
@@ -83,6 +128,8 @@ export function PlayerCard({ player, selected = false, selectable, onToggle }: P
         </p>
         <p className="mt-1 text-sm font-display font-bold text-elite-600">OVR {roundRating(normalized.ovr)}</p>
       </div>
+
+      <AttributesTooltip player={normalized} />
     </>
   );
 
@@ -94,7 +141,7 @@ export function PlayerCard({ player, selected = false, selectable, onToggle }: P
         aria-pressed={selected}
         aria-label={`${selected ? 'Deselect' : 'Select'} ${normalized.name}`}
         className={cn(
-          'card flex w-full touch-manipulation items-center gap-3 p-3.5 text-left transition sm:p-3',
+          'group relative card flex w-full touch-manipulation items-center gap-3 p-3.5 text-left transition sm:p-3',
           selected
             ? 'border-elite-400 bg-elite-50/90 shadow-elite ring-1 ring-elite-200'
             : 'hover:border-elite-200 hover:bg-elite-50/40 active:bg-elite-50/60',
@@ -105,5 +152,9 @@ export function PlayerCard({ player, selected = false, selectable, onToggle }: P
     );
   }
 
-  return <div className="card flex items-center gap-3 p-3">{body}</div>;
+  return (
+    <div className="group relative card flex items-center gap-3 p-3">
+      {body}
+    </div>
+  );
 }

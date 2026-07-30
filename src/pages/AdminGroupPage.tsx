@@ -7,7 +7,7 @@ import { AdminPeerRatingsPanel } from '@/components/AdminPeerRatingsPanel';
 import { AdminClaimsPanel } from '@/components/AdminClaimsPanel';
 import { api, ApiError } from '@/lib/api';
 import { getClubById, resolveClubId } from '@shared/clubs';
-import { calculateOvr, getPositionsLabel, MAX_PLAYER_POSITIONS, PLAYER_POSITIONS, roundRating, STAT_KEYS, STAT_MAX, STAT_MIN, type Player, type PlayerPosition, type PlayerStats } from '@shared/types';
+import { getPositionsLabel, MAX_PLAYER_POSITIONS, PLAYER_POSITIONS, type Player, type PlayerPosition, type PlayerStats } from '@shared/types';
 import { cn } from '@/lib/utils';
 import { fileToBase64, getAdminToken } from '@/lib/utils';
 
@@ -33,15 +33,12 @@ export function AdminGroupPage() {
     positions: ['MID'] as PlayerPosition[],
     clubId: '',
     photoUrl: '',
-    stats: emptyStats(),
   });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'roster' | 'ratings' | 'claims'>('roster');
-
-  const previewOvr = useMemo(() => calculateOvr(form.stats), [form.stats]);
 
   useEffect(() => {
     if (!getAdminToken()) {
@@ -80,7 +77,6 @@ export function AdminGroupPage() {
       positions: ['MID'],
       clubId: '',
       photoUrl: '',
-      stats: emptyStats(),
     });
     setPhotoFile(null);
   }
@@ -92,15 +88,6 @@ export function AdminGroupPage() {
       positions: player.positions.length ? [...player.positions] : ['MID'],
       clubId: resolveClubId(player.favouriteClub, player.clubLogoUrl),
       photoUrl: player.photoUrl ?? '',
-      stats: {
-        pace: player.pace,
-        shooting: player.shooting,
-        passing: player.passing,
-        dribbling: player.dribbling,
-        defending: player.defending,
-        physicality: player.physicality,
-        stamina: player.stamina,
-      },
     });
     setPhotoFile(null);
   }
@@ -124,8 +111,12 @@ export function AdminGroupPage() {
         favouriteClub: club?.name ?? '',
         clubLogoUrl: club?.logo ?? null,
         photoUrl: form.photoUrl || null,
-        stats: form.stats,
       };
+
+      // Ratings come from peer ratings — only seed defaults for brand-new players.
+      if (!editing) {
+        payload.stats = emptyStats();
+      }
 
       if (photoFile) {
         payload.imageBase64 = await fileToBase64(photoFile);
@@ -173,17 +164,6 @@ export function AdminGroupPage() {
       if (current.positions.length >= MAX_PLAYER_POSITIONS) return current;
       return { ...current, positions: [...current.positions, position] };
     });
-  }
-
-  function setStat(key: keyof PlayerStats, raw: number) {
-    const value = Math.min(
-      STAT_MAX,
-      Math.max(STAT_MIN, Math.round(Number.isNaN(raw) ? STAT_MIN : raw)),
-    );
-    setForm((f) => ({
-      ...f,
-      stats: { ...f.stats, [key]: value },
-    }));
   }
 
   if (loading) return <p className="text-slate-500">Loading…</p>;
@@ -369,40 +349,9 @@ export function AdminGroupPage() {
               ) : null}
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="label mb-0">Attributes</p>
-                <p className="text-sm font-display font-bold text-elite-600">
-                  OVR {roundRating(previewOvr)}
-                </p>
-              </div>
-              {STAT_KEYS.map((key) => (
-                <div key={key}>
-                  <div className="mb-1 flex items-center justify-between gap-2">
-                    <span className="text-xs capitalize text-slate-500">{key}</span>
-                    <input
-                      type="number"
-                      min={STAT_MIN}
-                      max={STAT_MAX}
-                      step={1}
-                      value={form.stats[key]}
-                      onChange={(e) => setStat(key, Number(e.target.value))}
-                      className="w-16 rounded-lg border border-slate-200 bg-white px-2 py-1 text-right text-xs font-semibold text-slate-900 outline-none focus:border-elite-300 focus:ring-2 focus:ring-elite-500/30"
-                      aria-label={`${key} rating`}
-                    />
-                  </div>
-                  <input
-                    type="range"
-                    min={STAT_MIN}
-                    max={STAT_MAX}
-                    value={form.stats[key]}
-                    onChange={(e) => setStat(key, Number(e.target.value))}
-                    className="w-full accent-elite-600"
-                    aria-label={`${key} slider`}
-                  />
-                </div>
-              ))}
-            </div>
+            <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+              Player ratings come from peer ratings. Use the Peer ratings tab to review them.
+            </p>
 
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
 

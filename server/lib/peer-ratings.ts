@@ -93,19 +93,8 @@ async function writeLocalStore(store: LocalStore) {
 }
 
 export async function getUsePeerRatings(): Promise<boolean> {
-  if (useLocal()) {
-    const store = await readLocalStore();
-    return Boolean(store.settings[USE_PEER_RATINGS_SETTING_KEY]);
-  }
-
-  const { data, error } = await getSupabase()
-    .from('app_settings')
-    .select('value')
-    .eq('key', USE_PEER_RATINGS_SETTING_KEY)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data?.value === true;
+  // Peer ratings are always used for squad OVR / team balance when available.
+  return true;
 }
 
 export async function setUsePeerRatings(enabled: boolean): Promise<boolean> {
