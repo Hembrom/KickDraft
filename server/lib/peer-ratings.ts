@@ -1,6 +1,8 @@
 import {
   calculateOvr,
   PEER_RATING_COOLDOWN_MS,
+  PUBLIC_PEER_REVIEW_MAX_PER_PAIR,
+  PUBLIC_PEER_REVIEW_WINDOW_MS,
   STAT_KEYS,
   STAT_MAX,
   STAT_MIN,
@@ -377,6 +379,30 @@ export async function listRatingsByGroup(groupSlug: string): Promise<PeerRating[
 
   if (error) throw error;
   return (data ?? []).map((row) => rowToRating(row as RatingRow));
+}
+
+/** Public feed: last 30 days, at most 2 rows per rater→rated pair. */
+export function filterPublicPeerReviews(ratings: PeerRating[], now = Date.now()): PeerRating[] {
+  const cutoff = now - PUBLIC_PEER_REVIEW_WINDOW_MS;
+  const recent = ratings
+    .filter((r) => new Date(r.updatedAt).getTime() >= cutoff)
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+  const counts = new Map<string, number>();
+  const out: PeerRating[] = [];
+  for (const rating of recent) {
+    const key = `${rating.raterPlayerId}:${rating.ratedPlayerId}`;
+    const n = counts.get(key) ?? 0;
+    if (n >= PUBLIC_PEER_REVIEW_MAX_PER_PAIR) continue;
+    counts.set(key, n + 1);
+    out.push(rating);
+  }
+  return out;
+}
+
+export async function listPublicPeerReviews(groupSlug: string): Promise<PeerRating[]> {
+  const all = await listRatingsByGroup(groupSlug);
+  return filterPublicPeerReviews(all);
 }
 
 export async function deletePeerRating(groupSlug: string, ratingId: string): Promise<boolean> {

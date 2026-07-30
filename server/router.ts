@@ -14,6 +14,7 @@ import groupMatchDetail from './handlers/group-match-detail.js';
 import groupImage from './handlers/group-image.js';
 import groupClaim from './handlers/group-claim.js';
 import groupRatings from './handlers/group-ratings.js';
+import groupPeerReviews from './handlers/group-peer-reviews.js';
 import me from './handlers/me.js';
 import cronPurgeMatches from './handlers/cron-purge-matches.js';
 import { error } from './lib/auth.js';
@@ -59,6 +60,12 @@ const routes: Route[] = [
     method: 'POST',
     regex: /^\/api\/groups\/([^/]+)\/ratings$/,
     handler: groupRatings,
+    params: ['slug'],
+  },
+  {
+    method: 'GET',
+    regex: /^\/api\/groups\/([^/]+)\/peer-reviews$/,
+    handler: groupPeerReviews,
     params: ['slug'],
   },
   {

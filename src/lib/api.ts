@@ -179,6 +179,31 @@ export const api = {
     });
   },
 
+  getPublicPeerReviews(slug: string) {
+    return request<{
+      group: GroupMeta;
+      windowDays: number;
+      maxPerPair: number;
+      ratings: Array<{
+        id: string;
+        raterPlayerId: string;
+        ratedPlayerId: string;
+        raterName: string;
+        ratedName: string;
+        pace: number;
+        shooting: number;
+        passing: number;
+        dribbling: number;
+        defending: number;
+        physicality: number;
+        stamina: number;
+        ovr: number;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+    }>(`/api/groups/${slug}/peer-reviews`);
+  },
+
   adminLogin(password: string) {
     return request<{ token: string; role: 'admin' | 'super' }>('/api/admin/login', {
       method: 'POST',

@@ -1,4 +1,12 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type RefObject,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -28,6 +36,10 @@ const STAT_LABELS: Record<(typeof STAT_KEYS)[number], string> = {
   physicality: 'PHY',
   stamina: 'STA',
 };
+
+const TIP_WIDTH = 224;
+const TIP_GAP = 8;
+const VIEW_PAD = 8;
 
 export function PositionBadge({
   position,
@@ -72,20 +84,23 @@ function AttributesPopover({
   top,
   left,
   id,
+  tipRef,
 }: {
   player: Player;
   open: boolean;
   top: number;
   left: number;
   id: string;
+  tipRef: RefObject<HTMLDivElement | null>;
 }) {
   if (!open || typeof document === 'undefined') return null;
 
   return createPortal(
     <div
+      ref={tipRef}
       id={id}
       className="pointer-events-none fixed z-[9999] w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-xl"
-      style={{ top, left, transform: 'translateX(-50%)' }}
+      style={{ top, left }}
       role="tooltip"
     >
       <p className="mb-2 truncate text-center text-xs font-semibold text-slate-700">{player.name}</p>
@@ -107,37 +122,50 @@ function AttributesPopover({
 
 export function PlayerCard({ player, selected = false, selectable, onToggle }: PlayerCardProps) {
   const normalized = normalizePlayer(player);
-  const rootRef = useRef<HTMLElement | null>(null);
+  const anchorRef = useRef<HTMLElement | null>(null);
+  const tipRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const tipId = useId();
+  const hoverCapable = useRef(
+    typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches,
+  );
 
   function updatePosition() {
-    const el = rootRef.current;
+    const el = anchorRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const tipHeight = 220;
-    const gap = 8;
+    const tipH = tipRef.current?.offsetHeight ?? 200;
+    const tipW = tipRef.current?.offsetWidth ?? TIP_WIDTH;
     const spaceBelow = window.innerHeight - rect.bottom;
     const top =
-      spaceBelow < tipHeight && rect.top > tipHeight
-        ? rect.top - tipHeight - gap
-        : rect.bottom + gap;
+      spaceBelow < tipH + TIP_GAP && rect.top > tipH + TIP_GAP
+        ? rect.top - tipH - TIP_GAP
+        : rect.bottom + TIP_GAP;
+    const centered = rect.left + rect.width / 2 - tipW / 2;
     const left = Math.min(
-      window.innerWidth - 120,
-      Math.max(120, rect.left + rect.width / 2),
+      window.innerWidth - tipW - VIEW_PAD,
+      Math.max(VIEW_PAD, centered),
     );
     setPos({ top, left });
   }
 
   function show() {
-    updatePosition();
     setOpen(true);
   }
 
   function hide() {
     setOpen(false);
   }
+
+  function toggleTip() {
+    setOpen((prev) => !prev);
+  }
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updatePosition();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -150,13 +178,24 @@ export function PlayerCard({ player, selected = false, selectable, onToggle }: P
     };
   }, [open]);
 
-  const body = (
-    <>
-      {selectable ? <SelectionCheckbox selected={selected} /> : null}
+  // Close tap-tooltip when tapping elsewhere (mobile / coarse pointer).
+  useEffect(() => {
+    if (!open || hoverCapable.current) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (anchorRef.current?.contains(target)) return;
+      if (tipRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
 
+  const photoAndInfo = (
+    <>
       <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-elite-50 ring-1 ring-slate-200 sm:h-16 sm:w-16">
         {player.photoUrl ? (
-          <img src={normalized.photoUrl!} alt={normalized.name} className="h-full w-full object-cover" />
+          <img src={normalized.photoUrl!} alt="" className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-slate-300">
             <User className="h-6 w-6 sm:h-7 sm:w-7" />
@@ -187,61 +226,62 @@ export function PlayerCard({ player, selected = false, selectable, onToggle }: P
     </>
   );
 
-  const sharedClass = cn(
-    'card relative flex w-full items-center gap-3 p-3.5 text-left transition sm:p-3',
-  );
+  const tipHandlers = {
+    onMouseEnter: () => {
+      if (hoverCapable.current) show();
+    },
+    onMouseLeave: () => {
+      if (hoverCapable.current) hide();
+    },
+    onClick: (event: MouseEvent) => {
+      // Touch / coarse pointers: tap card body to toggle stats (not selection).
+      if (!hoverCapable.current) {
+        event.preventDefault();
+        toggleTip();
+      }
+    },
+  };
 
-  if (selectable) {
-    return (
-      <>
-        <button
-          ref={(node) => {
-            rootRef.current = node;
-          }}
-          type="button"
-          onClick={onToggle}
-          onMouseEnter={show}
-          onMouseLeave={hide}
-          onFocus={show}
-          onBlur={hide}
-          aria-pressed={selected}
-          aria-describedby={open ? tipId : undefined}
-          aria-label={`${selected ? 'Deselect' : 'Select'} ${normalized.name}`}
-          className={cn(
-            sharedClass,
-            'touch-manipulation',
-            selected
-              ? 'border-elite-400 bg-elite-50/90 shadow-elite ring-1 ring-elite-200'
-              : 'hover:border-elite-200 hover:bg-elite-50/40 active:bg-elite-50/60',
-          )}
-        >
-          {body}
-        </button>
-        <AttributesPopover
-          id={tipId}
-          player={normalized}
-          open={open}
-          top={pos.top}
-          left={pos.left}
-        />
-      </>
-    );
-  }
+  const shellClass = cn(
+    'card relative flex w-full items-center gap-3 p-3.5 text-left transition sm:p-3',
+    selectable &&
+      (selected
+        ? 'border-elite-400 bg-elite-50/90 shadow-elite ring-1 ring-elite-200'
+        : 'hover:border-elite-200 hover:bg-elite-50/40'),
+  );
 
   return (
     <>
-      <div
-        ref={(node) => {
-          rootRef.current = node;
-        }}
-        className={sharedClass}
-        onMouseEnter={show}
-        onMouseLeave={hide}
-      >
-        {body}
+      <div className={shellClass}>
+        {selectable ? (
+          <button
+            type="button"
+            className="touch-manipulation shrink-0 rounded-md p-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-elite-500"
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggle?.();
+            }}
+            aria-pressed={selected}
+            aria-label={`${selected ? 'Deselect' : 'Select'} ${normalized.name}`}
+          >
+            <SelectionCheckbox selected={selected} />
+          </button>
+        ) : null}
+
+        <div
+          ref={(node) => {
+            anchorRef.current = node;
+          }}
+          className="flex min-w-0 flex-1 cursor-default items-center gap-3 touch-manipulation"
+          aria-describedby={open ? tipId : undefined}
+          {...tipHandlers}
+        >
+          {photoAndInfo}
+        </div>
       </div>
       <AttributesPopover
         id={tipId}
+        tipRef={tipRef}
         player={normalized}
         open={open}
         top={pos.top}

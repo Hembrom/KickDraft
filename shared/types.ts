@@ -195,6 +195,12 @@ export function calculateOvr(stats: PlayerStats): number {
 /** Players may re-rate the same teammate after this cooldown. */
 export const PEER_RATING_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000;
 
+/** Public who-rated-whom feed: only recent ratings. */
+export const PUBLIC_PEER_REVIEW_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Cap rows shown per rater→rated pair in the public feed. */
+export const PUBLIC_PEER_REVIEW_MAX_PER_PAIR = 2;
+
 export const USE_PEER_RATINGS_SETTING_KEY = 'use_peer_ratings';
 
 export interface PlayerClaim {

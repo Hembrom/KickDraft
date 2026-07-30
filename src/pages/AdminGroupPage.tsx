@@ -8,8 +8,7 @@ import { AdminClaimsPanel } from '@/components/AdminClaimsPanel';
 import { api, ApiError } from '@/lib/api';
 import { getClubById, resolveClubId } from '@shared/clubs';
 import { getPositionsLabel, MAX_PLAYER_POSITIONS, PLAYER_POSITIONS, type Player, type PlayerPosition, type PlayerStats } from '@shared/types';
-import { cn } from '@/lib/utils';
-import { fileToBase64, getAdminToken } from '@/lib/utils';
+import { cn, fileToBase64, getAdminToken, isSuperAdmin } from '@/lib/utils';
 
 const emptyStats = (): PlayerStats => ({
   pace: 50,
@@ -41,6 +40,7 @@ export function AdminGroupPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'roster' | 'ratings' | 'claims'>('roster');
+  const [isSuper, setIsSuper] = useState(isSuperAdmin());
 
   useEffect(() => {
     if (!getAdminToken()) {
@@ -48,11 +48,18 @@ export function AdminGroupPage() {
       return;
     }
 
-    api
-      .adminGetGroup(slug)
-      .then((data) => {
+    Promise.all([
+      api.adminGetGroup(slug),
+      api.adminMe().catch(() => null),
+    ])
+      .then(([data, me]) => {
         setGroupName(data.name);
         setPlayers(data.players);
+        const superUser = me?.role === 'super';
+        setIsSuper(superUser);
+        if (!superUser) {
+          setTab((current) => (current === 'ratings' ? 'roster' : current));
+        }
       })
       .catch((err: unknown) => {
         setError(err instanceof ApiError ? err.message : 'Failed to load group');
@@ -205,18 +212,20 @@ export function AdminGroupPage() {
             >
               Roster
             </button>
-            <button
-              type="button"
-              className={cn(
-                'rounded-xl px-3 py-2 text-sm font-medium transition',
-                tab === 'ratings'
-                  ? 'bg-elite-600 text-white'
-                  : 'text-slate-600 hover:bg-elite-50 hover:text-elite-700',
-              )}
-              onClick={() => setTab('ratings')}
-            >
-              Peer ratings
-            </button>
+            {isSuper ? (
+              <button
+                type="button"
+                className={cn(
+                  'rounded-xl px-3 py-2 text-sm font-medium transition',
+                  tab === 'ratings'
+                    ? 'bg-elite-600 text-white'
+                    : 'text-slate-600 hover:bg-elite-50 hover:text-elite-700',
+                )}
+                onClick={() => setTab('ratings')}
+              >
+                Peer ratings
+              </button>
+            ) : null}
             <button
               type="button"
               className={cn(
@@ -236,7 +245,7 @@ export function AdminGroupPage() {
         </div>
       </div>
 
-      {tab === 'ratings' ? (
+      {tab === 'ratings' && isSuper ? (
         <AdminPeerRatingsPanel slug={slug} />
       ) : tab === 'claims' ? (
         <AdminClaimsPanel slug={slug} />
@@ -372,7 +381,7 @@ export function AdminGroupPage() {
             </div>
 
             <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-              Player ratings come from peer ratings. Use the Peer ratings tab to review them.
+              Player ratings come from peer ratings on the public claim page.
             </p>
 
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
