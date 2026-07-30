@@ -244,16 +244,16 @@ export function AdminGroupPage() {
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h2 className="font-display text-xl font-bold text-slate-900">Players</h2>
               <button
                 type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-elite-200 bg-elite-50 text-elite-700 transition hover:bg-elite-100"
+                className="btn-primary px-3 py-1.5 text-sm"
                 onClick={startAddPlayer}
                 aria-label="Add new player"
                 title="Add new player"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4" /> Add
               </button>
             </div>
             <input
