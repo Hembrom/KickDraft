@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { History, Split, Users, UsersRound } from 'lucide-react';
+import { ArrowDownWideNarrow, History, Split, Users, UsersRound } from 'lucide-react';
 import { PlayerCard } from '@/components/PlayerCard';
 import { api, ApiError } from '@/lib/api';
 import {
@@ -11,6 +11,7 @@ import {
   teamSizesFromThreeWaySplit,
   type Player,
 } from '@shared/types';
+import { cn } from '@/lib/utils';
 
 function matchNamePlaceholder() {
   const d = new Date();
@@ -25,6 +26,7 @@ export function GroupPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [matchName, setMatchName] = useState('');
   const [search, setSearch] = useState('');
+  const [sortByRating, setSortByRating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<'two' | 'three' | null>(null);
   const [error, setError] = useState('');
@@ -46,15 +48,21 @@ export function GroupPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return players;
-    return players.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.favouriteClub.toLowerCase().includes(q) ||
-        getPositionsLabel(p.positions).toLowerCase().includes(q) ||
-        p.positions.some((pos) => pos.toLowerCase().includes(q)),
-    );
-  }, [players, search]);
+    const list = !q
+      ? [...players]
+      : players.filter(
+          (p) =>
+            p.name.toLowerCase().includes(q) ||
+            p.favouriteClub.toLowerCase().includes(q) ||
+            getPositionsLabel(p.positions).toLowerCase().includes(q) ||
+            p.positions.some((pos) => pos.toLowerCase().includes(q)),
+        );
+
+    if (sortByRating) {
+      list.sort((a, b) => b.ovr - a.ovr || a.name.localeCompare(b.name));
+    }
+    return list;
+  }, [players, search, sortByRating]);
 
   const selectedCount = selected.size;
   const teamSizes = teamSizesFromPlayerCount(selectedCount);
@@ -233,12 +241,26 @@ export function GroupPage() {
               random picks.
             </p>
           </div>
-          <input
-            className="input max-w-xs"
-            placeholder="Search players…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className={cn(
+                'btn-secondary',
+                sortByRating && 'border-elite-300 bg-elite-50 text-elite-800',
+              )}
+              aria-pressed={sortByRating}
+              onClick={() => setSortByRating((v) => !v)}
+            >
+              <ArrowDownWideNarrow className="h-4 w-4" />
+              Sort by rating
+            </button>
+            <input
+              className="input max-w-xs"
+              placeholder="Search players…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
 
         {filtered.length === 0 ? (
