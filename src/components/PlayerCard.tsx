@@ -1,3 +1,5 @@
+import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import {
   getPositionLabel,
@@ -64,18 +66,29 @@ function SelectionCheckbox({ selected }: { selected: boolean }) {
   );
 }
 
-function AttributesTooltip({ player }: { player: Player }) {
-  return (
+function AttributesPopover({
+  player,
+  open,
+  top,
+  left,
+  id,
+}: {
+  player: Player;
+  open: boolean;
+  top: number;
+  left: number;
+  id: string;
+}) {
+  if (!open || typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
-      className={cn(
-        'pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-56 -translate-x-1/2',
-        'rounded-xl border border-slate-200 bg-white p-3 shadow-lg',
-        'opacity-0 transition duration-150',
-        'group-hover:opacity-100 group-focus-within:opacity-100',
-      )}
+      id={id}
+      className="pointer-events-none fixed z-[9999] w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-xl"
+      style={{ top, left, transform: 'translateX(-50%)' }}
       role="tooltip"
     >
-      <p className="mb-2 text-center text-xs font-semibold text-slate-500">Attributes</p>
+      <p className="mb-2 truncate text-center text-xs font-semibold text-slate-700">{player.name}</p>
       <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
         {STAT_KEYS.map((key) => (
           <div key={key} className="flex items-center justify-between text-xs">
@@ -87,12 +100,55 @@ function AttributesTooltip({ player }: { player: Player }) {
       <p className="mt-2 border-t border-slate-100 pt-2 text-center text-sm font-display font-bold text-elite-600">
         OVR {roundRating(player.ovr)}
       </p>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
 export function PlayerCard({ player, selected = false, selectable, onToggle }: PlayerCardProps) {
   const normalized = normalizePlayer(player);
+  const rootRef = useRef<HTMLElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const tipId = useId();
+
+  function updatePosition() {
+    const el = rootRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const tipHeight = 220;
+    const gap = 8;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const top =
+      spaceBelow < tipHeight && rect.top > tipHeight
+        ? rect.top - tipHeight - gap
+        : rect.bottom + gap;
+    const left = Math.min(
+      window.innerWidth - 120,
+      Math.max(120, rect.left + rect.width / 2),
+    );
+    setPos({ top, left });
+  }
+
+  function show() {
+    updatePosition();
+    setOpen(true);
+  }
+
+  function hide() {
+    setOpen(false);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const onScroll = () => updatePosition();
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [open]);
 
   const body = (
     <>
@@ -128,33 +184,69 @@ export function PlayerCard({ player, selected = false, selectable, onToggle }: P
         </p>
         <p className="mt-1 text-sm font-display font-bold text-elite-600">OVR {roundRating(normalized.ovr)}</p>
       </div>
-
-      <AttributesTooltip player={normalized} />
     </>
+  );
+
+  const sharedClass = cn(
+    'card relative flex w-full items-center gap-3 p-3.5 text-left transition sm:p-3',
   );
 
   if (selectable) {
     return (
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-pressed={selected}
-        aria-label={`${selected ? 'Deselect' : 'Select'} ${normalized.name}`}
-        className={cn(
-          'group relative card flex w-full touch-manipulation items-center gap-3 p-3.5 text-left transition sm:p-3',
-          selected
-            ? 'border-elite-400 bg-elite-50/90 shadow-elite ring-1 ring-elite-200'
-            : 'hover:border-elite-200 hover:bg-elite-50/40 active:bg-elite-50/60',
-        )}
-      >
-        {body}
-      </button>
+      <>
+        <button
+          ref={(node) => {
+            rootRef.current = node;
+          }}
+          type="button"
+          onClick={onToggle}
+          onMouseEnter={show}
+          onMouseLeave={hide}
+          onFocus={show}
+          onBlur={hide}
+          aria-pressed={selected}
+          aria-describedby={open ? tipId : undefined}
+          aria-label={`${selected ? 'Deselect' : 'Select'} ${normalized.name}`}
+          className={cn(
+            sharedClass,
+            'touch-manipulation',
+            selected
+              ? 'border-elite-400 bg-elite-50/90 shadow-elite ring-1 ring-elite-200'
+              : 'hover:border-elite-200 hover:bg-elite-50/40 active:bg-elite-50/60',
+          )}
+        >
+          {body}
+        </button>
+        <AttributesPopover
+          id={tipId}
+          player={normalized}
+          open={open}
+          top={pos.top}
+          left={pos.left}
+        />
+      </>
     );
   }
 
   return (
-    <div className="group relative card flex items-center gap-3 p-3">
-      {body}
-    </div>
+    <>
+      <div
+        ref={(node) => {
+          rootRef.current = node;
+        }}
+        className={sharedClass}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+      >
+        {body}
+      </div>
+      <AttributesPopover
+        id={tipId}
+        player={normalized}
+        open={open}
+        top={pos.top}
+        left={pos.left}
+      />
+    </>
   );
 }
