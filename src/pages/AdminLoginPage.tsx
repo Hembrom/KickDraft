@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
-import { getAdminToken, setAdminToken } from '@/lib/utils';
+import { getAdminToken, setAdminSession } from '@/lib/utils';
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
@@ -19,8 +19,8 @@ export function AdminLoginPage() {
     setLoading(true);
     setError('');
     try {
-      const { token } = await api.adminLogin(password);
-      setAdminToken(token);
+      const { token, role } = await api.adminLogin(password);
+      setAdminSession(token, role);
       navigate('/admin/dashboard');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Login failed');
@@ -38,7 +38,7 @@ export function AdminLoginPage() {
           </div>
           <div>
             <h1 className="font-display text-2xl font-bold text-slate-900">Admin</h1>
-            <p className="text-sm text-slate-500">Manage groups and players</p>
+            <p className="text-sm text-slate-500">Admin or super admin password</p>
           </div>
         </div>
 

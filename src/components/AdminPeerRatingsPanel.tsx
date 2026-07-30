@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
-import { formatDate } from '@/lib/utils';
+import { formatDate, isSuperAdmin } from '@/lib/utils';
 import { roundRating } from '@shared/types';
 
 type RatingRow = {
@@ -39,13 +39,16 @@ export function AdminPeerRatingsPanel({ slug }: { slug: string }) {
   const [error, setError] = useState('');
   const [dayFilter, setDayFilter] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isSuper, setIsSuper] = useState(isSuperAdmin());
 
   const load = useCallback(() => {
     setLoading(true);
     setError('');
-    api
-      .adminGetPeerRatings(slug)
-      .then((data) => setRatings(data.ratings))
+    Promise.all([api.adminGetPeerRatings(slug), api.adminMe().catch(() => null)])
+      .then(([data, me]) => {
+        setRatings(data.ratings);
+        if (me?.role) setIsSuper(me.role === 'super');
+      })
       .catch((err: unknown) => {
         setError(err instanceof ApiError ? err.message : 'Failed to load ratings');
       })
@@ -108,7 +111,10 @@ export function AdminPeerRatingsPanel({ slug }: { slug: string }) {
         <div>
           <h2 className="font-display text-xl font-bold text-slate-900">Peer ratings</h2>
           <p className="text-sm text-slate-500">
-            Who rated whom · remove a rating anytime · player can re-rate after removal
+            Who rated whom
+            {isSuper
+              ? ' · super admin can remove a rating anytime'
+              : ' · view only (super admin can remove)'}
           </p>
         </div>
         <div>
@@ -162,7 +168,7 @@ export function AdminPeerRatingsPanel({ slug }: { slug: string }) {
                       <th className="px-3 py-2 font-semibold">PHY</th>
                       <th className="px-3 py-2 font-semibold">STA</th>
                       <th className="px-3 py-2 font-semibold">Modified</th>
-                      <th className="px-3 py-2 font-semibold"> </th>
+                      {isSuper ? <th className="px-3 py-2 font-semibold"> </th> : null}
                     </tr>
                   </thead>
                   <tbody>
@@ -183,18 +189,20 @@ export function AdminPeerRatingsPanel({ slug }: { slug: string }) {
                         <td className="px-3 py-2 whitespace-nowrap text-xs text-slate-500">
                           {formatDate(row.updatedAt)}
                         </td>
-                        <td className="px-3 py-2">
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-                            disabled={deletingId === row.id}
-                            onClick={() => void handleDelete(row)}
-                            aria-label={`Remove rating from ${row.raterName} of ${row.ratedName}`}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            {deletingId === row.id ? 'Removing…' : 'Remove'}
-                          </button>
-                        </td>
+                        {isSuper ? (
+                          <td className="px-3 py-2">
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                              disabled={deletingId === row.id}
+                              onClick={() => void handleDelete(row)}
+                              aria-label={`Remove rating from ${row.raterName} of ${row.ratedName}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              {deletingId === row.id ? 'Removing…' : 'Remove'}
+                            </button>
+                          </td>
+                        ) : null}
                       </tr>
                     ))}
                   </tbody>

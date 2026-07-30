@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, LogOut, Plus } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
-import { clearAdminToken, getAdminToken } from '@/lib/utils';
+import { clearAdminToken, getAdminRole, getAdminToken, setAdminSession, type AdminRole } from '@/lib/utils';
 import type { GroupMeta } from '@shared/types';
 
 export function AdminDashboardPage() {
@@ -15,6 +15,7 @@ export function AdminDashboardPage() {
   const [creating, setCreating] = useState(false);
   const [usePeerRatings, setUsePeerRatings] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [role, setRole] = useState<AdminRole | null>(getAdminRole());
 
   useEffect(() => {
     if (!getAdminToken()) {
@@ -22,10 +23,13 @@ export function AdminDashboardPage() {
       return;
     }
 
-    Promise.all([api.adminListGroups(), api.adminGetSettings()])
-      .then(([groupsData, settings]) => {
+    Promise.all([api.adminListGroups(), api.adminGetSettings(), api.adminMe()])
+      .then(([groupsData, settings, me]) => {
         setGroups(groupsData.groups);
         setUsePeerRatings(settings.usePeerRatings);
+        setRole(me.role);
+        const token = getAdminToken();
+        if (token) setAdminSession(token, me.role);
       })
       .catch((err: unknown) => {
         if (err instanceof ApiError && err.status === 401) {
@@ -79,7 +83,18 @@ export function AdminDashboardPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-bold text-slate-900">Admin dashboard</h1>
-          <p className="text-sm text-slate-500">Create squads and manage player rosters.</p>
+          <p className="text-sm text-slate-500">
+            Create squads and manage player rosters
+            {role ? (
+              <>
+                {' '}
+                · signed in as{' '}
+                <span className="font-semibold text-elite-700">
+                  {role === 'super' ? 'super admin' : 'admin'}
+                </span>
+              </>
+            ) : null}
+          </p>
         </div>
         <button type="button" className="btn-secondary" onClick={logout}>
           <LogOut className="h-4 w-4" /> Log out

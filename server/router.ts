@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import adminLogin from './handlers/admin-login.js';
+import adminMe from './handlers/admin-me.js';
 import adminGroups from './handlers/admin-groups.js';
 import adminGroupPlayers from './handlers/admin-group-players.js';
 import adminGroupUpload from './handlers/admin-group-upload.js';
@@ -28,6 +29,7 @@ type Route = {
 
 const routes: Route[] = [
   { method: 'POST', regex: /^\/api\/admin\/login$/, handler: adminLogin, params: [] },
+  { method: 'GET', regex: /^\/api\/admin\/me$/, handler: adminMe, params: [] },
   { method: 'GET', regex: /^\/api\/admin\/groups$/, handler: adminGroups, params: [] },
   { method: 'POST', regex: /^\/api\/admin\/groups$/, handler: adminGroups, params: [] },
   { method: 'GET', regex: /^\/api\/admin\/settings$/, handler: adminSettings, params: [] },

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { error, getErrorMessage, json, requireAdmin } from '../lib/auth.js';
+import { error, getErrorMessage, json, requireAdmin, requireSuperAdmin } from '../lib/auth.js';
 import { deletePeerRating, listRatingsByGroup } from '../lib/peer-ratings.js';
 import { getGroupMeta, getGroupPlayers, groupExists } from '../lib/storage.js';
 import { calculateOvr, slugify } from '../../shared/types.js';
@@ -53,6 +53,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === 'DELETE') {
+    if (!requireSuperAdmin(req, res)) return;
+
     const ratingId = typeof req.query.id === 'string' ? req.query.id.trim() : '';
     if (!ratingId) return error(res, 400, 'Rating id is required');
 

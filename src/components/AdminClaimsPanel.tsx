@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Unlink, User } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
-import { formatDate } from '@/lib/utils';
+import { formatDate, isSuperAdmin } from '@/lib/utils';
 
 type ClaimRow = {
   googleUserId: string;
@@ -17,13 +17,16 @@ export function AdminClaimsPanel({ slug }: { slug: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [unclaimingId, setUnclaimingId] = useState<string | null>(null);
+  const [isSuper, setIsSuper] = useState(isSuperAdmin());
 
   const load = useCallback(() => {
     setLoading(true);
     setError('');
-    api
-      .adminGetClaims(slug)
-      .then((data) => setClaims(data.claims))
+    Promise.all([api.adminGetClaims(slug), api.adminMe().catch(() => null)])
+      .then(([data, me]) => {
+        setClaims(data.claims);
+        if (me?.role) setIsSuper(me.role === 'super');
+      })
       .catch((err: unknown) => {
         setError(err instanceof ApiError ? err.message : 'Failed to load claims');
       })
@@ -62,7 +65,10 @@ export function AdminClaimsPanel({ slug }: { slug: string }) {
       <div>
         <h2 className="font-display text-xl font-bold text-slate-900">Player claims</h2>
         <p className="text-sm text-slate-500">
-          Google account ↔ player link · unclaim frees the card for someone else
+          Google account ↔ player link
+          {isSuper
+            ? ' · super admin can unclaim'
+            : ' · view only (super admin can unclaim)'}
         </p>
       </div>
 
@@ -78,7 +84,7 @@ export function AdminClaimsPanel({ slug }: { slug: string }) {
                 <th className="px-3 py-2 font-semibold">Player</th>
                 <th className="px-3 py-2 font-semibold">Google email</th>
                 <th className="px-3 py-2 font-semibold">Claimed</th>
-                <th className="px-3 py-2 font-semibold"> </th>
+                {isSuper ? <th className="px-3 py-2 font-semibold"> </th> : null}
               </tr>
             </thead>
             <tbody>
@@ -112,17 +118,19 @@ export function AdminClaimsPanel({ slug }: { slug: string }) {
                   <td className="px-3 py-2 whitespace-nowrap text-xs text-slate-500">
                     {formatDate(row.claimedAt)}
                   </td>
-                  <td className="px-3 py-2">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-                      disabled={unclaimingId === row.playerId}
-                      onClick={() => void handleUnclaim(row)}
-                    >
-                      <Unlink className="h-3.5 w-3.5" />
-                      {unclaimingId === row.playerId ? 'Unclaiming…' : 'Unclaim'}
-                    </button>
-                  </td>
+                  {isSuper ? (
+                    <td className="px-3 py-2">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        disabled={unclaimingId === row.playerId}
+                        onClick={() => void handleUnclaim(row)}
+                      >
+                        <Unlink className="h-3.5 w-3.5" />
+                        {unclaimingId === row.playerId ? 'Unclaiming…' : 'Unclaim'}
+                      </button>
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

@@ -180,9 +180,15 @@ export const api = {
   },
 
   adminLogin(password: string) {
-    return request<{ token: string }>('/api/admin/login', {
+    return request<{ token: string; role: 'admin' | 'super' }>('/api/admin/login', {
       method: 'POST',
       body: JSON.stringify({ password }),
+    });
+  },
+
+  adminMe() {
+    return request<{ role: 'admin' | 'super' }>('/api/admin/me', {
+      headers: adminHeaders(),
     });
   },
 
