@@ -10,13 +10,26 @@ import {
   MessageCircle,
   Phone,
 } from 'lucide-react';
-import { AxisMallHero } from '@/components/GroundVenueHero';
 import {
   getGroundVenue,
   telUrl,
-  usesInlineHero,
   whatsappUrl,
 } from '@shared/ground-bookings';
+
+function VenueHero({ imageUrl, name, location, className }: {
+  imageUrl: string;
+  name: string;
+  location: string;
+  className?: string;
+}) {
+  return (
+    <img
+      src={imageUrl}
+      alt={`${name}, ${location}`}
+      className={`object-cover ${className ?? ''}`}
+    />
+  );
+}
 
 function StarRating({ count }: { count: number }) {
   return (
@@ -24,25 +37,6 @@ function StarRating({ count }: { count: number }) {
       {'★'.repeat(count)}
       <span className="text-slate-300">{'★'.repeat(5 - count)}</span>
     </span>
-  );
-}
-
-function VenueHero({ venueId, imageUrl, name, location, className }: {
-  venueId: string;
-  imageUrl: string;
-  name: string;
-  location: string;
-  className?: string;
-}) {
-  if (usesInlineHero(venueId)) {
-    return <AxisMallHero className={className} />;
-  }
-  return (
-    <img
-      src={imageUrl}
-      alt={`${name}, ${location}`}
-      className={`object-cover ${className ?? ''}`}
-    />
   );
 }
 
@@ -84,7 +78,6 @@ export function GroundBookingDetailPage() {
       <div className="card overflow-hidden p-0">
         <div className="aspect-[16/9] overflow-hidden bg-slate-100">
           <VenueHero
-            venueId={venue.id}
             imageUrl={venue.imageUrl}
             name={venue.name}
             location={venue.location}

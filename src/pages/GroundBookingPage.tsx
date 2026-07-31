@@ -1,22 +1,8 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, MapPin } from 'lucide-react';
-import { AxisMallHero } from '@/components/GroundVenueHero';
-import { GROUND_VENUES, usesInlineHero } from '@shared/ground-bookings';
+import { GROUND_VENUES } from '@shared/ground-bookings';
 
-function VenueCardImage({
-  venueId,
-  imageUrl,
-  name,
-  location,
-}: {
-  venueId: string;
-  imageUrl: string;
-  name: string;
-  location: string;
-}) {
-  if (usesInlineHero(venueId)) {
-    return <AxisMallHero className="h-full w-full" />;
-  }
+function VenueCardImage({ imageUrl, name, location }: { imageUrl: string; name: string; location: string }) {
   return (
     <img
       src={imageUrl}
@@ -46,7 +32,6 @@ export function GroundBookingPage() {
           >
             <div className="aspect-[5/3] overflow-hidden bg-slate-100">
               <VenueCardImage
-                venueId={venue.id}
                 imageUrl={venue.imageUrl}
                 name={venue.name}
                 location={venue.location}

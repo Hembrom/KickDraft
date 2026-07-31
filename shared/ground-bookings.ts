@@ -78,7 +78,7 @@ export const GROUND_VENUES: GroundVenue[] = [
     id: 'axis-mall-newtown',
     name: 'Axis Mall',
     location: 'New Town, Kolkata',
-    imageUrl: '/grounds/axis-mall-newtown.svg',
+    imageUrl: '/grounds/axis-mall-newtown.png',
     mapsUrl: 'https://maps.app.goo.gl/1YmrTWUgACxLLmbY6',
     bookingMethod: 'whatsapp',
     whatsappNumber: '919749432152',
@@ -87,9 +87,26 @@ export const GROUND_VENUES: GroundVenue[] = [
       'Ground 2 ( small ) , avaibla hai kya for Friday , July 11 from 5-6:30 PM ?',
     steps: [
       'Open WhatsApp or call the ground contact.',
-      'Send the sample message — change the date, time, and ground size if needed.',
+      'Send the sample message — change the date, time, and ground (e.g. Ground 2 small) if needed.',
       'Wait for a yes — if they confirm, your slot is booked.',
     ],
+    notes: [
+      'Rooftop turf, fully netted — floodlights for evening slots.',
+      'Ask for Ground 1 or Ground 2 (small) when you message.',
+      'Book by WhatsApp or phone — no online checkout.',
+    ],
+    pitchInfo: {
+      dimensions: '~100 × 55 ft',
+      dimensionsMetric: '≈ 30 × 17 m',
+      dimensionsNote:
+        'Ground 2 (small) — rooftop enclosed turf. Estimated from typical small 5-a-side court size.',
+      playingArea: '~5,500 sq ft (≈ 510 m²)',
+      formatRatings: [
+        { format: '5v5', stars: 5 },
+        { format: '6v6', stars: 3, note: 'Tight' },
+        { format: '7v7', stars: 1, note: 'Too small for this ground' },
+      ],
+    },
   },
 ];
 
@@ -103,8 +120,4 @@ export function whatsappUrl(number: string, message: string): string {
 
 export function telUrl(number: string): string {
   return `tel:+${number}`;
-}
-
-export function usesInlineHero(venueId: string): boolean {
-  return venueId === 'axis-mall-newtown';
 }
