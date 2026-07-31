@@ -14,7 +14,7 @@ import {
   generateBalancedTeamsWithLocks,
   generateBalancedThreeTeamsWithLocks,
 } from '@shared/team-generator';
-import { getMatchLabel, isThreeTeamMatch, sanitizeTeamName, DEFAULT_TEAM_NAMES, type MatchRecord, type Player } from '@shared/types';
+import { getMatchLabel, isThreeTeamMatch, sanitizeTeamName, DEFAULT_TEAM_NAMES, canSwapPlayersForBalance, roundRating, type MatchRecord, type Player } from '@shared/types';
 
 function teamLabel(team: EditorTeam): string {
   if (team === 'a') return 'A';
@@ -33,7 +33,7 @@ export function MatchPage() {
   const [shuffling, setShuffling] = useState(false);
   const [editing, setEditing] = useState(false);
   const [renamingTeams, setRenamingTeams] = useState(false);
-  const [editTab, setEditTab] = useState<EditTab>('lock');
+  const [editTab, setEditTab] = useState<EditTab>('swap');
   const [saving, setSaving] = useState(false);
   const [draftTeamA, setDraftTeamA] = useState<Player[]>([]);
   const [draftTeamB, setDraftTeamB] = useState<Player[]>([]);
@@ -112,14 +112,24 @@ export function MatchPage() {
   function resetDraft(tab: EditTab) {
     if (!match) return;
     setEditTab(tab);
-    setDraftTeamA([]);
-    setDraftTeamB([]);
-    setDraftTeamC([]);
-    setDraftPool(editablePlayers());
     setDraftTeamAName(match.teamA.name);
     setDraftTeamBName(match.teamB.name);
     setDraftTeamCName(match.teamC?.name ?? DEFAULT_TEAM_NAMES.c);
     setError('');
+
+    if (tab === 'swap' && !isThreeTeamMatch(match)) {
+      const current = enrichMatchWithRoster(match, players);
+      setDraftTeamA([...current.teamA.players]);
+      setDraftTeamB([...current.teamB.players]);
+      setDraftTeamC([]);
+      setDraftPool([]);
+      return;
+    }
+
+    setDraftTeamA([]);
+    setDraftTeamB([]);
+    setDraftTeamC([]);
+    setDraftPool(editablePlayers());
   }
 
   function startRenamingTeams() {
@@ -164,14 +174,14 @@ export function MatchPage() {
 
   function startEditing() {
     if (!match) return;
-    resetDraft('lock');
+    resetDraft(isThreeTeamMatch(match) ? 'lock' : 'swap');
     setEditing(true);
   }
 
   function cancelEditing() {
     if (saving) return;
     setEditing(false);
-    setEditTab('lock');
+    setEditTab(match && isThreeTeamMatch(match) ? 'lock' : 'swap');
     setDraftTeamA([]);
     setDraftTeamB([]);
     setDraftTeamC([]);
@@ -226,6 +236,15 @@ export function MatchPage() {
     const fromIndex = fromList.findIndex((player) => player.id === fromPlayerId);
     const toIndex = toList.findIndex((player) => player.id === toPlayerId);
     if (fromIndex === -1 || toIndex === -1) return;
+
+    const playerFrom = fromList[fromIndex];
+    const playerTo = toList[toIndex];
+    if (editTab === 'swap' && !canSwapPlayersForBalance(playerFrom, playerTo)) {
+      setError(
+        `Same OVR only — ${playerFrom.name} is ${roundRating(playerFrom.ovr)} OVR, ${playerTo.name} is ${roundRating(playerTo.ovr)} OVR.`,
+      );
+      return;
+    }
 
     const nextFrom = [...fromList];
     const nextTo = [...toList];
@@ -383,7 +402,7 @@ export function MatchPage() {
       );
       setMatch(updated);
       setEditing(false);
-      setEditTab('lock');
+      setEditTab(isThreeTeamMatch(match) ? 'lock' : 'swap');
       setDraftTeamA([]);
       setDraftTeamB([]);
       setDraftTeamC([]);
@@ -568,7 +587,7 @@ export function MatchPage() {
         />
       ) : null}
 
-      {editing && !teamsComplete ? (
+      {editing && !teamsComplete && editTab !== 'swap' ? (
         <p className="text-sm text-slate-500">
           Lineup preview updates once all teams are fully assigned.
         </p>

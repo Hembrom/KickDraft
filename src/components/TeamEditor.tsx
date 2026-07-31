@@ -13,10 +13,10 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PositionBadge } from './PlayerCard';
-import { roundRating, type Player } from '@shared/types';
+import { canSwapPlayersForBalance, roundRating, type Player } from '@shared/types';
 
 export type EditorTeam = 'a' | 'b' | 'c';
-export type EditTab = 'lock' | 'manual';
+export type EditTab = 'swap' | 'lock' | 'manual';
 
 type DragSource = EditorTeam | 'pool';
 
@@ -317,6 +317,193 @@ function PlayerPool({
   );
 }
 
+function QuickSwapPanel({
+  teamAName,
+  teamBName,
+  teamAPlayers,
+  teamBPlayers,
+  selectedAId,
+  selectedBId,
+  onSelectA,
+  onSelectB,
+  onSwap,
+}: {
+  teamAName: string;
+  teamBName: string;
+  teamAPlayers: Player[];
+  teamBPlayers: Player[];
+  selectedAId: string | null;
+  selectedBId: string | null;
+  onSelectA: (playerId: string) => void;
+  onSelectB: (playerId: string) => void;
+  onSwap: (teamAPlayerId: string, teamBPlayerId: string) => void;
+}) {
+  const selectedA = teamAPlayers.find((player) => player.id === selectedAId) ?? null;
+  const selectedB = teamBPlayers.find((player) => player.id === selectedBId) ?? null;
+  const pairCanSwap =
+    selectedA && selectedB ? canSwapPlayersForBalance(selectedA, selectedB) : false;
+
+  function trySwapFromA(player: Player) {
+    onSelectA(player.id);
+    if (selectedBId && selectedBId !== player.id) {
+      const other = teamBPlayers.find((p) => p.id === selectedBId);
+      if (other && canSwapPlayersForBalance(player, other)) {
+        onSwap(player.id, selectedBId);
+      }
+    }
+  }
+
+  function trySwapFromB(player: Player) {
+    onSelectB(player.id);
+    if (selectedAId && selectedAId !== player.id) {
+      const other = teamAPlayers.find((p) => p.id === selectedAId);
+      if (other && canSwapPlayersForBalance(player, other)) {
+        onSwap(selectedAId, player.id);
+      }
+    }
+  }
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+      <section className="overflow-hidden rounded-2xl border border-blue-200 bg-white">
+        <div className="border-b border-blue-100 bg-blue-50 px-3 py-2.5">
+          <h3 className="font-display font-bold text-slate-900">{teamAName}</h3>
+          <p className="text-xs text-slate-500">{teamAPlayers.length} players · tap → to swap right</p>
+        </div>
+        <div className="max-h-[520px] space-y-2 overflow-y-auto p-2">
+          {teamAPlayers.map((player) => {
+            const swapTarget = selectedB;
+            const canSwapWithTarget = swapTarget
+              ? canSwapPlayersForBalance(player, swapTarget)
+              : false;
+            return (
+              <div
+                key={player.id}
+                className={cn(
+                  'flex items-center gap-2 rounded-xl border p-2 transition',
+                  selectedAId === player.id
+                    ? 'border-blue-400 bg-blue-50/80 ring-1 ring-blue-200'
+                    : 'border-slate-200 bg-slate-50/60',
+                )}
+              >
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 text-left"
+                  onClick={() => onSelectA(player.id)}
+                >
+                  <div className="flex items-center gap-2">
+                    <PlayerAvatar player={player} />
+                    <PlayerSummary player={player} />
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border',
+                    canSwapWithTarget
+                      ? 'border-blue-300 bg-white text-blue-700 hover:bg-blue-50'
+                      : 'border-slate-200 bg-slate-100 text-slate-400',
+                  )}
+                  disabled={!selectedBId || !canSwapWithTarget}
+                  onClick={() => {
+                    if (selectedBId && canSwapWithTarget) onSwap(player.id, selectedBId);
+                    else trySwapFromA(player);
+                  }}
+                  aria-label={`Swap ${player.name} to ${teamBName}`}
+                  title={
+                    selectedBId && !canSwapWithTarget
+                      ? 'Same OVR required'
+                      : `Swap with ${teamBName}`
+                  }
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <div className="hidden flex-col items-center justify-center gap-2 px-1 lg:flex">
+        <p className="max-w-[7rem] text-center text-xs text-slate-500">
+          {pairCanSwap
+            ? 'Matching OVR — swap keeps balance'
+            : 'Pick one from each side with the same OVR'}
+        </p>
+        <button
+          type="button"
+          className="btn-secondary px-3 py-2 text-xs"
+          disabled={!pairCanSwap || !selectedAId || !selectedBId}
+          onClick={() => {
+            if (selectedAId && selectedBId && pairCanSwap) onSwap(selectedAId, selectedBId);
+          }}
+        >
+          Swap
+        </button>
+      </div>
+
+      <section className="overflow-hidden rounded-2xl border border-red-200 bg-white">
+        <div className="border-b border-red-100 bg-red-50 px-3 py-2.5">
+          <h3 className="font-display font-bold text-slate-900">{teamBName}</h3>
+          <p className="text-xs text-slate-500">{teamBPlayers.length} players · tap ← to swap left</p>
+        </div>
+        <div className="max-h-[520px] space-y-2 overflow-y-auto p-2">
+          {teamBPlayers.map((player) => {
+            const swapTarget = selectedA;
+            const canSwapWithTarget = swapTarget
+              ? canSwapPlayersForBalance(player, swapTarget)
+              : false;
+            return (
+              <div
+                key={player.id}
+                className={cn(
+                  'flex items-center gap-2 rounded-xl border p-2 transition',
+                  selectedBId === player.id
+                    ? 'border-red-400 bg-red-50/80 ring-1 ring-red-200'
+                    : 'border-slate-200 bg-slate-50/60',
+                )}
+              >
+                <button
+                  type="button"
+                  className={cn(
+                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border lg:order-first',
+                    canSwapWithTarget
+                      ? 'border-red-300 bg-white text-red-700 hover:bg-red-50'
+                      : 'border-slate-200 bg-slate-100 text-slate-400',
+                  )}
+                  disabled={!selectedAId || !canSwapWithTarget}
+                  onClick={() => {
+                    if (selectedAId && canSwapWithTarget) onSwap(selectedAId, player.id);
+                    else trySwapFromB(player);
+                  }}
+                  aria-label={`Swap ${player.name} to ${teamAName}`}
+                  title={
+                    selectedAId && !canSwapWithTarget
+                      ? 'Same OVR required'
+                      : `Swap with ${teamAName}`
+                  }
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 text-left"
+                  onClick={() => onSelectB(player.id)}
+                >
+                  <div className="flex items-center gap-2">
+                    <PlayerAvatar player={player} />
+                    <PlayerSummary player={player} />
+                  </div>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export function TeamEditor({
   tab,
   onTabChange,
@@ -367,9 +554,12 @@ export function TeamEditor({
   onCancel: () => void;
 }) {
   const threeTeam = teamCount === 3;
+  const showQuickSwap = tab === 'swap' && !threeTeam;
   const [dragging, setDragging] = useState<DragPayload | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropTargetTeam, setDropTargetTeam] = useState<DragSource | null>(null);
+  const [selectedSwapAId, setSelectedSwapAId] = useState<string | null>(null);
+  const [selectedSwapBId, setSelectedSwapBId] = useState<string | null>(null);
 
   const resetDrag = () => {
     setDragging(null);
@@ -417,6 +607,20 @@ export function TeamEditor({
       <div>
         <h2 className="font-display text-xl font-bold text-slate-900">Edit teams</h2>
         <div className="mt-3 flex gap-1 rounded-xl bg-slate-100 p-1">
+          {!threeTeam ? (
+            <button
+              type="button"
+              className={cn(
+                'flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition',
+                tab === 'swap'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700',
+              )}
+              onClick={() => onTabChange('swap')}
+            >
+              Quick swap
+            </button>
+          ) : null}
           <button
             type="button"
             className={cn(
@@ -443,16 +647,35 @@ export function TeamEditor({
           </button>
         </div>
         <p className="mt-2 text-sm text-slate-600">
-          {tab === 'lock'
-            ? threeTeam
-              ? 'Name each team, place the players you want fixed, then Fill rest of teams to balance the remainder.'
-              : 'Place the players you want fixed on each side, then Fill rest of teams to balance the remaining players.'
-            : threeTeam
-              ? 'Name each team and assign everyone with A / B / C or drag and drop.'
-              : 'Assign everyone yourself with the team arrows or drag and drop. Nothing is auto-filled.'}
+          {tab === 'swap'
+            ? 'Current lineups are loaded. Select a player on each side and use → or ← — swaps only go through when both have the same OVR.'
+            : tab === 'lock'
+              ? threeTeam
+                ? 'Name each team, place the players you want fixed, then Fill rest of teams to balance the remainder.'
+                : 'Place the players you want fixed on each side, then Fill rest of teams to balance the remaining players.'
+              : threeTeam
+                ? 'Name each team and assign everyone with A / B / C or drag and drop.'
+                : 'Assign everyone yourself with the team arrows or drag and drop. Nothing is auto-filled.'}
         </p>
       </div>
 
+      {showQuickSwap ? (
+        <QuickSwapPanel
+          teamAName={teamAName ?? 'Team A'}
+          teamBName={teamBName ?? 'Team B'}
+          teamAPlayers={teamAPlayers}
+          teamBPlayers={teamBPlayers}
+          selectedAId={selectedSwapAId}
+          selectedBId={selectedSwapBId}
+          onSelectA={setSelectedSwapAId}
+          onSelectB={setSelectedSwapBId}
+          onSwap={(teamAPlayerId, teamBPlayerId) => {
+            onSwap('a', teamAPlayerId, 'b', teamBPlayerId);
+            setSelectedSwapAId(null);
+            setSelectedSwapBId(null);
+          }}
+        />
+      ) : (
       <div
         className={cn(
           'grid gap-4',
@@ -542,6 +765,7 @@ export function TeamEditor({
           />
         ) : null}
       </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {tab === 'lock' ? (

@@ -175,6 +175,11 @@ export function roundRating(value: number): number {
   return Math.round(value);
 }
 
+/** Quick swap tab: only exchange players with the same rounded OVR to keep balance. */
+export function canSwapPlayersForBalance(a: Player, b: Player): boolean {
+  return roundRating(a.ovr) === roundRating(b.ovr);
+}
+
 /** Human-readable label for how far apart the two teams' total OVR is. */
 export function formatRatingGap(difference: number): string {
   return `${roundRating(difference)} OVR gap`;
