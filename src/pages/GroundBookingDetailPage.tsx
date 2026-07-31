@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   CalendarCheck,
   Check,
+  Clock,
   Copy,
   ExternalLink,
   MapPin,
@@ -100,6 +101,12 @@ export function GroundBookingDetailPage() {
               {venue.location} · Google Maps
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
+            {venue.openingHours ? (
+              <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
+                <Clock className="h-4 w-4 shrink-0 text-elite-500" />
+                {venue.openingHours}
+              </p>
+            ) : null}
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2">

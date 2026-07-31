@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, MapPin } from 'lucide-react';
+import { ArrowRight, Clock, MapPin } from 'lucide-react';
 import { GROUND_VENUES } from '@shared/ground-bookings';
 
 function VenueCardImage({ imageUrl, name, location }: { imageUrl: string; name: string; location: string }) {
@@ -44,6 +44,12 @@ export function GroundBookingPage() {
                   <MapPin className="h-4 w-4 shrink-0 text-elite-500" />
                   <span className="line-clamp-2">{venue.location}</span>
                 </p>
+                {venue.openingHours ? (
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+                    <Clock className="h-3.5 w-3.5 shrink-0 text-elite-500" />
+                    {venue.openingHours}
+                  </p>
+                ) : null}
                 {venue.priceHint ? (
                   <p className="mt-1 text-xs font-medium text-emerald-700">{venue.priceHint}</p>
                 ) : null}

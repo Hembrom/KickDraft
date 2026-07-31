@@ -42,6 +42,7 @@ export interface GroundVenue {
   notes?: string[];
   cancellationPolicy?: string;
   priceHint?: string;
+  openingHours?: string;
   pitchInfo?: GroundPitchInfo;
   /** Multiple pitches at one venue (e.g. Ground 1 vs Ground 2) */
   grounds?: GroundOption[];
@@ -89,13 +90,14 @@ export const GROUND_VENUES: GroundVenue[] = [
   },
   {
     id: 'axis-mall-newtown',
-    name: 'Axis Mall',
-    location: 'New Town, Kolkata',
+    name: 'Turf Air Plaza 2.0',
+    location: 'Rooftop, Wonderland Park, Axis Mall, New Town',
     imageUrl: '/grounds/axis-mall-newtown.png',
     mapsUrl: 'https://maps.app.goo.gl/1YmrTWUgACxLLmbY6',
     bookingMethod: 'whatsapp',
     whatsappNumber: '919749432152',
     phoneDisplay: '97494 32152',
+    openingHours: 'Open daily: 5:00 AM – 11:00 PM',
     sampleMessage:
       'Ground 2 (small), available hai kya for Friday, July 11 from 5–6:30 PM?',
     priceHint: 'From ₹1,500/hr (Ground 2) · Ground 1 ₹1,800/hr',
