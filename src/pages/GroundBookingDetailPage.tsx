@@ -144,7 +144,69 @@ export function GroundBookingDetailPage() {
         </div>
       </div>
 
-      {venue.pitchInfo ? (
+      {venue.grounds && venue.grounds.length > 0 ? (
+        <section className="space-y-4">
+          <h2 className="font-display text-lg font-bold text-slate-900">Grounds &amp; pricing</h2>
+          {venue.grounds.map((ground) => (
+            <div key={ground.name} className="card space-y-4 p-5">
+              <div>
+                <h3 className="font-display text-base font-bold text-slate-900">{ground.name}</h3>
+                {ground.description ? (
+                  <p className="mt-1 text-sm text-slate-600">{ground.description}</p>
+                ) : null}
+                <p className="mt-1 text-sm font-semibold text-emerald-700">{ground.pricePerHour}</p>
+              </div>
+              {ground.dimensions ? (
+                <dl className="grid gap-3 text-sm sm:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Playing dimensions
+                    </dt>
+                    <dd className="mt-1 font-semibold text-slate-900">
+                      {ground.dimensions}{' '}
+                      {ground.dimensionsMetric ? (
+                        <span className="font-normal text-slate-600">({ground.dimensionsMetric})</span>
+                      ) : null}
+                    </dd>
+                    {ground.dimensionsNote ? (
+                      <dd className="mt-1 text-xs text-slate-500">{ground.dimensionsNote}</dd>
+                    ) : null}
+                  </div>
+                  {ground.playingArea ? (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Playing area
+                      </dt>
+                      <dd className="mt-1 font-semibold text-slate-900">{ground.playingArea}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              ) : null}
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Best format
+                </p>
+                <ul className="space-y-2">
+                  {ground.formatRatings.map((rating) => (
+                    <li
+                      key={rating.format}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2"
+                    >
+                      <span className="font-semibold text-slate-900">{rating.format}</span>
+                      <div className="flex items-center gap-2">
+                        <StarRating count={rating.stars} />
+                        {rating.note ? (
+                          <span className="text-xs text-slate-500">{rating.note}</span>
+                        ) : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ))}
+        </section>
+      ) : venue.pitchInfo ? (
         <section className="card space-y-4 p-5">
           <h2 className="font-display text-lg font-bold text-slate-900">Pitch size &amp; formats</h2>
           <dl className="grid gap-3 text-sm sm:grid-cols-2">

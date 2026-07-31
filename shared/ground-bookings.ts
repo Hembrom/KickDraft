@@ -14,6 +14,17 @@ export interface GroundPitchInfo {
   formatRatings: GroundFormatRating[];
 }
 
+export interface GroundOption {
+  name: string;
+  description?: string;
+  pricePerHour: string;
+  dimensions?: string;
+  dimensionsMetric?: string;
+  dimensionsNote?: string;
+  playingArea?: string;
+  formatRatings: GroundFormatRating[];
+}
+
 export interface GroundVenue {
   id: string;
   name: string;
@@ -32,6 +43,8 @@ export interface GroundVenue {
   cancellationPolicy?: string;
   priceHint?: string;
   pitchInfo?: GroundPitchInfo;
+  /** Multiple pitches at one venue (e.g. Ground 1 vs Ground 2) */
+  grounds?: GroundOption[];
 }
 
 export const GROUND_VENUES: GroundVenue[] = [
@@ -84,29 +97,41 @@ export const GROUND_VENUES: GroundVenue[] = [
     whatsappNumber: '919749432152',
     phoneDisplay: '97494 32152',
     sampleMessage:
-      'Ground 2 ( small ) , avaibla hai kya for Friday , July 11 from 5-6:30 PM ?',
+      'Ground 2 (small), available hai kya for Friday, July 11 from 5–6:30 PM?',
+    priceHint: 'From ₹1,500/hr (Ground 2) · Large ground ₹1,800/hr',
     steps: [
       'Open WhatsApp or call the ground contact.',
-      'Send the sample message — change the date, time, and ground (e.g. Ground 2 small) if needed.',
+      'Say which ground you want — Ground 2 (small) or the large ground — plus date and time.',
       'Wait for a yes — if they confirm, your slot is booked.',
     ],
     notes: [
       'Rooftop turf, fully netted — floodlights for evening slots.',
-      'Ask for Ground 1 or Ground 2 (small) when you message.',
+      'Ground 2 (small): 5v5 or 6v6 only — ₹1,500 per hour.',
+      'Large ground: 6v6 or 7v7 max — ₹1,800 per hour.',
       'Book by WhatsApp or phone — no online checkout.',
     ],
-    pitchInfo: {
-      dimensions: '~100 × 55 ft',
-      dimensionsMetric: '≈ 30 × 17 m',
-      dimensionsNote:
-        'Ground 2 (small) — rooftop enclosed turf. Estimated from typical small 5-a-side court size.',
-      playingArea: '~5,500 sq ft (≈ 510 m²)',
-      formatRatings: [
-        { format: '5v5', stars: 5 },
-        { format: '6v6', stars: 3, note: 'Tight' },
-        { format: '7v7', stars: 1, note: 'Too small for this ground' },
-      ],
-    },
+    grounds: [
+      {
+        name: 'Ground 2 (small)',
+        description: 'Rooftop enclosed turf — shown in the photo above.',
+        pricePerHour: '₹1,500 per hour',
+        dimensions: '~100 × 55 ft',
+        dimensionsMetric: '≈ 30 × 17 m',
+        playingArea: '~5,500 sq ft (≈ 510 m²)',
+        formatRatings: [
+          { format: '5v5', stars: 5 },
+          { format: '6v6', stars: 4, note: 'Max format' },
+        ],
+      },
+      {
+        name: 'Large ground',
+        pricePerHour: '₹1,800 per hour',
+        formatRatings: [
+          { format: '6v6', stars: 5 },
+          { format: '7v7', stars: 4, note: 'Max format' },
+        ],
+      },
+    ],
   },
 ];
 

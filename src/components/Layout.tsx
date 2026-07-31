@@ -4,8 +4,8 @@ import { cn } from '@/lib/utils';
 
 const links = [
   { to: '/', label: 'Home', end: true },
-  { to: '/grounds', label: 'Book ground' },
   { to: '/admin', label: 'Admin' },
+  { to: '/grounds', label: 'Book ground' },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

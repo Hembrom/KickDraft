@@ -47,7 +47,11 @@ export function GroundBookingPage() {
                 {venue.priceHint ? (
                   <p className="mt-1 text-xs font-medium text-emerald-700">{venue.priceHint}</p>
                 ) : null}
-                {venue.pitchInfo ? (
+                {venue.grounds && venue.grounds.length > 0 ? (
+                  <p className="mt-1 text-xs text-slate-500">
+                    {venue.grounds.length} grounds · {venue.grounds.map((g) => g.name).join(' · ')}
+                  </p>
+                ) : venue.pitchInfo ? (
                   <p className="mt-1 text-xs text-slate-500">
                     {venue.pitchInfo.dimensions} · Best for {venue.pitchInfo.formatRatings[0]?.format}
                   </p>
