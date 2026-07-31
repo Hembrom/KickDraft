@@ -98,22 +98,23 @@ export const GROUND_VENUES: GroundVenue[] = [
     phoneDisplay: '97494 32152',
     sampleMessage:
       'Ground 2 (small), available hai kya for Friday, July 11 from 5–6:30 PM?',
-    priceHint: 'From ₹1,500/hr (Ground 2) · Large ground ₹1,800/hr',
+    priceHint: 'From ₹1,500/hr (Ground 2) · Ground 1 ₹1,800/hr',
     steps: [
       'Open WhatsApp or call the ground contact.',
-      'Say which ground you want — Ground 2 (small) or the large ground — plus date and time.',
+      'Say which ground you want — Ground 1 (large) or Ground 2 (small) — plus date and time.',
       'Wait for a yes — if they confirm, your slot is booked.',
     ],
     notes: [
       'Rooftop turf, fully netted — floodlights for evening slots.',
-      'Ground 2 (small): 5v5 or 6v6 only — ₹1,500 per hour.',
-      'Large ground: 6v6 or 7v7 max — ₹1,800 per hour.',
+      'Ground 2 (small): 5v5 or 6v6 only — ₹1,500/hr. Best choice right now — turf in great shape.',
+      'Ground 1 (large): 6v6 or 7v7 max — ₹1,800/hr. Not advisable in rainy season — no rubber infill on the surface at the moment.',
       'Book by WhatsApp or phone — no online checkout.',
     ],
     grounds: [
       {
         name: 'Ground 2 (small)',
-        description: 'Rooftop enclosed turf — shown in the photo above.',
+        description:
+          'Rooftop enclosed turf — shown in the photo above. Best choice at the moment.',
         pricePerHour: '₹1,500 per hour',
         dimensions: '~100 × 55 ft',
         dimensionsMetric: '≈ 30 × 17 m',
@@ -124,7 +125,9 @@ export const GROUND_VENUES: GroundVenue[] = [
         ],
       },
       {
-        name: 'Large ground',
+        name: 'Ground 1 (large)',
+        description:
+          'Bigger pitch for 6v6–7v7. Not advisable in rainy season — no rubber infill on the surface right now.',
         pricePerHour: '₹1,800 per hour',
         formatRatings: [
           { format: '6v6', stars: 5 },
