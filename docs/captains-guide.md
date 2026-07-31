@@ -43,10 +43,11 @@ Tap a player to see their card — **STA** is stamina.
 
 **Shuffle again** — same players, completely new auto-balanced teams, new link.
 
-**Edit teams** — two modes:
+**Edit teams** — three modes:
 
 | Mode | What you do |
 |------|-------------|
+| **Quick swap** | Default for 2-team matches. Pick one player on each side, tap **Swap** or use **→** / **←** for a 1-for-1 trade |
 | **Lock & shuffle** | Place a few players on Team A or B, tap **Fill rest of teams** — app balances the remainder |
 | **Manual** | Assign every player yourself (arrows or drag). Nothing auto-filled. |
 
@@ -67,7 +68,7 @@ https://kick-draft.vercel.app/newtown-sporting-club/match/...
 ## Tips
 - Select **9–22 players** for a match
 - Stamina (STA) is in OVR and in the top-4 stamina split
-- Shuffle again = new teams; Edit teams = you control some or all placements
+- Shuffle again = new teams; Edit teams = swap, lock, or assign players yourself
 - Past matches are in **Match history** (30 days)
 
 ---

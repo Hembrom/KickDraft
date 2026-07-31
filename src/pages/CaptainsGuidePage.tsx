@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Lock, Pencil, Shuffle, Wand2 } from 'lucide-react';
+import { ArrowLeftRight, ArrowRight, Lock, Pencil, Shuffle, Wand2 } from 'lucide-react';
 
 const APP_URL = 'https://kick-draft.vercel.app';
 const GUIDE_URL = `${APP_URL}/guide`;
@@ -146,12 +146,24 @@ export function CaptainsGuidePage() {
             <div>
               <p className="font-semibold text-slate-900">Edit teams</p>
               <p className="text-sm text-slate-600">
-                Fine-tune the split yourself. Two modes:
+                Fine-tune the split yourself. Three modes:
               </p>
             </div>
           </div>
 
           <div className="ml-8 space-y-3 border-l-2 border-elite-200 pl-4">
+            <div className="flex items-start gap-2">
+              <ArrowLeftRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+              <div>
+                <p className="text-sm font-semibold text-slate-800">Quick swap</p>
+                <p className="text-sm text-slate-600">
+                  Opens by default for 2-team matches. Current lineups are loaded — pick one
+                  player on Team A and one on Team B, then tap <strong>Swap</strong> or use the{' '}
+                  <strong>→</strong> / <strong>←</strong> arrows. Good for a 1-for-1 trade without
+                  reshuffling everyone.
+                </p>
+              </div>
+            </div>
             <div className="flex items-start gap-2">
               <Lock className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
               <div>
@@ -214,7 +226,7 @@ export function CaptainsGuidePage() {
         <ul className="list-inside list-disc space-y-1 text-sm text-slate-600">
           <li>Need 9–22 players selected for a match</li>
           <li>Stamina (STA) counts in OVR and in the top-4 stamina split</li>
-          <li>Shuffle again = new teams; Edit teams = you control some or all placements</li>
+          <li>Shuffle again = new teams; Edit teams = swap, lock, or assign players yourself</li>
           <li>Match history keeps lineups from the last 30 days</li>
         </ul>
       </section>
