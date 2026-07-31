@@ -1,9 +1,10 @@
 import { Link, NavLink } from 'react-router-dom';
-import { Shield, Users, Zap } from 'lucide-react';
+import { Shield, Users, Zap, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const links = [
   { to: '/', label: 'Home', end: true },
+  { to: '/grounds', label: 'Book ground' },
   { to: '/admin', label: 'Admin' },
 ];
 
@@ -54,6 +55,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </span>
           <span className="inline-flex items-center gap-1">
             <Shield className="h-3.5 w-3.5 text-elite-500" /> Balanced teams
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5 text-elite-500" /> Ground booking
           </span>
         </div>
       </footer>
