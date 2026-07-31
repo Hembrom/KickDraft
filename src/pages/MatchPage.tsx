@@ -14,7 +14,7 @@ import {
   generateBalancedTeamsWithLocks,
   generateBalancedThreeTeamsWithLocks,
 } from '@shared/team-generator';
-import { getMatchLabel, isThreeTeamMatch, sanitizeTeamName, DEFAULT_TEAM_NAMES, canSwapPlayersForBalance, roundRating, type MatchRecord, type Player } from '@shared/types';
+import { getMatchLabel, isThreeTeamMatch, sanitizeTeamName, DEFAULT_TEAM_NAMES, type MatchRecord, type Player } from '@shared/types';
 
 function teamLabel(team: EditorTeam): string {
   if (team === 'a') return 'A';
@@ -236,15 +236,6 @@ export function MatchPage() {
     const fromIndex = fromList.findIndex((player) => player.id === fromPlayerId);
     const toIndex = toList.findIndex((player) => player.id === toPlayerId);
     if (fromIndex === -1 || toIndex === -1) return;
-
-    const playerFrom = fromList[fromIndex];
-    const playerTo = toList[toIndex];
-    if (editTab === 'swap' && !canSwapPlayersForBalance(playerFrom, playerTo)) {
-      setError(
-        `Same OVR only — ${playerFrom.name} is ${roundRating(playerFrom.ovr)} OVR, ${playerTo.name} is ${roundRating(playerTo.ovr)} OVR.`,
-      );
-      return;
-    }
 
     const nextFrom = [...fromList];
     const nextTo = [...toList];

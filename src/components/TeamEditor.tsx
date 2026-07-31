@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PositionBadge } from './PlayerCard';
-import { canSwapPlayersForBalance, roundRating, type Player } from '@shared/types';
+import { roundRating, type Player } from '@shared/types';
 
 export type EditorTeam = 'a' | 'b' | 'c';
 export type EditTab = 'swap' | 'lock' | 'manual';
@@ -340,28 +340,7 @@ function QuickSwapPanel({
 }) {
   const selectedA = teamAPlayers.find((player) => player.id === selectedAId) ?? null;
   const selectedB = teamBPlayers.find((player) => player.id === selectedBId) ?? null;
-  const pairCanSwap =
-    selectedA && selectedB ? canSwapPlayersForBalance(selectedA, selectedB) : false;
-
-  function trySwapFromA(player: Player) {
-    onSelectA(player.id);
-    if (selectedBId && selectedBId !== player.id) {
-      const other = teamBPlayers.find((p) => p.id === selectedBId);
-      if (other && canSwapPlayersForBalance(player, other)) {
-        onSwap(player.id, selectedBId);
-      }
-    }
-  }
-
-  function trySwapFromB(player: Player) {
-    onSelectB(player.id);
-    if (selectedAId && selectedAId !== player.id) {
-      const other = teamAPlayers.find((p) => p.id === selectedAId);
-      if (other && canSwapPlayersForBalance(player, other)) {
-        onSwap(selectedAId, player.id);
-      }
-    }
-  }
+  const pairReady = Boolean(selectedAId && selectedBId);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
@@ -372,10 +351,7 @@ function QuickSwapPanel({
         </div>
         <div className="max-h-[520px] space-y-2 overflow-y-auto p-2">
           {teamAPlayers.map((player) => {
-            const swapTarget = selectedB;
-            const canSwapWithTarget = swapTarget
-              ? canSwapPlayersForBalance(player, swapTarget)
-              : false;
+            const canSwapWithTarget = Boolean(selectedBId);
             return (
               <div
                 key={player.id}
@@ -404,17 +380,13 @@ function QuickSwapPanel({
                       ? 'border-blue-300 bg-white text-blue-700 hover:bg-blue-50'
                       : 'border-slate-200 bg-slate-100 text-slate-400',
                   )}
-                  disabled={!selectedBId || !canSwapWithTarget}
+                  disabled={!selectedBId}
                   onClick={() => {
-                    if (selectedBId && canSwapWithTarget) onSwap(player.id, selectedBId);
-                    else trySwapFromA(player);
+                    if (selectedBId) onSwap(player.id, selectedBId);
+                    else onSelectA(player.id);
                   }}
                   aria-label={`Swap ${player.name} to ${teamBName}`}
-                  title={
-                    selectedBId && !canSwapWithTarget
-                      ? 'Same OVR required'
-                      : `Swap with ${teamBName}`
-                  }
+                  title={selectedBId ? `Swap with ${teamBName}` : `Select ${player.name}, then pick someone on ${teamBName}`}
                 >
                   <ArrowRight className="h-4 w-4" />
                 </button>
@@ -424,18 +396,20 @@ function QuickSwapPanel({
         </div>
       </section>
 
-      <div className="hidden flex-col items-center justify-center gap-2 px-1 lg:flex">
-        <p className="max-w-[7rem] text-center text-xs text-slate-500">
-          {pairCanSwap
-            ? 'Matching OVR — swap keeps balance'
-            : 'Pick one from each side with the same OVR'}
+      <div className="flex flex-col items-center justify-center gap-2 px-1">
+        <p className="max-w-[12rem] text-center text-xs text-slate-500 lg:max-w-[7rem]">
+          {pairReady
+            ? selectedA && selectedB
+              ? `${selectedA.name} ↔ ${selectedB.name}`
+              : 'Ready to swap'
+            : 'Pick one player on each side'}
         </p>
         <button
           type="button"
-          className="btn-secondary px-3 py-2 text-xs"
-          disabled={!pairCanSwap || !selectedAId || !selectedBId}
+          className="btn-primary px-4 py-2 text-sm"
+          disabled={!pairReady}
           onClick={() => {
-            if (selectedAId && selectedBId && pairCanSwap) onSwap(selectedAId, selectedBId);
+            if (selectedAId && selectedBId) onSwap(selectedAId, selectedBId);
           }}
         >
           Swap
@@ -449,10 +423,7 @@ function QuickSwapPanel({
         </div>
         <div className="max-h-[520px] space-y-2 overflow-y-auto p-2">
           {teamBPlayers.map((player) => {
-            const swapTarget = selectedA;
-            const canSwapWithTarget = swapTarget
-              ? canSwapPlayersForBalance(player, swapTarget)
-              : false;
+            const canSwapWithTarget = Boolean(selectedAId);
             return (
               <div
                 key={player.id}
@@ -471,17 +442,13 @@ function QuickSwapPanel({
                       ? 'border-red-300 bg-white text-red-700 hover:bg-red-50'
                       : 'border-slate-200 bg-slate-100 text-slate-400',
                   )}
-                  disabled={!selectedAId || !canSwapWithTarget}
+                  disabled={!selectedAId}
                   onClick={() => {
-                    if (selectedAId && canSwapWithTarget) onSwap(selectedAId, player.id);
-                    else trySwapFromB(player);
+                    if (selectedAId) onSwap(selectedAId, player.id);
+                    else onSelectB(player.id);
                   }}
                   aria-label={`Swap ${player.name} to ${teamAName}`}
-                  title={
-                    selectedAId && !canSwapWithTarget
-                      ? 'Same OVR required'
-                      : `Swap with ${teamAName}`
-                  }
+                  title={selectedAId ? `Swap with ${teamAName}` : `Select ${player.name}, then pick someone on ${teamAName}`}
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </button>
@@ -648,7 +615,7 @@ export function TeamEditor({
         </div>
         <p className="mt-2 text-sm text-slate-600">
           {tab === 'swap'
-            ? 'Current lineups are loaded. Select a player on each side and use → or ← — swaps only go through when both have the same OVR.'
+            ? 'Current lineups are loaded. Pick one player on each side, then tap Swap or use → / ←.'
             : tab === 'lock'
               ? threeTeam
                 ? 'Name each team, place the players you want fixed, then Fill rest of teams to balance the remainder.'
