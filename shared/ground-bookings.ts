@@ -1,30 +1,92 @@
+export type GroundBookingMethod = 'whatsapp' | 'online';
+
+export interface GroundFormatRating {
+  format: string;
+  stars: number;
+  note?: string;
+}
+
+export interface GroundPitchInfo {
+  dimensions: string;
+  dimensionsMetric: string;
+  dimensionsNote?: string;
+  playingArea: string;
+  formatRatings: GroundFormatRating[];
+}
+
 export interface GroundVenue {
   id: string;
   name: string;
   location: string;
   imageUrl: string;
   mapsUrl: string;
-  /** Digits only, with country code for WhatsApp e.g. 919749432152 */
-  whatsappNumber: string;
-  /** Display phone e.g. 97494 32152 */
-  phoneDisplay: string;
-  sampleMessage: string;
+  bookingMethod: GroundBookingMethod;
+  /** Online booking page — full payment on site */
+  bookingUrl?: string;
+  /** Digits only, with country code e.g. 919749432152 */
+  whatsappNumber?: string;
+  phoneDisplay?: string;
+  sampleMessage?: string;
   steps: string[];
+  notes?: string[];
+  cancellationPolicy?: string;
+  priceHint?: string;
+  pitchInfo?: GroundPitchInfo;
 }
 
 export const GROUND_VENUES: GroundVenue[] = [
+  {
+    id: 'turf-air-plaza-rosedale',
+    name: 'Turf Air Plaza',
+    location: 'Rosedale Plaza, New Town (opposite St. Xavier\'s University)',
+    imageUrl: '/grounds/turf-air-plaza.png',
+    mapsUrl: 'https://maps.app.goo.gl/XSbH2XCSAB1Foiz38',
+    bookingMethod: 'online',
+    bookingUrl: 'https://www.rosedaleplaza.com/product/turf-air-plaza-for-football/',
+    whatsappNumber: '919831531369',
+    phoneDisplay: '98315 31369',
+    priceHint: 'From ₹1,250 per slot (~₹62.5/head for 20 players)',
+    steps: [
+      'Open Book online — choose Football, pick your date, then select your time slot(s).',
+      'Add number of players (1–20). Slots after 5 PM are peak hour (+₹100 per 30 min).',
+      'Pay in full at checkout. Cart holds slots for only 2 minutes — pay right away.',
+      'Arrive 30 minutes before your slot. Booking confirmation comes by email/SMS.',
+    ],
+    notes: [
+      '6:30 AM – 4:30 PM = normal hour slots. After 5:00 PM = peak (+₹100 per 30 min).',
+      'Check-in 30 minutes before play. Max 20 players per booking.',
+      'Full payment required when you book online.',
+      'No football/bats provided. Soft canvas cricket/tennis ball only on cricket mat.',
+      'No outside food, speakers, or celebrations on the turf.',
+    ],
+    cancellationPolicy:
+      '50% refund Mon–Fri if you cancel at least one day before the slot. No refunds for Sat–Sun cancellations.',
+    pitchInfo: {
+      dimensions: '120 × 65 ft',
+      dimensionsMetric: '≈ 36.5 × 20 m',
+      dimensionsNote:
+        'Estimated from the facility size and typical commercial 5-a-side turf specifications.',
+      playingArea: '~7,800 sq ft (≈ 725 m²)',
+      formatRatings: [
+        { format: '5v5', stars: 5 },
+        { format: '6v6', stars: 4 },
+        { format: '7v7', stars: 2, note: 'Playable but crowded' },
+      ],
+    },
+  },
   {
     id: 'axis-mall-newtown',
     name: 'Axis Mall',
     location: 'New Town, Kolkata',
     imageUrl: '/grounds/axis-mall-newtown.svg',
     mapsUrl: 'https://maps.app.goo.gl/1YmrTWUgACxLLmbY6',
+    bookingMethod: 'whatsapp',
     whatsappNumber: '919749432152',
     phoneDisplay: '97494 32152',
     sampleMessage:
       'Ground 2 ( small ) , avaibla hai kya for Friday , July 11 from 5-6:30 PM ?',
     steps: [
-      'Open WhatsApp or call the ground contact below.',
+      'Open WhatsApp or call the ground contact.',
       'Send the sample message — change the date, time, and ground size if needed.',
       'Wait for a yes — if they confirm, your slot is booked.',
     ],
@@ -41,4 +103,8 @@ export function whatsappUrl(number: string, message: string): string {
 
 export function telUrl(number: string): string {
   return `tel:+${number}`;
+}
+
+export function usesInlineHero(venueId: string): boolean {
+  return venueId === 'axis-mall-newtown';
 }

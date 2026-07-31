@@ -1,11 +1,50 @@
 import { useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Copy, ExternalLink, MapPin, MessageCircle, Phone } from 'lucide-react';
+import {
+  ArrowLeft,
+  CalendarCheck,
+  Check,
+  Copy,
+  ExternalLink,
+  MapPin,
+  MessageCircle,
+  Phone,
+} from 'lucide-react';
+import { AxisMallHero } from '@/components/GroundVenueHero';
 import {
   getGroundVenue,
   telUrl,
+  usesInlineHero,
   whatsappUrl,
 } from '@shared/ground-bookings';
+
+function StarRating({ count }: { count: number }) {
+  return (
+    <span className="text-amber-500" aria-label={`${count} out of 5 stars`}>
+      {'★'.repeat(count)}
+      <span className="text-slate-300">{'★'.repeat(5 - count)}</span>
+    </span>
+  );
+}
+
+function VenueHero({ venueId, imageUrl, name, location, className }: {
+  venueId: string;
+  imageUrl: string;
+  name: string;
+  location: string;
+  className?: string;
+}) {
+  if (usesInlineHero(venueId)) {
+    return <AxisMallHero className={className} />;
+  }
+  return (
+    <img
+      src={imageUrl}
+      alt={`${name}, ${location}`}
+      className={`object-cover ${className ?? ''}`}
+    />
+  );
+}
 
 export function GroundBookingDetailPage() {
   const { groundId = '' } = useParams();
@@ -16,9 +55,19 @@ export function GroundBookingDetailPage() {
     return <Navigate to="/grounds" replace />;
   }
 
+  const isOnline = venue.bookingMethod === 'online';
+  const waLink =
+    venue.whatsappNumber && venue.sampleMessage
+      ? whatsappUrl(venue.whatsappNumber, venue.sampleMessage)
+      : venue.whatsappNumber
+        ? whatsappUrl(venue.whatsappNumber, `Hi, I have a question about booking ${venue.name}.`)
+        : null;
+  const phoneLink = venue.whatsappNumber ? telUrl(venue.whatsappNumber) : null;
+
   async function copyMessage() {
+    if (!venue?.sampleMessage) return;
     try {
-      await navigator.clipboard.writeText(venue!.sampleMessage);
+      await navigator.clipboard.writeText(venue.sampleMessage);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -27,27 +76,127 @@ export function GroundBookingDetailPage() {
   }
 
   return (
-    <article className="mx-auto max-w-2xl space-y-6 pb-8">
+    <article className="mx-auto max-w-2xl space-y-5 pb-10">
       <Link to="/grounds" className="btn-secondary inline-flex text-sm">
         <ArrowLeft className="h-4 w-4" /> All grounds
       </Link>
 
       <div className="card overflow-hidden p-0">
-        <div className="aspect-[16/9] bg-slate-100">
-          <img
-            src={venue.imageUrl}
-            alt={`${venue.name}, ${venue.location}`}
-            className="h-full w-full object-cover"
+        <div className="aspect-[16/9] overflow-hidden bg-slate-100">
+          <VenueHero
+            venueId={venue.id}
+            imageUrl={venue.imageUrl}
+            name={venue.name}
+            location={venue.location}
+            className="h-full w-full"
           />
         </div>
-        <div className="space-y-1 p-5">
-          <h1 className="font-display text-3xl font-bold text-slate-900">{venue.name}</h1>
-          <p className="flex items-center gap-1.5 text-slate-600">
-            <MapPin className="h-4 w-4 text-elite-500" />
-            {venue.location}
-          </p>
+        <div className="space-y-3 p-5">
+          <div>
+            <h1 className="font-display text-3xl font-bold text-slate-900">{venue.name}</h1>
+            {venue.priceHint ? (
+              <p className="mt-1 text-sm font-medium text-emerald-700">{venue.priceHint}</p>
+            ) : null}
+            <a
+              href={venue.mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-elite-600 hover:underline"
+            >
+              <MapPin className="h-4 w-4 shrink-0" />
+              {venue.location} · Google Maps
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            {isOnline && venue.bookingUrl ? (
+              <a
+                href={venue.bookingUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary w-full justify-center py-3 sm:col-span-2"
+              >
+                <CalendarCheck className="h-5 w-5" />
+                Book online (full payment)
+              </a>
+            ) : null}
+            {waLink ? (
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noreferrer"
+                className={`btn-${isOnline ? 'secondary' : 'primary'} w-full justify-center py-3`}
+              >
+                <MessageCircle className="h-5 w-5" />
+                WhatsApp
+              </a>
+            ) : null}
+            {phoneLink && venue.phoneDisplay ? (
+              <a href={phoneLink} className="btn-secondary w-full justify-center py-3">
+                <Phone className="h-5 w-5" />
+                Call {venue.phoneDisplay}
+              </a>
+            ) : null}
+            <a
+              href={venue.mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-secondary w-full justify-center py-3"
+            >
+              <ExternalLink className="h-5 w-5" />
+              Google Maps
+            </a>
+          </div>
         </div>
       </div>
+
+      {venue.pitchInfo ? (
+        <section className="card space-y-4 p-5">
+          <h2 className="font-display text-lg font-bold text-slate-900">Pitch size &amp; formats</h2>
+          <dl className="grid gap-3 text-sm sm:grid-cols-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Playing dimensions
+              </dt>
+              <dd className="mt-1 font-semibold text-slate-900">
+                {venue.pitchInfo.dimensions}{' '}
+                <span className="font-normal text-slate-600">({venue.pitchInfo.dimensionsMetric})</span>
+              </dd>
+              {venue.pitchInfo.dimensionsNote ? (
+                <dd className="mt-1 text-xs text-slate-500">{venue.pitchInfo.dimensionsNote}</dd>
+              ) : null}
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Playing area
+              </dt>
+              <dd className="mt-1 font-semibold text-slate-900">{venue.pitchInfo.playingArea}</dd>
+            </div>
+          </dl>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Best format
+            </p>
+            <ul className="space-y-2">
+              {venue.pitchInfo.formatRatings.map((rating) => (
+                <li
+                  key={rating.format}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2"
+                >
+                  <span className="font-semibold text-slate-900">{rating.format}</span>
+                  <div className="flex items-center gap-2">
+                    <StarRating count={rating.stars} />
+                    {rating.note ? (
+                      <span className="text-xs text-slate-500">{rating.note}</span>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      ) : null}
 
       <section className="card space-y-4 p-5">
         <h2 className="font-display text-lg font-bold text-slate-900">How to book</h2>
@@ -57,55 +206,87 @@ export function GroundBookingDetailPage() {
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-elite-100 text-xs font-bold text-elite-700">
                 {index + 1}
               </span>
-              <span className="pt-0.5">{step}</span>
+              <span className="pt-0.5">
+                {index === 0 && isOnline && venue.bookingUrl ? (
+                  <>
+                    Open{' '}
+                    <a
+                      href={venue.bookingUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-semibold text-elite-600 hover:underline"
+                    >
+                      Book online
+                    </a>{' '}
+                    on Rosedale Plaza — choose Football, pick your date, then select your time slot(s).
+                  </>
+                ) : index === 0 && waLink && venue.phoneDisplay ? (
+                  <>
+                    Tap{' '}
+                    <a href={waLink} target="_blank" rel="noreferrer" className="font-semibold text-elite-600 hover:underline">
+                      WhatsApp
+                    </a>{' '}
+                    or{' '}
+                    <a href={phoneLink!} className="font-semibold text-elite-600 hover:underline">
+                      call {venue.phoneDisplay}
+                    </a>
+                    .
+                  </>
+                ) : (
+                  step
+                )}
+              </span>
             </li>
           ))}
         </ol>
       </section>
 
-      <section className="card space-y-4 p-5">
-        <h2 className="font-display text-lg font-bold text-slate-900">Contact</h2>
-        <div className="flex flex-wrap gap-2">
-          <a
-            href={whatsappUrl(venue.whatsappNumber, venue.sampleMessage)}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-primary"
-          >
-            <MessageCircle className="h-4 w-4" />
-            WhatsApp {venue.phoneDisplay}
-          </a>
-          <a href={telUrl(venue.whatsappNumber)} className="btn-secondary">
-            <Phone className="h-4 w-4" />
-            Call {venue.phoneDisplay}
-          </a>
-          <a
-            href={venue.mapsUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-secondary"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Google Maps
-          </a>
-        </div>
-      </section>
+      {venue.notes && venue.notes.length > 0 ? (
+        <section className="card space-y-3 p-5">
+          <h2 className="font-display text-lg font-bold text-slate-900">Good to know</h2>
+          <ul className="space-y-2 text-sm text-slate-700">
+            {venue.notes.map((note) => (
+              <li key={note} className="flex gap-2">
+                <span className="text-elite-500">•</span>
+                <span>{note}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
-      <section className="card space-y-3 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-lg font-bold text-slate-900">Sample message</h2>
-          <button type="button" className="btn-secondary px-3 py-1.5 text-xs" onClick={copyMessage}>
-            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            {copied ? 'Copied' : 'Copy'}
-          </button>
-        </div>
-        <blockquote className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-          {venue.sampleMessage}
-        </blockquote>
-        <p className="text-xs text-slate-500">
-          Edit the date, time, and ground size before you send. If they reply yes, you&apos;re done.
-        </p>
-      </section>
+      {venue.cancellationPolicy ? (
+        <section className="card space-y-2 p-5">
+          <h2 className="font-display text-lg font-bold text-slate-900">Cancellation</h2>
+          <p className="text-sm text-slate-700">{venue.cancellationPolicy}</p>
+        </section>
+      ) : null}
+
+      {!isOnline && venue.sampleMessage ? (
+        <section className="card space-y-3 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-display text-lg font-bold text-slate-900">Sample message</h2>
+            <button type="button" className="btn-secondary px-3 py-1.5 text-xs" onClick={copyMessage}>
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+          <blockquote className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            {venue.sampleMessage}
+          </blockquote>
+          {waLink ? (
+            <a
+              href={waLink}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-primary inline-flex w-full justify-center sm:w-auto"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Send on WhatsApp
+            </a>
+          ) : null}
+        </section>
+      ) : null}
     </article>
   );
 }
