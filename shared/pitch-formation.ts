@@ -6,7 +6,7 @@ const FORMATIONS: Record<number, number[]> = {
   5: [1, 2, 2],
   6: [1, 3, 2],
   7: [1, 3, 3],
-  8: [1, 2, 3, 1],
+  8: [1, 2, 3, 2],
   9: [1, 4, 4],
   10: [1, 4, 5],
   11: [1, 4, 4, 2],
@@ -153,6 +153,11 @@ export function assignPitchRows(players: Player[], teamSize: number): Player[][]
         result[rowIndex].push(takeAt(pickIndex));
       }
     }
+  }
+
+  // Guard: if formation slots don't sum to teamSize, still show every player.
+  while (pool.length > 0) {
+    result[rows.length - 1].push(takeAt(0));
   }
 
   return result;
