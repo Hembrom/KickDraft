@@ -17,6 +17,9 @@ interface PlayerCardProps {
   selected?: boolean;
   selectable?: boolean;
   onToggle?: () => void;
+  /** Squad rank by OVR when sort-by-rating is on, e.g. 5 of 26 */
+  ratingRank?: number;
+  ratingTotal?: number;
 }
 
 const POPUP_SCALE_DESKTOP = 1.8;
@@ -112,7 +115,14 @@ function SelectionCheckbox({ selected }: { selected: boolean }) {
   );
 }
 
-export function PlayerCard({ player, selected = false, selectable, onToggle }: PlayerCardProps) {
+export function PlayerCard({
+  player,
+  selected = false,
+  selectable,
+  onToggle,
+  ratingRank,
+  ratingTotal,
+}: PlayerCardProps) {
   const normalized = normalizePlayer(player);
   const anchorRef = useRef<HTMLDivElement | null>(null);
   const tipRef = useRef<HTMLDivElement | null>(null);
@@ -258,6 +268,11 @@ export function PlayerCard({ player, selected = false, selectable, onToggle }: P
               {normalized.favouriteClub ? ` · ${normalized.favouriteClub}` : ''}
             </p>
             <p className="mt-1 text-sm font-display font-bold text-elite-600">
+              {ratingRank != null && ratingTotal != null ? (
+                <span className="mr-2 tabular-nums text-slate-500">
+                  {ratingRank}/{ratingTotal}
+                </span>
+              ) : null}
               OVR {roundRating(normalized.ovr)}
             </p>
           </div>

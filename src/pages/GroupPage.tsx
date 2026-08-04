@@ -64,6 +64,15 @@ export function GroupPage() {
     return list;
   }, [players, search, sortByRating]);
 
+  const ratingRanks = useMemo(() => {
+    const sorted = [...players].sort((a, b) => b.ovr - a.ovr || a.name.localeCompare(b.name));
+    const ranks = new Map<string, number>();
+    sorted.forEach((player, index) => {
+      ranks.set(player.id, index + 1);
+    });
+    return ranks;
+  }, [players]);
+
   const selectedCount = selected.size;
   const teamSizes = teamSizesFromPlayerCount(selectedCount);
   const threeWaySizes = teamSizesFromThreeWaySplit(selectedCount);
@@ -274,6 +283,8 @@ export function GroupPage() {
                 selectable
                 selected={selected.has(player.id)}
                 onToggle={() => togglePlayer(player.id)}
+                ratingRank={sortByRating ? ratingRanks.get(player.id) : undefined}
+                ratingTotal={sortByRating ? players.length : undefined}
               />
             ))}
           </div>
