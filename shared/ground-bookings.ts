@@ -25,6 +25,22 @@ export interface GroundOption {
   formatRatings: GroundFormatRating[];
 }
 
+export interface GroundRateRow {
+  label: string;
+  price: string;
+}
+
+export interface GroundRateGroup {
+  title: string;
+  rows: GroundRateRow[];
+}
+
+export interface GroundPhoneContact {
+  display: string;
+  /** Digits only, with country code e.g. 918240508008 */
+  number: string;
+}
+
 export interface GroundVenue {
   id: string;
   name: string;
@@ -34,15 +50,19 @@ export interface GroundVenue {
   bookingMethod: GroundBookingMethod;
   /** Online booking page — full payment on site */
   bookingUrl?: string;
+  /** Label for the booking site, e.g. Khelomore or Rosedale Plaza */
+  bookingSiteLabel?: string;
   /** Digits only, with country code e.g. 919749432152 */
   whatsappNumber?: string;
   phoneDisplay?: string;
+  phoneContacts?: GroundPhoneContact[];
   sampleMessage?: string;
   steps: string[];
   notes?: string[];
   cancellationPolicy?: string;
   priceHint?: string;
   openingHours?: string;
+  rateChart?: GroundRateGroup[];
   pitchInfo?: GroundPitchInfo;
   /** Multiple pitches at one venue (e.g. Ground 1 vs Ground 2) */
   grounds?: GroundOption[];
@@ -57,6 +77,7 @@ export const GROUND_VENUES: GroundVenue[] = [
     mapsUrl: 'https://maps.app.goo.gl/XSbH2XCSAB1Foiz38',
     bookingMethod: 'online',
     bookingUrl: 'https://www.rosedaleplaza.com/product/turf-air-plaza-for-football/',
+    bookingSiteLabel: 'Rosedale Plaza',
     whatsappNumber: '919831531369',
     phoneDisplay: '98315 31369',
     priceHint: 'From ₹1,250 per slot (~₹62.5/head for 20 players)',
@@ -136,6 +157,51 @@ export const GROUND_VENUES: GroundVenue[] = [
           { format: '7v7', stars: 4, note: 'Max format' },
         ],
       },
+    ],
+  },
+  {
+    id: 'akankha-turf-newtown',
+    name: 'Akankha Turf',
+    location: 'Action Area IIC, Reckjoani, West Bengal 700161',
+    imageUrl: '/grounds/akankha-turf-newtown.png',
+    mapsUrl:
+      'https://www.google.com/maps/search/?api=1&query=Akankha+Turf+Action+Area+IIC+Reckjoani+Kolkata',
+    bookingMethod: 'online',
+    bookingUrl:
+      'https://www.khelomore.com/sports-venues/kolkata/akankha-turf-newtown,-action-area-2c/3895/book-slots',
+    bookingSiteLabel: 'Khelomore',
+    phoneContacts: [
+      { display: '82405 08008', number: '918240508008' },
+      { display: '89101 16046', number: '918910116046' },
+    ],
+    openingHours:
+      'Play: 6:00 AM – 12:00 AM (midnight) · Phone booking: 8:00 AM – 8:00 PM · Closed Mondays',
+    priceHint: 'From ₹1,500/hr weekdays (day) · weekends from ₹2,000/hr',
+    rateChart: [
+      {
+        title: 'Weekdays',
+        rows: [
+          { label: 'Day', price: '₹1,500 per hour' },
+          { label: 'Night', price: '₹1,800 per hour' },
+        ],
+      },
+      {
+        title: 'Weekends',
+        rows: [
+          { label: 'Day', price: '₹2,000 per hour' },
+          { label: 'Night', price: '₹2,200 per hour' },
+        ],
+      },
+    ],
+    steps: [
+      'Open Book online on Khelomore — pick your date and time slot — or call during booking hours.',
+      'Day vs night rates apply (see rate chart). Weekends cost more than weekdays.',
+      'Monday is closed. Play hours run till midnight; phone booking is 8 AM – 8 PM.',
+    ],
+    notes: [
+      'Enclosed turf with floodlights — good for evening slots.',
+      'Book on Khelomore or call 82405 08008 / 89101 16046 between 8 AM and 8 PM.',
+      'Monday closed. Turf playable 6 AM – 12 AM (midnight).',
     ],
   },
 ];

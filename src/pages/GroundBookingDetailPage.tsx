@@ -58,6 +58,15 @@ export function GroundBookingDetailPage() {
         ? whatsappUrl(venue.whatsappNumber, `Hi, I have a question about booking ${venue.name}.`)
         : null;
   const phoneLink = venue.whatsappNumber ? telUrl(venue.whatsappNumber) : null;
+  const callContacts =
+    venue.phoneContacts && venue.phoneContacts.length > 0
+      ? venue.phoneContacts
+      : venue.phoneDisplay && venue.whatsappNumber
+        ? [{ display: venue.phoneDisplay, number: venue.whatsappNumber }]
+        : [];
+  const bookOnlineLabel = venue.bookingSiteLabel
+    ? `Book on ${venue.bookingSiteLabel}`
+    : 'Book online (full payment)';
 
   async function copyMessage() {
     if (!venue?.sampleMessage) return;
@@ -118,7 +127,7 @@ export function GroundBookingDetailPage() {
                 className="btn-primary w-full justify-center py-3 sm:col-span-2"
               >
                 <CalendarCheck className="h-5 w-5" />
-                Book online (full payment)
+                {bookOnlineLabel}
               </a>
             ) : null}
             {waLink ? (
@@ -132,7 +141,17 @@ export function GroundBookingDetailPage() {
                 WhatsApp
               </a>
             ) : null}
-            {phoneLink && venue.phoneDisplay ? (
+            {callContacts.map((contact) => (
+              <a
+                key={contact.number}
+                href={telUrl(contact.number)}
+                className="btn-secondary w-full justify-center py-3"
+              >
+                <Phone className="h-5 w-5" />
+                Call {contact.display}
+              </a>
+            ))}
+            {!callContacts.length && phoneLink && venue.phoneDisplay ? (
               <a href={phoneLink} className="btn-secondary w-full justify-center py-3">
                 <Phone className="h-5 w-5" />
                 Call {venue.phoneDisplay}
@@ -260,6 +279,35 @@ export function GroundBookingDetailPage() {
         </section>
       ) : null}
 
+      {venue.rateChart && venue.rateChart.length > 0 ? (
+        <section className="card space-y-4 p-5">
+          <h2 className="font-display text-lg font-bold text-slate-900">Rate chart</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {venue.rateChart.map((group) => (
+              <div
+                key={group.title}
+                className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50/80"
+              >
+                <p className="border-b border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900">
+                  {group.title}
+                </p>
+                <ul className="divide-y divide-slate-200">
+                  {group.rows.map((row) => (
+                    <li
+                      key={`${group.title}-${row.label}`}
+                      className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+                    >
+                      <span className="text-slate-600">{row.label}</span>
+                      <span className="font-semibold text-emerald-700">{row.price}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section className="card space-y-4 p-5">
         <h2 className="font-display text-lg font-bold text-slate-900">How to book</h2>
         <ol className="space-y-3">
@@ -269,7 +317,7 @@ export function GroundBookingDetailPage() {
                 {index + 1}
               </span>
               <span className="pt-0.5">
-                {index === 0 && isOnline && venue.bookingUrl ? (
+                {index === 0 && isOnline && venue.bookingUrl && venue.bookingSiteLabel === 'Rosedale Plaza' ? (
                   <>
                     Open{' '}
                     <a
