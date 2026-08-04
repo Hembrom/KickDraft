@@ -41,6 +41,11 @@ export interface GroundPhoneContact {
   number: string;
 }
 
+export interface GroundBookingLink {
+  label: string;
+  url: string;
+}
+
 export interface GroundVenue {
   id: string;
   name: string;
@@ -52,6 +57,8 @@ export interface GroundVenue {
   bookingUrl?: string;
   /** Label for the booking site, e.g. Khelomore or Rosedale Plaza */
   bookingSiteLabel?: string;
+  /** Extra online booking options (e.g. Khelomore + HIDCO) */
+  bookingLinks?: GroundBookingLink[];
   /** Digits only, with country code e.g. 919749432152 */
   whatsappNumber?: string;
   phoneDisplay?: string;
@@ -161,21 +168,25 @@ export const GROUND_VENUES: GroundVenue[] = [
   },
   {
     id: 'akankha-turf-newtown',
-    name: 'Akankha Turf',
-    location: 'Action Area IIC, Reckjoani, West Bengal 700161',
+    name: 'Akankha Futsal Ground',
+    location: 'Action Area II, New Town (near Akankha More & Highland Woods), Kolkata 700135',
     imageUrl: '/grounds/akankha-turf-newtown.png',
     mapsUrl:
-      'https://www.google.com/maps/search/?api=1&query=Akankha+Turf+Action+Area+IIC+Reckjoani+Kolkata',
+      'https://www.google.com/maps/search/?api=1&query=Akankha+Futsal+Ground+Action+Area+II+New+Town+Kolkata+700135',
     bookingMethod: 'online',
-    bookingUrl:
-      'https://www.khelomore.com/sports-venues/kolkata/akankha-turf-newtown,-action-area-2c/3895/book-slots',
-    bookingSiteLabel: 'Khelomore',
-    phoneContacts: [
-      { display: '82405 08008', number: '918240508008' },
-      { display: '89101 16046', number: '918910116046' },
+    bookingLinks: [
+      {
+        label: 'Khelomore',
+        url: 'https://www.khelomore.com/sports-venues/kolkata/akankha-turf-newtown,-action-area-2c/3895/book-slots',
+      },
+      {
+        label: 'HIDCO',
+        url: 'https://www.wbhidcoltd.com/futsal',
+      },
     ],
+    phoneContacts: [{ display: '82405 08008', number: '918240508008' }],
     openingHours:
-      'Play: 6:00 AM – 12:00 AM (midnight) · Phone booking: 8:00 AM – 8:00 PM · Closed Mondays',
+      'Play: Tue–Sun 6:00 AM – 11:59 PM · Booking desk: 8:00 AM – 8:00 PM · Closed Mondays',
     priceHint: 'From ₹1,500/hr weekdays (day) · weekends from ₹2,000/hr',
     rateChart: [
       {
@@ -194,14 +205,15 @@ export const GROUND_VENUES: GroundVenue[] = [
       },
     ],
     steps: [
-      'Open Book online on Khelomore — pick your date and time slot — or call during booking hours.',
+      'Book on Khelomore or the HIDCO futsal page — pick your date and time slot — or call during booking hours.',
       'Day vs night rates apply (see rate chart). Weekends cost more than weekdays.',
       'Monday is closed. Play hours run till midnight; phone booking is 8 AM – 8 PM.',
     ],
     notes: [
-      'Enclosed turf with floodlights — good for evening slots.',
-      'Book on Khelomore or call 82405 08008 / 89101 16046 between 8 AM and 8 PM.',
-      'Monday closed. Turf playable 6 AM – 12 AM (midnight).',
+      'Enclosed futsal turf with floodlights — play till midnight Tue–Sun.',
+      'Book on Khelomore, the HIDCO official futsal page, or call 82405 08008 between 8 AM and 8 PM.',
+      'On-site: food stalls, kids play area, and public library (HIDCO campus).',
+      'Monday closed.',
     ],
   },
 ];

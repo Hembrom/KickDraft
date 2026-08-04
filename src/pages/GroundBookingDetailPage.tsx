@@ -16,6 +16,7 @@ import {
   telUrl,
   whatsappUrl,
 } from '@shared/ground-bookings';
+import { cn } from '@/lib/utils';
 
 function VenueHero({ imageUrl, name, location, className }: {
   imageUrl: string;
@@ -64,9 +65,14 @@ export function GroundBookingDetailPage() {
       : venue.phoneDisplay && venue.whatsappNumber
         ? [{ display: venue.phoneDisplay, number: venue.whatsappNumber }]
         : [];
-  const bookOnlineLabel = venue.bookingSiteLabel
-    ? `Book on ${venue.bookingSiteLabel}`
-    : 'Book online (full payment)';
+  const onlineBookingLinks =
+    venue.bookingLinks && venue.bookingLinks.length > 0
+      ? venue.bookingLinks
+      : venue.bookingUrl && venue.bookingSiteLabel
+        ? [{ label: venue.bookingSiteLabel, url: venue.bookingUrl }]
+        : venue.bookingUrl
+          ? [{ label: 'Book online', url: venue.bookingUrl }]
+          : [];
 
   async function copyMessage() {
     if (!venue?.sampleMessage) return;
@@ -119,17 +125,24 @@ export function GroundBookingDetailPage() {
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2">
-            {isOnline && venue.bookingUrl ? (
-              <a
-                href={venue.bookingUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-primary w-full justify-center py-3 sm:col-span-2"
-              >
-                <CalendarCheck className="h-5 w-5" />
-                {bookOnlineLabel}
-              </a>
-            ) : null}
+            {isOnline && onlineBookingLinks.length > 0
+              ? onlineBookingLinks.map((link, index) => (
+                  <a
+                    key={link.url}
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={cn(
+                      'w-full justify-center py-3',
+                      index === 0 ? 'btn-primary' : 'btn-secondary',
+                      onlineBookingLinks.length === 1 ? 'sm:col-span-2' : '',
+                    )}
+                  >
+                    <CalendarCheck className="h-5 w-5" />
+                    Book on {link.label}
+                  </a>
+                ))
+              : null}
             {waLink ? (
               <a
                 href={waLink}
