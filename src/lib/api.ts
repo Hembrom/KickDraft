@@ -3,6 +3,7 @@ import type {
   MatchRecord,
   Player,
   PlayerClaim,
+  PlayerGamesPlayed,
   PlayerStats,
   PeerRating,
 } from '@shared/types';
@@ -68,6 +69,33 @@ export const api = {
 
   getMatch(slug: string, matchId: string) {
     return request<MatchRecord>(`/api/groups/${slug}/matches/${matchId}`);
+  },
+
+  getAppearances(slug: string) {
+    return request<{
+      group: GroupMeta;
+      players: PlayerGamesPlayed[];
+      recordedMatches: Array<{
+        matchId: string;
+        matchName: string;
+        matchDate: string;
+        format: number;
+        teamCount: number;
+        playerCount: number;
+      }>;
+      totalAppearances: number;
+    }>(`/api/groups/${slug}/appearances`);
+  },
+
+  adminRecordMatch(slug: string, matchId: string, recorded: boolean) {
+    return request<{ match: MatchRecord; appearanceCount: number }>(
+      `/api/admin/groups/${slug}/matches/${matchId}/record`,
+      {
+        method: 'PUT',
+        headers: adminHeaders(),
+        body: JSON.stringify({ recorded }),
+      },
+    );
   },
 
   generateMatch(slug: string, playerIds: string[], name: string, teamCount: 2 | 3 = 2) {

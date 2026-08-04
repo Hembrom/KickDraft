@@ -90,6 +90,8 @@ type MatchRow = {
   team_b: GeneratedTeam;
   team_c?: GeneratedTeam | null;
   rating_difference: number;
+  recorded_as_played?: boolean | null;
+  recorded_at?: string | null;
 };
 
 function rowToPlayer(row: PlayerRow): Player {
@@ -149,6 +151,8 @@ function rowToMatch(row: MatchRow): MatchRecord {
     teamB: row.team_b,
     teamC: row.team_c ?? undefined,
     ratingDifference: Number(row.rating_difference),
+    recordedAsPlayed: Boolean(row.recorded_as_played),
+    recordedAt: row.recorded_at ?? null,
   };
 }
 
@@ -163,6 +167,8 @@ function matchToRow(record: MatchRecord) {
     team_a: record.teamA,
     team_b: record.teamB,
     rating_difference: record.ratingDifference,
+    recorded_as_played: Boolean(record.recordedAsPlayed),
+    recorded_at: record.recordedAt ?? null,
   };
 
   if (record.teamCount === 3 || record.teamC) {

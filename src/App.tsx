@@ -6,6 +6,7 @@ import { AdminLoginPage } from '@/pages/AdminLoginPage';
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
 import { ClaimPlayerPage } from '@/pages/ClaimPlayerPage';
 import { PeerReviewsPage } from '@/pages/PeerReviewsPage';
+import { GamesPlayedPage } from '@/pages/GamesPlayedPage';
 import { GroupPage } from '@/pages/GroupPage';
 import { HistoryPage } from '@/pages/HistoryPage';
 import { MatchPage } from '@/pages/MatchPage';
@@ -49,6 +50,7 @@ export default function App() {
         />
         <Route path="/:slug/claim" element={<ClaimPlayerPage />} />
         <Route path="/:slug/reviews" element={<PeerReviewsPage />} />
+        <Route path="/:slug/games-played" element={<GamesPlayedPage />} />
         <Route path="/:slug/rate" element={<RatePlayersPage />} />
         <Route path="/:slug/history" element={<HistoryPage />} />
         <Route path="/:slug/match/:matchId" element={<MatchPage />} />

@@ -152,6 +152,32 @@ export interface MatchRecord {
   teamB: GeneratedTeam;
   teamC?: GeneratedTeam;
   ratingDifference: number;
+  /** Admin marked this lineup as an official played game (attendance data). */
+  recordedAsPlayed?: boolean;
+  recordedAt?: string | null;
+}
+
+/** One player’s participation in a recorded (official) match. */
+export interface PlayerAppearance {
+  id: string;
+  groupSlug: string;
+  matchId: string;
+  playerId: string;
+  playerName: string;
+  teamKey: 'A' | 'B' | 'C';
+  teamName: string;
+  matchName: string;
+  matchDate: string;
+  format: number;
+  teamCount: TeamCount;
+  recordedAt: string;
+}
+
+export interface PlayerGamesPlayed {
+  playerId: string;
+  playerName: string;
+  photoUrl: string | null;
+  gamesPlayed: number;
 }
 
 export const STAT_KEYS: (keyof PlayerStats)[] = [

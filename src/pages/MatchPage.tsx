@@ -7,7 +7,7 @@ import { TeamEditor, type EditTab, type EditorTeam } from '@/components/TeamEdit
 import { TeamNameEditor } from '@/components/TeamNameEditor';
 import { api, ApiError } from '@/lib/api';
 import { shareMatchLineup } from '@/lib/share-match';
-import { formatDate } from '@/lib/utils';
+import { formatDate, getAdminToken } from '@/lib/utils';
 import { enrichMatchWithRoster } from '@shared/match-utils';
 import {
   buildGeneratedTeam,
@@ -44,7 +44,13 @@ export function MatchPage() {
   const [draftPool, setDraftPool] = useState<Player[]>([]);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const pitchCaptureRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsAdmin(Boolean(getAdminToken()));
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -60,6 +66,35 @@ export function MatchPage() {
       })
       .finally(() => setLoading(false));
   }, [slug, matchId]);
+
+  async function handleRecordToggle(recorded: boolean) {
+    if (!match || recording) return;
+    if (
+      recorded &&
+      !confirm(
+        'Count this match as played?\n\nEvery player on the pitch will get +1 games played. You can undo later.',
+      )
+    ) {
+      return;
+    }
+    if (
+      !recorded &&
+      !confirm('Remove this match from games-played data? Player counts will decrease.')
+    ) {
+      return;
+    }
+
+    setRecording(true);
+    setError('');
+    try {
+      const result = await api.adminRecordMatch(slug, match.id, recorded);
+      setMatch(result.match);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to update record status');
+    } finally {
+      setRecording(false);
+    }
+  }
 
   async function handleShuffleAgain() {
     if (!match || shuffling) return;
@@ -470,9 +505,26 @@ export function MatchPage() {
           <h1 className="font-display text-3xl font-bold text-slate-900">{displayTitle}</h1>
           <p className="mt-1 text-sm text-slate-500">
             {matchLabel} · {formatDate(match.date)}
+            {match.recordedAsPlayed ? (
+              <span className="ml-2 inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                Counted as played
+              </span>
+            ) : null}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {isAdmin ? (
+            <label className="btn-secondary cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-300 text-elite-600 focus:ring-elite-500"
+                checked={Boolean(match.recordedAsPlayed)}
+                disabled={recording || editing || renamingTeams || shuffling}
+                onChange={(e) => void handleRecordToggle(e.target.checked)}
+              />
+              {recording ? 'Saving…' : 'Count as played'}
+            </label>
+          ) : null}
           <button
             type="button"
             className="btn-secondary"
@@ -522,6 +574,9 @@ export function MatchPage() {
           <Link to={`/${slug}`} className="btn-secondary">
             New match
           </Link>
+          <Link to={`/${slug}/games-played`} className="btn-secondary">
+            Games played
+          </Link>
           <Link to={`/${slug}/history`} className="btn-secondary">
             History
           </Link>
@@ -531,6 +586,9 @@ export function MatchPage() {
       <p className="text-sm text-slate-600">
         Edit teams moves players. Rename teams changes labels only. Shuffle again opens a separate
         lineup link.
+        {isAdmin
+          ? ' Check “Count as played” after the game so player games-played totals update.'
+          : ''}
       </p>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}

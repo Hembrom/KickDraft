@@ -5,6 +5,10 @@ import {
   groupExists,
   updateMatch,
 } from '../lib/storage.js';
+import {
+  buildAppearancesFromMatch,
+  replaceAppearancesForMatch,
+} from '../lib/appearances.js';
 import { applyEffectiveRatingsForGroup } from '../lib/peer-ratings.js';
 import { error, json, readBody } from '../lib/auth.js';
 import { buildGeneratedTeam } from '../../shared/team-generator.js';
@@ -99,6 +103,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       teamBPlayers as NonNullable<(typeof teamBPlayers)[number]>[],
     );
 
+    let updated = {
+      ...match,
+      teamA,
+      teamB,
+      ratingDifference: roundRating(Math.abs(teamA.totalRating - teamB.totalRating)),
+    };
+
     if (isThreeWay && match.teamC) {
       const teamC = buildGeneratedTeam(
         typeof body.teamCName === 'string'
@@ -107,25 +118,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         teamCPlayers as NonNullable<(typeof teamCPlayers)[number]>[],
       );
       const totals = [teamA.totalRating, teamB.totalRating, teamC.totalRating];
-      const updated = {
+      updated = {
         ...match,
         teamA,
         teamB,
         teamC,
         ratingDifference: roundRating(Math.max(...totals) - Math.min(...totals)),
       };
-      await updateMatch(updated);
-      return json(res, 200, updated);
     }
 
-    const updated = {
-      ...match,
-      teamA,
-      teamB,
-      ratingDifference: roundRating(Math.abs(teamA.totalRating - teamB.totalRating)),
-    };
-
     await updateMatch(updated);
+
+    if (updated.recordedAsPlayed) {
+      const recordedAt = updated.recordedAt ?? new Date().toISOString();
+      const rows = buildAppearancesFromMatch({ ...updated, recordedAt }, recordedAt);
+      await replaceAppearancesForMatch(updated, rows);
+    }
+
     return json(res, 200, updated);
   }
 

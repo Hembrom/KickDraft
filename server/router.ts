@@ -15,6 +15,8 @@ import groupImage from './handlers/group-image.js';
 import groupClaim from './handlers/group-claim.js';
 import groupRatings from './handlers/group-ratings.js';
 import groupPeerReviews from './handlers/group-peer-reviews.js';
+import groupAppearances from './handlers/group-appearances.js';
+import adminMatchRecord from './handlers/admin-match-record.js';
 import me from './handlers/me.js';
 import cronPurgeMatches from './handlers/cron-purge-matches.js';
 import { error } from './lib/auth.js';
@@ -66,6 +68,12 @@ const routes: Route[] = [
     method: 'GET',
     regex: /^\/api\/groups\/([^/]+)\/peer-reviews$/,
     handler: groupPeerReviews,
+    params: ['slug'],
+  },
+  {
+    method: 'GET',
+    regex: /^\/api\/groups\/([^/]+)\/appearances$/,
+    handler: groupAppearances,
     params: ['slug'],
   },
   {
@@ -145,6 +153,12 @@ const routes: Route[] = [
     regex: /^\/api\/admin\/groups\/([^/]+)\/upload$/,
     handler: adminGroupUpload,
     params: ['slug'],
+  },
+  {
+    method: 'PUT',
+    regex: /^\/api\/admin\/groups\/([^/]+)\/matches\/([^/]+)\/record$/,
+    handler: adminMatchRecord,
+    params: ['slug', 'matchId'],
   },
   {
     method: 'GET',

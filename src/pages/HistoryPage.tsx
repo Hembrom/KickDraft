@@ -29,9 +29,14 @@ export function HistoryPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Last 30 days</p>
           <h1 className="font-display text-3xl font-bold text-slate-900">Match history</h1>
         </div>
-        <Link to={`/${slug}`} className="btn-secondary">
-          Back to squad
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to={`/${slug}/games-played`} className="btn-secondary">
+            Games played
+          </Link>
+          <Link to={`/${slug}`} className="btn-secondary">
+            Back to squad
+          </Link>
+        </div>
       </div>
 
       {loading ? (
@@ -51,6 +56,11 @@ export function HistoryPage() {
               <div>
                 <p className="font-semibold text-slate-900">
                   {match.name.trim() || getMatchLabel(match)}
+                  {match.recordedAsPlayed ? (
+                    <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+                      Played
+                    </span>
+                  ) : null}
                 </p>
                 <p className="text-xs text-slate-500">
                   {match.name.trim() ? `${getMatchLabel(match)} · ` : ''}
