@@ -78,7 +78,7 @@ export interface GroundVenue {
 export const GROUND_VENUES: GroundVenue[] = [
   {
     id: 'turf-air-plaza-rosedale',
-    name: 'Turf Air Plaza',
+    name: 'Rosedale Turf Air Plaza',
     location: 'Rosedale Plaza, New Town (opposite St. Xavier\'s University)',
     imageUrl: '/grounds/turf-air-plaza.png',
     mapsUrl: 'https://maps.app.goo.gl/XSbH2XCSAB1Foiz38',
@@ -168,17 +168,62 @@ export const GROUND_VENUES: GroundVenue[] = [
   },
   {
     id: 'akankha-turf-newtown',
-    name: 'Akankha Futsal Ground',
-    location: 'Action Area II, New Town (near Akankha More & Highland Woods), Kolkata 700135',
+    name: 'Akankha Turf',
+    location: 'Action Area IIC, Reckjoani, New Town (near Akankha More), West Bengal 700161',
     imageUrl: '/grounds/akankha-turf-newtown.png',
     mapsUrl:
-      'https://www.google.com/maps/search/?api=1&query=Akankha+Futsal+Ground+Action+Area+II+New+Town+Kolkata+700135',
+      'https://www.google.com/maps/search/?api=1&query=Akankha+Turf+Action+Area+IIC+Reckjoani+Kolkata',
     bookingMethod: 'online',
     bookingLinks: [
       {
         label: 'Khelomore',
         url: 'https://www.khelomore.com/sports-venues/kolkata/akankha-turf-newtown,-action-area-2c/3895/book-slots',
       },
+    ],
+    phoneContacts: [
+      { display: '82405 08008', number: '918240508008' },
+      { display: '89101 16046', number: '918910116046' },
+    ],
+    openingHours:
+      'Play: Tue–Sun 6:00 AM – 11:59 PM · Booking desk: 8:00 AM – 8:00 PM · Closed Mondays',
+    priceHint: 'From ₹1,500/hr weekdays (day) · weekends from ₹2,000/hr',
+    rateChart: [
+      {
+        title: 'Weekdays',
+        rows: [
+          { label: 'Day', price: '₹1,500 per hour' },
+          { label: 'Night', price: '₹1,800 per hour' },
+        ],
+      },
+      {
+        title: 'Weekends',
+        rows: [
+          { label: 'Day', price: '₹2,000 per hour' },
+          { label: 'Night', price: '₹2,200 per hour' },
+        ],
+      },
+    ],
+    steps: [
+      'Book on Khelomore — pick your date and time slot — or call during booking hours.',
+      'Day vs night rates apply (see rate chart). Weekends cost more than weekdays.',
+      'Monday is closed. Not the same ground as nearby Akankha Futsal Ground (HIDCO).',
+    ],
+    notes: [
+      'Enclosed turf with floodlights — good for evening slots.',
+      'Book on Khelomore or call 82405 08008 / 89101 16046 between 8 AM and 8 PM.',
+      'Separate venue from Akankha Futsal Ground nearby — check you have the right booking.',
+      'Monday closed.',
+    ],
+  },
+  {
+    id: 'akankha-futsal-ground-newtown',
+    name: 'Akankha Futsal Ground',
+    location: 'Action Area II, New Town (near Akankha More & Highland Woods), Kolkata 700135',
+    imageUrl: '/grounds/akankha-futsal-ground-newtown.png',
+    mapsUrl:
+      'https://www.google.com/maps/search/?api=1&query=Akankha+Futsal+Ground+Action+Area+II+New+Town+Kolkata+700135',
+    bookingMethod: 'online',
+    bookingLinks: [
       {
         label: 'HIDCO',
         url: 'https://www.wbhidcoltd.com/futsal',
@@ -205,14 +250,15 @@ export const GROUND_VENUES: GroundVenue[] = [
       },
     ],
     steps: [
-      'Book on Khelomore or the HIDCO futsal page — pick your date and time slot — or call during booking hours.',
+      'Book on the HIDCO futsal page — pick your date and time slot — or call during booking hours.',
       'Day vs night rates apply (see rate chart). Weekends cost more than weekdays.',
-      'Monday is closed. Play hours run till midnight; phone booking is 8 AM – 8 PM.',
+      'Monday is closed. Separate from nearby Akankha Turf on Khelomore.',
     ],
     notes: [
-      'Enclosed futsal turf with floodlights — play till midnight Tue–Sun.',
-      'Book on Khelomore, the HIDCO official futsal page, or call 82405 08008 between 8 AM and 8 PM.',
-      'On-site: food stalls, kids play area, and public library (HIDCO campus).',
+      'HIDCO futsal campus with floodlights — play till midnight Tue–Sun.',
+      'Book on the HIDCO official futsal page or call 82405 08008 between 8 AM and 8 PM.',
+      'On-site: food stalls, kids play area, and public library.',
+      'Not the same ground as Akankha Turf nearby — confirm which venue you need.',
       'Monday closed.',
     ],
   },
