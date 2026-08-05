@@ -72,12 +72,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return error(res, 400, 'A player cannot appear on more than one team');
     }
 
-    const expectedIds = new Set(match.selectedPlayerIds);
-    if (
-      submittedIds.length !== expectedIds.size ||
-      submittedIds.some((id) => !expectedIds.has(id))
-    ) {
-      return error(res, 400, 'Teams must contain the same selected players');
+    // Same roster size only; players can be swapped with anyone in the group.
+    if (submittedIds.length !== match.selectedPlayerIds.length) {
+      return error(res, 400, 'Match must keep the same number of players');
     }
 
     const { players: rawPlayers } = await getGroupPlayers(slug);
@@ -87,7 +84,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const teamBPlayers = teamBPlayerIds.map((id) => byId.get(id));
     const teamCPlayers = isThreeWay ? teamCPlayerIds.map((id) => byId.get(id)) : [];
     if ([...teamAPlayers, ...teamBPlayers, ...teamCPlayers].some((player) => !player)) {
-      return error(res, 400, 'One or more players were not found');
+      return error(res, 400, 'One or more players were not found in this group');
     }
 
     const teamA = buildGeneratedTeam(
@@ -105,6 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let updated = {
       ...match,
+      selectedPlayerIds: submittedIds,
       teamA,
       teamB,
       ratingDifference: roundRating(Math.abs(teamA.totalRating - teamB.totalRating)),
@@ -120,6 +118,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const totals = [teamA.totalRating, teamB.totalRating, teamC.totalRating];
       updated = {
         ...match,
+        selectedPlayerIds: submittedIds,
         teamA,
         teamB,
         teamC,

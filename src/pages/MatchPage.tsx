@@ -152,12 +152,28 @@ export function MatchPage() {
     setDraftTeamCName(match.teamC?.name ?? DEFAULT_TEAM_NAMES.c);
     setError('');
 
-    if (tab === 'swap' && !isThreeTeamMatch(match)) {
+    if (tab === 'swap') {
       const current = enrichMatchWithRoster(match, players);
       setDraftTeamA([...current.teamA.players]);
       setDraftTeamB([...current.teamB.players]);
-      setDraftTeamC([]);
-      setDraftPool([]);
+      if (isThreeTeamMatch(match) && current.teamC) {
+        setDraftTeamC([...current.teamC.players]);
+        const onPitch = new Set(
+          [
+            ...current.teamA.players,
+            ...current.teamB.players,
+            ...current.teamC.players,
+          ].map((p) => p.id),
+        );
+        setDraftPool(
+          players
+            .filter((p) => !onPitch.has(p.id))
+            .sort((a, b) => a.name.localeCompare(b.name)),
+        );
+      } else {
+        setDraftTeamC([]);
+        setDraftPool([]);
+      }
       return;
     }
 
@@ -209,14 +225,14 @@ export function MatchPage() {
 
   function startEditing() {
     if (!match) return;
-    resetDraft(isThreeTeamMatch(match) ? 'lock' : 'swap');
+    resetDraft('swap');
     setEditing(true);
   }
 
   function cancelEditing() {
     if (saving) return;
     setEditing(false);
-    setEditTab(match && isThreeTeamMatch(match) ? 'lock' : 'swap');
+    setEditTab('swap');
     setDraftTeamA([]);
     setDraftTeamB([]);
     setDraftTeamC([]);
@@ -259,26 +275,48 @@ export function MatchPage() {
   }
 
   function swapPlayers(
-    fromTeam: EditorTeam,
+    fromLoc: EditorTeam | 'pool',
     fromPlayerId: string,
-    toTeam: EditorTeam,
+    toLoc: EditorTeam | 'pool',
     toPlayerId: string,
   ) {
-    if (fromTeam === toTeam || fromPlayerId === toPlayerId) return;
+    if (fromLoc === toLoc || fromPlayerId === toPlayerId) return;
 
-    const fromList = getDraftTeam(fromTeam);
-    const toList = getDraftTeam(toTeam);
-    const fromIndex = fromList.findIndex((player) => player.id === fromPlayerId);
-    const toIndex = toList.findIndex((player) => player.id === toPlayerId);
-    if (fromIndex === -1 || toIndex === -1) return;
+    if (fromLoc !== 'pool' && toLoc !== 'pool') {
+      const fromList = getDraftTeam(fromLoc);
+      const toList = getDraftTeam(toLoc);
+      const fromIndex = fromList.findIndex((player) => player.id === fromPlayerId);
+      const toIndex = toList.findIndex((player) => player.id === toPlayerId);
+      if (fromIndex === -1 || toIndex === -1) return;
 
-    const nextFrom = [...fromList];
-    const nextTo = [...toList];
-    const swapped = nextFrom[fromIndex];
-    nextFrom[fromIndex] = nextTo[toIndex];
-    nextTo[toIndex] = swapped;
-    setDraftTeam(fromTeam, nextFrom);
-    setDraftTeam(toTeam, nextTo);
+      const nextFrom = [...fromList];
+      const nextTo = [...toList];
+      const swapped = nextFrom[fromIndex];
+      nextFrom[fromIndex] = nextTo[toIndex];
+      nextTo[toIndex] = swapped;
+      setDraftTeam(fromLoc, nextFrom);
+      setDraftTeam(toLoc, nextTo);
+      setError('');
+      return;
+    }
+
+    // Pool ↔ team
+    const team = (fromLoc === 'pool' ? toLoc : fromLoc) as EditorTeam;
+    const teamPlayerId = fromLoc === 'pool' ? toPlayerId : fromPlayerId;
+    const poolPlayerId = fromLoc === 'pool' ? fromPlayerId : toPlayerId;
+    const teamList = getDraftTeam(team);
+    const teamIndex = teamList.findIndex((player) => player.id === teamPlayerId);
+    const poolIndex = draftPool.findIndex((player) => player.id === poolPlayerId);
+    if (teamIndex === -1 || poolIndex === -1) return;
+
+    const nextTeam = [...teamList];
+    const nextPool = [...draftPool];
+    const teamPlayer = nextTeam[teamIndex];
+    const poolPlayer = nextPool[poolIndex];
+    nextTeam[teamIndex] = poolPlayer;
+    nextPool[poolIndex] = teamPlayer;
+    setDraftTeam(team, nextTeam);
+    setDraftPool(nextPool.sort((a, b) => a.name.localeCompare(b.name)));
     setError('');
   }
 
@@ -398,13 +436,12 @@ export function MatchPage() {
     const teamBCapacity = match.teamB.players.length;
     const teamCCapacity = match.teamC?.players.length ?? 0;
     const threeWay = isThreeTeamMatch(match);
+    const sizesOk =
+      draftTeamA.length === teamACapacity &&
+      draftTeamB.length === teamBCapacity &&
+      (!threeWay || draftTeamC.length === teamCCapacity);
 
-    if (
-      draftTeamA.length !== teamACapacity ||
-      draftTeamB.length !== teamBCapacity ||
-      (threeWay && draftTeamC.length !== teamCCapacity) ||
-      draftPool.length > 0
-    ) {
+    if (!sizesOk || (editTab !== 'swap' && draftPool.length > 0)) {
       setError(`Assign all players first (${getMatchLabel(match)}).`);
       return;
     }
@@ -428,7 +465,7 @@ export function MatchPage() {
       );
       setMatch(updated);
       setEditing(false);
-      setEditTab(isThreeTeamMatch(match) ? 'lock' : 'swap');
+      setEditTab('swap');
       setDraftTeamA([]);
       setDraftTeamB([]);
       setDraftTeamC([]);
@@ -469,11 +506,12 @@ export function MatchPage() {
   const threeWay = isThreeTeamMatch(match);
   const matchLabel = getMatchLabel(match);
   const displayTitle = (match.name ?? '').trim() || `${matchLabel} lineup`;
-  const teamsComplete =
+  const sizesOk =
     draftTeamA.length === match.teamA.players.length &&
     draftTeamB.length === match.teamB.players.length &&
-    (!threeWay || draftTeamC.length === (match.teamC?.players.length ?? 0)) &&
-    draftPool.length === 0;
+    (!threeWay || draftTeamC.length === (match.teamC?.players.length ?? 0));
+  // Quick-swap may keep "rest of squad" in the pool; lock/manual require everyone assigned.
+  const teamsComplete = sizesOk && (editTab === 'swap' || draftPool.length === 0);
   const displayedMatch =
     editing && teamsComplete
       ? {
@@ -641,6 +679,7 @@ export function MatchPage() {
           Lineup preview updates once all teams are fully assigned.
         </p>
       ) : renamingTeams ? null : threeWay ? (
+
         <ThreeTeamMatchView
           pitchCaptureRef={pitchCaptureRef}
           match={displayedMatch}
