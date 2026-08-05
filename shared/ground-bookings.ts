@@ -214,6 +214,42 @@ export const GROUND_VENUES: GroundVenue[] = [
       'Monday closed. Turf playable 6 AM – 12 AM (midnight).',
     ],
   },
+  {
+    id: 'nova-turf-newtown',
+    name: 'Nova Turf',
+    location:
+      'DD 257 Road, Street Number 279, DD Block, Action Area I, New Town (near The Newtown School, Gate 1)',
+    imageUrl: '/grounds/nova-turf-newtown.png',
+    mapsUrl: 'https://maps.app.goo.gl/JDQ76rUKLYpoBLWv6',
+    bookingMethod: 'online',
+    bookingUrl: 'https://hudle.in/venues/nova-turf-new-town/330662',
+    bookingSiteLabel: 'Hudle',
+    openingHours: 'Mon–Sat 8:00 AM – 4:30 PM · Closed Sundays',
+    priceHint: 'From ₹1,500/hr (7v7 football) · 10% off on Hudle',
+    steps: [
+      'Open Book on Hudle — choose 7v7 Football (Turf), pick your date, then select your slot.',
+      'Check slot price at checkout — Hudle often shows a 10% discount.',
+      'Pay online to confirm. Arrive a few minutes early with your booking confirmation.',
+    ],
+    notes: [
+      'Open Mon–Sat 8:00 AM – 4:30 PM. Closed Sundays.',
+      'Enclosed turf with floodlights and blue spectator seating.',
+      '7v7 football turf — book on Hudle.',
+      'Near The Newtown School, Gate Number 1, Action Area I.',
+      'Closest metro: Salt Lake Sector 5 (~5.8 km).',
+    ],
+    pitchInfo: {
+      dimensions: '7v7 football turf',
+      dimensionsMetric: 'Full small-sided pitch',
+      dimensionsNote: 'Listed on Hudle as 7v7 Football (Turf).',
+      playingArea: 'Enclosed outdoor turf',
+      formatRatings: [
+        { format: '5v5', stars: 4 },
+        { format: '6v6', stars: 5 },
+        { format: '7v7', stars: 5, note: 'Primary format' },
+      ],
+    },
+  },
 ];
 
 export function getGroundVenue(id: string): GroundVenue | undefined {
