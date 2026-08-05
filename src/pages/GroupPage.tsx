@@ -9,6 +9,7 @@ import {
   getThreeWayMatchSizeLabel,
   teamSizesFromPlayerCount,
   teamSizesFromThreeWaySplit,
+  sortablePeerOvr,
   type Player,
 } from '@shared/types';
 import { cn } from '@/lib/utils';
@@ -16,6 +17,24 @@ import { cn } from '@/lib/utils';
 function matchNamePlaceholder() {
   const d = new Date();
   return `${d.toLocaleString('en-US', { month: 'long' })} ${d.getDate()} - Suresh`;
+}
+
+const CURRENT_YEAR = new Date().getFullYear();
+
+type SquadSortMode = 'default' | 'rating' | 'games-year';
+
+function buildRankMap(
+  players: Player[],
+  sortKey: (player: Player) => number,
+): Map<string, number> {
+  const sorted = [...players].sort(
+    (a, b) => sortKey(b) - sortKey(a) || a.name.localeCompare(b.name),
+  );
+  const ranks = new Map<string, number>();
+  sorted.forEach((player, index) => {
+    ranks.set(player.id, index + 1);
+  });
+  return ranks;
 }
 
 export function GroupPage() {
@@ -26,7 +45,8 @@ export function GroupPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [matchName, setMatchName] = useState('');
   const [search, setSearch] = useState('');
-  const [sortByRating, setSortByRating] = useState(false);
+  const [sortMode, setSortMode] = useState<SquadSortMode>('default');
+  const [gamesByYear, setGamesByYear] = useState<Record<string, Record<string, number>>>({});
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<'two' | 'three' | null>(null);
   const [error, setError] = useState('');
@@ -34,17 +54,25 @@ export function GroupPage() {
   useEffect(() => {
     setLoading(true);
     setError('');
-    api
-      .getGroup(slug)
-      .then((data) => {
-        setGroupName(data.name);
-        setPlayers(data.players);
+    Promise.all([
+      api.getGroup(slug),
+      api.getAppearances(slug).catch(() => ({ gamesByYear: {} as Record<string, Record<string, number>> })),
+    ])
+      .then(([group, appearances]) => {
+        setGroupName(group.name);
+        setPlayers(group.players);
+        setGamesByYear(appearances.gamesByYear ?? {});
       })
       .catch((err: unknown) => {
         setError(err instanceof ApiError ? err.message : 'Failed to load group');
       })
       .finally(() => setLoading(false));
   }, [slug]);
+
+  const gamesThisYear = useMemo(() => {
+    const yearMap = gamesByYear[String(CURRENT_YEAR)] ?? {};
+    return new Map(Object.entries(yearMap).map(([playerId, count]) => [playerId, count]));
+  }, [gamesByYear]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -58,20 +86,29 @@ export function GroupPage() {
             p.positions.some((pos) => pos.toLowerCase().includes(q)),
         );
 
-    if (sortByRating) {
-      list.sort((a, b) => b.ovr - a.ovr || a.name.localeCompare(b.name));
+    if (sortMode === 'rating') {
+      list.sort(
+        (a, b) => sortablePeerOvr(b) - sortablePeerOvr(a) || a.name.localeCompare(b.name),
+      );
+    } else if (sortMode === 'games-year') {
+      list.sort(
+        (a, b) =>
+          (gamesThisYear.get(b.id) ?? 0) - (gamesThisYear.get(a.id) ?? 0) ||
+          a.name.localeCompare(b.name),
+      );
     }
     return list;
-  }, [players, search, sortByRating]);
+  }, [players, search, sortMode, gamesThisYear]);
 
-  const ratingRanks = useMemo(() => {
-    const sorted = [...players].sort((a, b) => b.ovr - a.ovr || a.name.localeCompare(b.name));
-    const ranks = new Map<string, number>();
-    sorted.forEach((player, index) => {
-      ranks.set(player.id, index + 1);
-    });
-    return ranks;
-  }, [players]);
+  const ratingRanks = useMemo(
+    () => buildRankMap(players, (player) => sortablePeerOvr(player)),
+    [players],
+  );
+
+  const gamesRanks = useMemo(
+    () => buildRankMap(players, (player) => gamesThisYear.get(player.id) ?? 0),
+    [players, gamesThisYear],
+  );
 
   const selectedCount = selected.size;
   const teamSizes = teamSizesFromPlayerCount(selectedCount);
@@ -254,18 +291,22 @@ export function GroupPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className={cn(
-                'btn-secondary',
-                sortByRating && 'border-elite-300 bg-elite-50 text-elite-800',
-              )}
-              aria-pressed={sortByRating}
-              onClick={() => setSortByRating((v) => !v)}
-            >
-              <ArrowDownWideNarrow className="h-4 w-4" />
-              Sort by rating
-            </button>
+            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <ArrowDownWideNarrow className="h-4 w-4 shrink-0 text-elite-500" />
+              <span className="sr-only">Sort by</span>
+              <select
+                className={cn(
+                  'input max-w-[11rem] py-2 text-sm',
+                  sortMode !== 'default' && 'border-elite-300 bg-elite-50 text-elite-800',
+                )}
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as SquadSortMode)}
+              >
+                <option value="default">Sort by</option>
+                <option value="rating">Rating</option>
+                <option value="games-year">Games played — {CURRENT_YEAR}</option>
+              </select>
+            </label>
             <input
               className="input max-w-xs"
               placeholder="Search players…"
@@ -286,8 +327,16 @@ export function GroupPage() {
                 selectable
                 selected={selected.has(player.id)}
                 onToggle={() => togglePlayer(player.id)}
-                ratingRank={sortByRating ? ratingRanks.get(player.id) : undefined}
-                ratingTotal={sortByRating ? players.length : undefined}
+                sortRank={
+                  sortMode === 'rating'
+                    ? ratingRanks.get(player.id)
+                    : sortMode === 'games-year'
+                      ? gamesRanks.get(player.id)
+                      : undefined
+                }
+                sortTotal={sortMode === 'default' ? undefined : players.length}
+                sortMetric={sortMode === 'games-year' ? 'games' : 'ovr'}
+                gamesPlayed={gamesThisYear.get(player.id) ?? 0}
               />
             ))}
           </div>

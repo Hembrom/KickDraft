@@ -495,11 +495,19 @@ export async function applyEffectiveRatingsForGroup(
     const summaries = await getPeerRatingSummaries(groupSlug);
     return players.map((player) => {
       const summary = summaries.get(player.id);
-      if (!summary?.stats || summary.ratingCount === 0) return player;
+      const ratingCount = summary?.ratingCount ?? 0;
+      const peerOvr = ratingCount > 0 ? summary?.ovr ?? null : null;
+
+      if (!summary?.stats || ratingCount === 0) {
+        return { ...player, peerOvr: null, ratingCount: 0 };
+      }
+
       return {
         ...player,
         ...summary.stats,
         ovr: summary.ovr ?? player.ovr,
+        peerOvr,
+        ratingCount,
       };
     });
   } catch {

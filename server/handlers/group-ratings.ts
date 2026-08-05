@@ -9,6 +9,7 @@ import {
   listRatingsByRater,
   parseStats,
   upsertPeerRating,
+  applyEffectiveRatingsForGroup,
 } from '../lib/peer-ratings.js';
 import { getGroupPlayers, groupExists } from '../lib/storage.js';
 import { slugify, STAT_MAX, STAT_MIN, type PlayerStats } from '../../shared/types.js';
@@ -31,11 +32,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'GET') {
     try {
-      const [{ players }, myRatings, summaries] = await Promise.all([
+      const [{ players: rawPlayers }, myRatings, summaries] = await Promise.all([
         getGroupPlayers(slug),
         listRatingsByRater(claim.playerId),
         getPeerRatingSummaries(slug),
       ]);
+      const players = await applyEffectiveRatingsForGroup(slug, rawPlayers);
 
       const rateable = players
         .filter((p) => p.id !== claim.playerId)

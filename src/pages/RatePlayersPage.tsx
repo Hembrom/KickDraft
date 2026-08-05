@@ -46,6 +46,17 @@ function clampStat(value: number) {
   return Math.min(STAT_MAX, Math.max(STAT_MIN, Math.round(value)));
 }
 
+function myRatingOvr(rating: PeerRating): number {
+  return calculateOvr({
+    pace: rating.pace,
+    shooting: rating.shooting,
+    passing: rating.passing,
+    dribbling: rating.dribbling,
+    defending: rating.defending,
+    physicality: rating.physicality,
+    stamina: rating.stamina,
+  });
+}
 function formatCooldown(ms: number) {
   const days = Math.ceil(ms / (24 * 60 * 60 * 1000));
   return `${days} day${days === 1 ? '' : 's'}`;
@@ -237,12 +248,22 @@ export function RatePlayersPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-slate-900">{player.name}</p>
                       <p className="text-xs font-display font-bold text-elite-600">
-                        OVR {roundRating(player.ovr)}
+                        {player.peerOvr != null ? (
+                          <>OVR {roundRating(player.peerOvr)}</>
+                        ) : (
+                          <span className="text-slate-400">Unrated</span>
+                        )}
                       </p>
                       {hasClaim && target ? (
                         <p className="text-[11px] text-slate-500">
-                          Peer {target.peerOvr != null ? roundRating(target.peerOvr) : '—'} ·{' '}
+                          {target.myRating ? (
+                            <>You: OVR {roundRating(myRatingOvr(target.myRating))} · </>
+                          ) : null}
                           {target.ratingCount} rating{target.ratingCount === 1 ? '' : 's'}
+                        </p>
+                      ) : player.ratingCount != null && player.ratingCount > 0 ? (
+                        <p className="text-[11px] text-slate-500">
+                          {player.ratingCount} rating{player.ratingCount === 1 ? '' : 's'}
                         </p>
                       ) : null}
                     </div>

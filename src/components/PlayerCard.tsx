@@ -5,7 +5,8 @@ import {
   getPositionLabel,
   getPositionsLabel,
   normalizePlayer,
-  roundRating,
+  formatDisplayOvr,
+  displayOvr,
   type Player,
   type PlayerPosition,
 } from '@shared/types';
@@ -17,9 +18,12 @@ interface PlayerCardProps {
   selected?: boolean;
   selectable?: boolean;
   onToggle?: () => void;
-  /** Squad rank by OVR when sort-by-rating is on, e.g. 5 of 26 */
-  ratingRank?: number;
-  ratingTotal?: number;
+  /** Squad rank when a sort mode is active, e.g. 5 of 26 */
+  sortRank?: number;
+  sortTotal?: number;
+  /** Which stat to show beside the rank when sorting */
+  sortMetric?: 'ovr' | 'games';
+  gamesPlayed?: number;
 }
 
 const POPUP_SCALE_DESKTOP = 1.8;
@@ -120,8 +124,10 @@ export function PlayerCard({
   selected = false,
   selectable,
   onToggle,
-  ratingRank,
-  ratingTotal,
+  sortRank,
+  sortTotal,
+  sortMetric = 'ovr',
+  gamesPlayed,
 }: PlayerCardProps) {
   const normalized = normalizePlayer(player);
   const anchorRef = useRef<HTMLDivElement | null>(null);
@@ -268,12 +274,20 @@ export function PlayerCard({
               {normalized.favouriteClub ? ` · ${normalized.favouriteClub}` : ''}
             </p>
             <p className="mt-1 text-sm font-display font-bold text-elite-600">
-              {ratingRank != null && ratingTotal != null ? (
+              {sortRank != null && sortTotal != null ? (
                 <span className="mr-2 tabular-nums text-slate-500">
-                  {ratingRank}/{ratingTotal}
+                  {sortRank}/{sortTotal}
                 </span>
               ) : null}
-              OVR {roundRating(normalized.ovr)}
+              {sortMetric === 'games' ? (
+                <>
+                  {gamesPlayed ?? 0} game{(gamesPlayed ?? 0) === 1 ? '' : 's'}
+                </>
+              ) : displayOvr(normalized) != null ? (
+                <>OVR {formatDisplayOvr(normalized)}</>
+              ) : (
+                <span className="text-slate-400">Unrated</span>
+              )}
             </p>
           </div>
         </div>

@@ -84,6 +84,7 @@ export const api = {
         playerCount: number;
       }>;
       totalAppearances: number;
+      gamesByYear: Record<string, Record<string, number>>;
     }>(`/api/groups/${slug}/appearances`);
   },
 

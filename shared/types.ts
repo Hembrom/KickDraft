@@ -16,6 +16,9 @@ export interface Player extends PlayerStats {
   favouriteClub: string;
   clubLogoUrl: string | null;
   ovr: number;
+  /** Teammate-rated OVR for display; null until at least one peer rating exists. */
+  peerOvr?: number | null;
+  ratingCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -221,6 +224,28 @@ export function calculateOvr(stats: PlayerStats): number {
     stats.physicality +
     stats.stamina;
   return roundRating(sum / 7);
+}
+
+export function hasPeerOvr(player: Pick<Player, 'peerOvr' | 'ratingCount'>): boolean {
+  return (player.ratingCount ?? 0) > 0 && player.peerOvr != null;
+}
+
+/** OVR shown in the UI — peer average only; unrated players show as null. */
+export function displayOvr(player: Pick<Player, 'ovr' | 'peerOvr' | 'ratingCount'>): number | null {
+  if (player.ratingCount === 0) return null;
+  if (player.peerOvr != null) return player.peerOvr;
+  if (player.ratingCount == null) return player.ovr;
+  return null;
+}
+
+export function formatDisplayOvr(player: Pick<Player, 'ovr' | 'peerOvr' | 'ratingCount'>): string {
+  const ovr = displayOvr(player);
+  return ovr != null ? String(roundRating(ovr)) : '—';
+}
+
+/** Sort key for rating order; unrated players sort last. */
+export function sortablePeerOvr(player: Pick<Player, 'ovr' | 'peerOvr' | 'ratingCount'>): number {
+  return displayOvr(player) ?? -1;
 }
 
 /** Players may re-rate the same teammate after this cooldown. */

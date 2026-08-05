@@ -80,11 +80,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       (a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime(),
     );
 
+    const gamesByYear: Record<string, Record<string, number>> = {};
+    for (const row of appearances) {
+      const year = String(new Date(row.matchDate).getFullYear());
+      if (!gamesByYear[year]) gamesByYear[year] = {};
+      gamesByYear[year][row.playerId] = (gamesByYear[year][row.playerId] ?? 0) + 1;
+    }
+
     return json(res, 200, {
       group: meta,
       players,
       recordedMatches,
       totalAppearances: appearances.length,
+      gamesByYear,
     });
   } catch (err) {
     return error(res, 500, getErrorMessage(err, 'Failed to load games played'));
