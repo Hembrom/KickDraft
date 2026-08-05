@@ -87,15 +87,16 @@ export const GROUND_VENUES: GroundVenue[] = [
     bookingSiteLabel: 'Rosedale Plaza',
     whatsappNumber: '919831531369',
     phoneDisplay: '98315 31369',
-    priceHint: 'From ₹1,250 per slot (~₹62.5/head for 20 players)',
+    priceHint: '₹2,500 per hour',
     steps: [
       'Open Book online — choose Football, pick your date, then select your time slot(s).',
-      'Add number of players (1–20). Slots after 5 PM are peak hour (+₹100 per 30 min).',
+      'Add number of players (1–20). Evening slots after 5 PM may cost more — check at checkout.',
       'Pay in full at checkout. Cart holds slots for only 2 minutes — pay right away.',
       'Arrive 30 minutes before your slot. Booking confirmation comes by email/SMS.',
     ],
     notes: [
-      '6:30 AM – 4:30 PM = normal hour slots. After 5:00 PM = peak (+₹100 per 30 min).',
+      'Standard rate: ₹2,500 per hour.',
+      'After 5:00 PM = peak pricing — check Rosedale Plaza for the exact slot rate.',
       'Check-in 30 minutes before play. Max 20 players per booking.',
       'Full payment required when you book online.',
       'No football/bats provided. Soft canvas cricket/tennis ball only on cricket mat.',
@@ -128,7 +129,7 @@ export const GROUND_VENUES: GroundVenue[] = [
     openingHours: 'Open daily: 5:00 AM – 11:00 PM',
     sampleMessage:
       'Ground 2 (small), available hai kya for Friday, July 11 from 5–6:30 PM?',
-    priceHint: 'From ₹1,500/hr (Ground 2) · Ground 1 ₹1,800/hr',
+    priceHint: 'Ground 2 ₹1,500 per hour · Ground 1 ₹1,800 per hour',
     steps: [
       'Open WhatsApp or call the ground contact.',
       'Say which ground you want — Ground 1 (large) or Ground 2 (small) — plus date and time.',
@@ -136,8 +137,8 @@ export const GROUND_VENUES: GroundVenue[] = [
     ],
     notes: [
       'Rooftop turf, fully netted — floodlights for evening slots.',
-      'Ground 2 (small): 5v5 or 6v6 only — ₹1,500/hr. Best choice right now — turf in great shape.',
-      'Ground 1 (large): 6v6 or 7v7 max — ₹1,800/hr. Not advisable in rainy season — no rubber infill on the surface at the moment.',
+      'Ground 2 (small): 5v5 or 6v6 only — ₹1,500 per hour. Best choice right now — turf in great shape.',
+      'Ground 1 (large): 6v6 or 7v7 max — ₹1,800 per hour. Not advisable in rainy season — no rubber infill on the surface at the moment.',
       'Book by WhatsApp or phone — no online checkout.',
     ],
     grounds: [
@@ -186,29 +187,14 @@ export const GROUND_VENUES: GroundVenue[] = [
     ],
     openingHours:
       'Play: Tue–Sun 6:00 AM – 11:59 PM · Booking desk: 8:00 AM – 8:00 PM · Closed Mondays',
-    priceHint: 'From ₹1,500/hr weekdays (day) · weekends from ₹2,000/hr',
-    rateChart: [
-      {
-        title: 'Weekdays',
-        rows: [
-          { label: 'Day', price: '₹1,500 per hour' },
-          { label: 'Night', price: '₹1,800 per hour' },
-        ],
-      },
-      {
-        title: 'Weekends',
-        rows: [
-          { label: 'Day', price: '₹2,000 per hour' },
-          { label: 'Night', price: '₹2,200 per hour' },
-        ],
-      },
-    ],
+    priceHint: '₹1,500 per hour',
     steps: [
       'Book on Khelomore — pick your date and time slot — or call during booking hours.',
-      'Day vs night rates apply (see rate chart). Weekends cost more than weekdays.',
+      'Pay the hourly rate shown when you book or confirm by phone.',
       'Monday is closed. Play hours run till midnight; phone booking is 8 AM – 8 PM.',
     ],
     notes: [
+      '₹1,500 per hour.',
       'Enclosed turf with floodlights — good for evening slots.',
       'Book on Khelomore or call 82405 08008 / 89101 16046 between 8 AM and 8 PM.',
       'Monday closed. Turf playable 6 AM – 12 AM (midnight).',
@@ -225,13 +211,14 @@ export const GROUND_VENUES: GroundVenue[] = [
     bookingUrl: 'https://hudle.in/venues/nova-turf-new-town/330662',
     bookingSiteLabel: 'Hudle',
     openingHours: 'Mon–Sat 8:00 AM – 4:30 PM · Closed Sundays',
-    priceHint: 'From ₹1,500/hr (7v7 football) · 10% off on Hudle',
+    priceHint: '₹2,700 per hour (7v7 football)',
     steps: [
       'Open Book on Hudle — choose 7v7 Football (Turf), pick your date, then select your slot.',
-      'Check slot price at checkout — Hudle often shows a 10% discount.',
+      'Standard rate is ₹2,700 per hour — Hudle may show a 10% discount at checkout.',
       'Pay online to confirm. Arrive a few minutes early with your booking confirmation.',
     ],
     notes: [
+      '₹2,700 per hour for 7v7 football.',
       'Open Mon–Sat 8:00 AM – 4:30 PM. Closed Sundays.',
       'Enclosed turf with floodlights and blue spectator seating.',
       '7v7 football turf — book on Hudle.',
