@@ -323,6 +323,8 @@ function HopInToolbar({
   teamAName,
   teamBName,
   teamCName,
+  swapWithMode,
+  onToggleSwapWith,
   onMoveToTeam,
 }: {
   playerName: string;
@@ -330,36 +332,64 @@ function HopInToolbar({
   teamAName: string;
   teamBName: string;
   teamCName?: string;
+  swapWithMode: boolean;
+  onToggleSwapWith: () => void;
   onMoveToTeam: (targetTeam: EditorTeam) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-elite-200 bg-elite-50/80 px-3 py-2.5">
-      <span className="text-sm text-slate-700">
-        Move <strong>{playerName}</strong> to
-      </span>
-      <button
-        type="button"
-        className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-        onClick={() => onMoveToTeam('a')}
-      >
-        {teamAName}
-      </button>
-      <button
-        type="button"
-        className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50"
-        onClick={() => onMoveToTeam('b')}
-      >
-        {teamBName}
-      </button>
-      {threeTeam ? (
+    <div className="space-y-2 rounded-xl border border-elite-200 bg-elite-50/80 px-3 py-2.5">
+      {!swapWithMode ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-slate-700">
+            Move <strong>{playerName}</strong> to
+          </span>
+          <button
+            type="button"
+            className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+            onClick={() => onMoveToTeam('a')}
+          >
+            {teamAName}
+          </button>
+          <button
+            type="button"
+            className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-50"
+            onClick={() => onMoveToTeam('b')}
+          >
+            {teamBName}
+          </button>
+          {threeTeam ? (
+            <button
+              type="button"
+              className="rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-sm font-semibold text-amber-800 hover:bg-amber-50"
+              onClick={() => onMoveToTeam('c')}
+            >
+              {teamCName ?? 'Team C'}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        {!swapWithMode ? (
+          <p className="text-xs text-slate-500">
+            Adds to the team when there is space. If the side is full, choose who moves to rest of
+            squad.
+          </p>
+        ) : (
+          <p className="text-sm text-slate-700">
+            Swap <strong>{playerName}</strong> with someone on a team — tap that player.
+          </p>
+        )}
         <button
           type="button"
-          className="rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-sm font-semibold text-amber-800 hover:bg-amber-50"
-          onClick={() => onMoveToTeam('c')}
+          className={cn(
+            'text-xs font-semibold underline-offset-2 hover:underline',
+            swapWithMode ? 'text-slate-600' : 'text-elite-700',
+          )}
+          onClick={onToggleSwapWith}
         >
-          {teamCName ?? 'Team C'}
+          {swapWithMode ? 'Back to move to team' : 'Or swap with someone on a team'}
         </button>
-      ) : null}
+      </div>
     </div>
   );
 }
@@ -371,9 +401,12 @@ function MultiTeamSwapPanel({
   threeTeam,
   selected,
   pendingMove,
+  swapWithMode,
   onSelect,
   onSwapPair,
   onMoveToTeam,
+  onCancelPendingMove,
+  onToggleSwapWith,
 }: {
   teams: Array<{ key: EditorTeam; name: string; players: Player[]; accent: string }>;
   poolPlayers: Player[];
@@ -381,6 +414,7 @@ function MultiTeamSwapPanel({
   threeTeam: boolean;
   selected: { source: DragSource; playerId: string } | null;
   pendingMove: { playerId: string; targetTeam: EditorTeam } | null;
+  swapWithMode: boolean;
   onSelect: (source: DragSource, playerId: string) => void;
   onSwapPair: (
     from: DragSource,
@@ -389,6 +423,8 @@ function MultiTeamSwapPanel({
     toPlayerId: string,
   ) => void;
   onMoveToTeam: (targetTeam: EditorTeam) => void;
+  onCancelPendingMove: () => void;
+  onToggleSwapWith: () => void;
 }) {
   function handlePick(source: DragSource, playerId: string) {
     if (pendingMove) {
@@ -423,7 +459,14 @@ function MultiTeamSwapPanel({
       return;
     }
 
-    // Rest of squad selected — tapping a team switches selection (use Move bar to hop in).
+    // Rest of squad selected — swap only in swap mode; otherwise use Move bar.
+    if (selected.source === 'pool' && source !== 'pool' && swapWithMode) {
+      onSwapPair('pool', selected.playerId, source, playerId);
+      return;
+    }
+    if (selected.source === 'pool' && source !== 'pool') {
+      return;
+    }
     onSelect(source, playerId);
   }
 
@@ -446,14 +489,16 @@ function MultiTeamSwapPanel({
     : null;
 
   const hint = pendingMove
-    ? `${pendingPoolPlayer?.name ?? 'Player'} → ${pendingTeamName}: tap Replace on who goes to ${poolLabel.toLowerCase()}.`
+    ? `Adding ${pendingPoolPlayer?.name ?? 'player'} to ${pendingTeamName} — tap who moves to ${poolLabel.toLowerCase()}.`
     : selected
       ? selectedName
         ? selected.source === 'pool'
-          ? `Selected ${selectedName} — use Move to a team above, or tap a team player to switch to swap mode.`
+          ? swapWithMode
+            ? `Swap ${selectedName} — tap a player on Team A, B${threeTeam ? ', or C' : ''}.`
+            : `Selected ${selectedName} — use Move to a team above, or swap with someone on a team.`
           : `Selected ${selectedName} — tap someone in ${poolLabel.toLowerCase()} to swap.`
         : 'Selected — tap another player to swap'
-      : `Tap a team player, then tap ${poolLabel.toLowerCase()} to swap. Select ${poolLabel.toLowerCase()} to hop in.`;
+      : `Tap a team player, then tap ${poolLabel.toLowerCase()} to swap. Select ${poolLabel.toLowerCase()} to add someone to a team.`;
 
   const poolColumn = {
     key: 'pool' as DragSource,
@@ -482,7 +527,18 @@ function MultiTeamSwapPanel({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-600">{hint}</p>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <p className="text-sm text-slate-600">{hint}</p>
+        {pendingMove ? (
+          <button
+            type="button"
+            className="text-sm font-semibold text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+            onClick={onCancelPendingMove}
+          >
+            Cancel
+          </button>
+        ) : null}
+      </div>
       {poolOnlySelected && selectedPoolName ? (
         <HopInToolbar
           playerName={selectedPoolName}
@@ -490,6 +546,8 @@ function MultiTeamSwapPanel({
           teamAName={teamAName}
           teamBName={teamBName}
           teamCName={teamCName}
+          swapWithMode={swapWithMode}
+          onToggleSwapWith={onToggleSwapWith}
           onMoveToTeam={onMoveToTeam}
         />
       ) : null}
@@ -547,7 +605,7 @@ function MultiTeamSwapPanel({
                 col.players.map((player) => {
                   const isSelected =
                     selected?.source === col.key && selected.playerId === player.id;
-                  const showReplace = pendingMove?.targetTeam === col.key;
+                  const showMoveOut = pendingMove?.targetTeam === col.key;
                   return (
                     <div
                       key={player.id}
@@ -555,7 +613,7 @@ function MultiTeamSwapPanel({
                         'flex items-center gap-2 rounded-xl border p-2 transition',
                         isSelected
                           ? col.selectedBorder
-                          : showReplace
+                          : showMoveOut
                             ? 'border-amber-200 bg-amber-50/40 hover:border-amber-300'
                             : 'border-slate-200 bg-slate-50/60 hover:border-elite-200',
                       )}
@@ -570,7 +628,7 @@ function MultiTeamSwapPanel({
                           <PlayerSummary player={player} />
                         </div>
                       </button>
-                      {showReplace && pendingMove ? (
+                      {showMoveOut && pendingMove ? (
                         <button
                           type="button"
                           className="shrink-0 rounded-lg border border-amber-300 bg-white px-2 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-50"
@@ -578,8 +636,9 @@ function MultiTeamSwapPanel({
                             event.stopPropagation();
                             onSwapPair('pool', pendingMove.playerId, col.key, player.id);
                           }}
+                          title={`${player.name} moves to ${poolLabel.toLowerCase()}`}
                         >
-                          Replace
+                          To rest of squad
                         </button>
                       ) : null}
                     </div>
@@ -661,6 +720,7 @@ export function TeamEditor({
     playerId: string;
     targetTeam: EditorTeam;
   } | null>(null);
+  const [swapWithMode, setSwapWithMode] = useState(false);
 
   const resetDrag = () => {
     setDragging(null);
@@ -683,6 +743,7 @@ export function TeamEditor({
   function clearSwapSelection() {
     setMultiSelected(null);
     setPendingMove(null);
+    setSwapWithMode(false);
   }
 
   function handleHopInToTeam(targetTeam: EditorTeam) {
@@ -785,9 +846,7 @@ export function TeamEditor({
         </div>
         <p className="mt-2 text-sm text-slate-600">
           {tab === 'swap'
-            ? threeTeam
-              ? 'Swap: tap a team player, then rest of squad. Hop in: select rest of squad only, then Move to a team.'
-              : 'Swap: tap a team player, then rest of squad. Hop in: select rest of squad only, then Move to a team.'
+            ? 'Swap: team player, then rest of squad. Add: select rest of squad, Move to a team (or swap with someone on a team).'
             : tab === 'lock'
               ? threeTeam
                 ? 'Name each team, place the players you want fixed, then Fill rest of teams to balance the remainder.'
@@ -828,8 +887,10 @@ export function TeamEditor({
           threeTeam={threeTeam}
           selected={multiSelected}
           pendingMove={pendingMove}
+          swapWithMode={swapWithMode}
           onSelect={(source, playerId) => {
             setPendingMove(null);
+            setSwapWithMode(false);
             setMultiSelected({ source, playerId });
           }}
           onSwapPair={(from, fromId, to, toId) => {
@@ -837,6 +898,8 @@ export function TeamEditor({
             clearSwapSelection();
           }}
           onMoveToTeam={handleHopInToTeam}
+          onCancelPendingMove={() => setPendingMove(null)}
+          onToggleSwapWith={() => setSwapWithMode((current) => !current)}
         />
       ) : (
       <div
