@@ -158,22 +158,22 @@ export function MatchPage() {
       setDraftTeamB([...current.teamB.players]);
       if (isThreeTeamMatch(match) && current.teamC) {
         setDraftTeamC([...current.teamC.players]);
-        const onPitch = new Set(
-          [
-            ...current.teamA.players,
-            ...current.teamB.players,
-            ...current.teamC.players,
-          ].map((p) => p.id),
-        );
-        setDraftPool(
-          players
-            .filter((p) => !onPitch.has(p.id))
-            .sort((a, b) => a.name.localeCompare(b.name)),
-        );
       } else {
         setDraftTeamC([]);
-        setDraftPool([]);
       }
+
+      const onPitch = new Set(
+        [
+          ...current.teamA.players,
+          ...current.teamB.players,
+          ...(current.teamC?.players ?? []),
+        ].map((p) => p.id),
+      );
+      setDraftPool(
+        players
+          .filter((p) => !onPitch.has(p.id))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      );
       return;
     }
 

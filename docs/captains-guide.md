@@ -26,8 +26,10 @@ Under **Today's availability**, tap the checkbox for each player who is coming o
 | 12 | 6v6 |
 | 14 | 7v7 |
 
+**Three-way split** (12–22 players): tap **Three-way split** instead of Balance teams — e.g. 15 → 5v5v5, 21 → 7v7v7. Extra squad members stay in **Rest of squad** until you swap them onto a team.
+
 ### 4. Balance teams
-Tap **Balance teams**. The app splits your selection using:
+Tap **Balance teams** for two sides, or **Three-way split** for three rotating sides. The app splits your selection using:
 
 - **OVR** — average of all seven stats including **stamina**
 - **Stamina leaders** — top 4 stamina players → **2 per side**
@@ -47,9 +49,9 @@ Tap a player to see their card — **STA** is stamina.
 
 | Mode | What you do |
 |------|-------------|
-| **Quick swap** | Default for 2-team matches. Pick one player on each side, tap **Swap** or use **→** / **←** for a 1-for-1 trade |
-| **Lock & shuffle** | Place a few players on Team A or B, tap **Fill rest of teams** — app balances the remainder |
-| **Manual** | Assign every player yourself (arrows or drag). Nothing auto-filled. |
+| **Quick swap** | Tap one player, then another on a different list to swap. **2 teams:** Team A, Team B, or **Rest of squad**. **3 teams:** Team A, B, C, or Rest of squad |
+| **Lock & shuffle** | Place a few players on each team (name A/B/C on three-way matches), tap **Fill rest of teams** — app balances the remainder |
+| **Manual** | Assign every player yourself (arrows or drag). Three-way shows A, B, C plus the pool. Nothing auto-filled |
 
 ### 7. Share on WhatsApp
 Tap **Share match**. You get:
@@ -66,9 +68,9 @@ https://kick-draft.vercel.app/newtown-sporting-club/match/...
 ---
 
 ## Tips
-- Select **9–22 players** for a match
+- Select **9–22 players** for two teams, or **12–22** for three-way split
 - Stamina (STA) is in OVR and in the top-4 stamina split
-- Shuffle again = new teams; Edit teams = swap, lock, or assign players yourself
+- Shuffle again = new teams; Edit teams = swap with rest of squad, lock, or assign players yourself
 - Past matches are in **Match history** (30 days)
 
 ---

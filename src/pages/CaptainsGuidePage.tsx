@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeftRight, ArrowRight, Lock, Pencil, Shuffle, Wand2 } from 'lucide-react';
+import { ArrowLeftRight, ArrowRight, Lock, Pencil, Shuffle, Split, Wand2 } from 'lucide-react';
 
 const APP_URL = 'https://kick-draft.vercel.app';
 const GUIDE_URL = `${APP_URL}/guide`;
@@ -76,7 +76,9 @@ export function CaptainsGuidePage() {
       <section className="card space-y-3 p-5">
         <h2 className="font-display text-lg font-bold">4 · Balance teams</h2>
         <p className="text-sm text-slate-600">
-          Tap <strong>Balance teams</strong>. The app builds two fair sides using:
+          Tap <strong>Balance teams</strong> for two sides, or <strong>Three-way split</strong>{' '}
+          when you have 12+ players and want three rotating sides (e.g. 15 → 5v5v5). The app builds
+          fair sides using:
         </p>
         <ul className="list-inside list-disc space-y-1 text-sm text-slate-600">
           <li>
@@ -103,6 +105,17 @@ export function CaptainsGuidePage() {
           Tap a player on the pitch to see their card — <strong>STA</strong> is stamina on the
           gold card.
         </p>
+        <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 text-sm text-slate-600">
+          <p className="flex items-start gap-2 font-semibold text-slate-800">
+            <Split className="mt-0.5 h-4 w-4 shrink-0 text-elite-600" />
+            Three-way split (12–22 players)
+          </p>
+          <p className="mt-1">
+            Tap <strong>Three-way split</strong> instead of Balance teams. You get Team A, B, and C
+            on one pitch — e.g. 15 players → 5v5v5, 21 → 7v7v7. Extra squad members who are not
+            on a team stay in <strong>Rest of squad</strong> until you swap them in.
+          </p>
+        </div>
       </section>
 
       <section className="card space-y-4 p-5">
@@ -157,11 +170,19 @@ export function CaptainsGuidePage() {
               <div>
                 <p className="text-sm font-semibold text-slate-800">Quick swap</p>
                 <p className="text-sm text-slate-600">
-                  Opens by default for 2-team matches. Current lineups are loaded — pick one
-                  player on Team A and one on Team B, then tap <strong>Swap</strong> or use the{' '}
-                  <strong>→</strong> / <strong>←</strong> arrows. Good for a 1-for-1 trade without
-                  reshuffling everyone.
+                  Opens by default. Current lineups are loaded — tap one player, then tap another on
+                  a different list to swap them.
                 </p>
+                <ul className="mt-1 list-inside list-disc space-y-0.5 text-sm text-slate-600">
+                  <li>
+                    <strong>2 teams</strong> — swap between Team A, Team B, or{' '}
+                    <strong>Rest of squad</strong> (players you ticked but left off the pitch)
+                  </li>
+                  <li>
+                    <strong>3 teams</strong> — swap between Team A, B, C, or Rest of squad the same
+                    way
+                  </li>
+                </ul>
               </div>
             </div>
             <div className="flex items-start gap-2">
@@ -169,8 +190,9 @@ export function CaptainsGuidePage() {
               <div>
                 <p className="text-sm font-semibold text-slate-800">Lock &amp; shuffle</p>
                 <p className="text-sm text-slate-600">
-                  Drag a few players onto Team A or B — e.g. keep mates together or fix a
-                  keeper. Tap <strong>Fill rest of teams</strong>{' '}
+                  Drag a few players onto each team — e.g. keep mates together or fix a keeper.
+                  For three-way matches you can name Team A / B / C here. Tap{' '}
+                  <strong>Fill rest of teams</strong>{' '}
                   <Wand2 className="inline h-3.5 w-3.5 text-slate-500" /> and the app randomly
                   balances everyone left (OVR + stamina rules still apply).
                 </p>
@@ -182,7 +204,8 @@ export function CaptainsGuidePage() {
                 <p className="text-sm font-semibold text-slate-800">Manual</p>
                 <p className="text-sm text-slate-600">
                   Assign <strong>every player yourself</strong> with the arrows or drag-and-drop.
-                  Nothing is auto-filled. Save when both teams are full.
+                  Three-way matches show Team A, B, C plus the rest-of-squad pool. Nothing is
+                  auto-filled. Save when all teams are full.
                 </p>
               </div>
             </div>
@@ -224,9 +247,12 @@ export function CaptainsGuidePage() {
       <section className="card space-y-2 p-5">
         <h2 className="font-display text-lg font-bold">Quick tips</h2>
         <ul className="list-inside list-disc space-y-1 text-sm text-slate-600">
-          <li>Need 9–22 players selected for a match</li>
+          <li>Need 9–22 players for two teams, or 12–22 for three-way split</li>
           <li>Stamina (STA) counts in OVR and in the top-4 stamina split</li>
-          <li>Shuffle again = new teams; Edit teams = swap, lock, or assign players yourself</li>
+          <li>
+            Shuffle again = new teams; Edit teams = swap with rest of squad, lock, or assign
+            players yourself
+          </li>
           <li>Match history keeps lineups from the last 30 days</li>
         </ul>
       </section>
