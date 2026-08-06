@@ -172,9 +172,8 @@ export function CaptainsGuidePage() {
                 <p className="text-sm text-slate-600">
                   <strong>Swap:</strong> tap a player on Team A / B / C, then tap someone in{' '}
                   <strong>Rest of squad</strong>.{' '}
-                  <strong>Add:</strong> select rest of squad — Move to Team A / B / C adds them
-                  (picks who moves to rest of squad if the side is full). Or swap with someone on
-                  a team.
+                  <strong>Add:</strong> select rest of squad → Move to Team A / B / C. If that side is
+                  full, tap one player on the team who moves to rest of squad — then save.
                 </p>
               </div>
             </div>

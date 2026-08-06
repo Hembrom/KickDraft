@@ -49,7 +49,7 @@ Tap a player to see their card — **STA** is stamina.
 
 | Mode | What you do |
 |------|-------------|
-| **Quick swap** | **Swap:** team player → rest of squad. **Add:** select rest of squad → Move to team (or swap with someone on a team); if full, pick who moves to rest of squad |
+| **Quick swap** | **Swap:** team player → rest of squad. **Add:** rest of squad → Move to team; if full, tap who moves to rest of squad, then save |
 | **Lock & shuffle** | Place a few players on each team (name A/B/C on three-way matches), tap **Fill rest of teams** — app balances the remainder |
 | **Manual** | Assign every player yourself (arrows or drag). Three-way shows A, B, C plus the pool. Nothing auto-filled |
 

@@ -371,8 +371,8 @@ function HopInToolbar({
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         {!swapWithMode ? (
           <p className="text-xs text-slate-500">
-            Adds straight to the team. If the side is already full, pick who moves to rest of squad
-            next.
+            Adds to the team. If the side is already full, tap one player on that team who moves to
+            rest of squad.
           </p>
         ) : (
           <p className="text-sm text-slate-700">
@@ -405,7 +405,6 @@ function MultiTeamSwapPanel({
   onSelect,
   onSwapPair,
   onMoveToTeam,
-  onSendTeamPlayerToPool,
   onCancelPendingMove,
   onToggleSwapWith,
 }: {
@@ -424,17 +423,17 @@ function MultiTeamSwapPanel({
     toPlayerId: string,
   ) => void;
   onMoveToTeam: (targetTeam: EditorTeam) => void;
-  onSendTeamPlayerToPool: (playerId: string) => void;
   onCancelPendingMove: () => void;
   onToggleSwapWith: () => void;
 }) {
   function handlePick(source: DragSource, playerId: string) {
     if (pendingMove) {
-      if (
-        source === pendingMove.targetTeam &&
-        playerId !== pendingMove.playerId
-      ) {
-        onSendTeamPlayerToPool(playerId);
+      if (source === pendingMove.targetTeam) {
+        onSwapPair('pool', pendingMove.playerId, source, playerId);
+        return;
+      }
+      if (source === 'pool' && playerId === pendingMove.playerId) {
+        onCancelPendingMove();
         return;
       }
       onSelect(source, playerId);
@@ -484,10 +483,8 @@ function MultiTeamSwapPanel({
     return team?.players.find((p) => p.id === selected.playerId)?.name ?? null;
   })();
 
-  const pendingAddedPlayer = pendingMove
-    ? teams
-        .find((team) => team.key === pendingMove.targetTeam)
-        ?.players.find((player) => player.id === pendingMove.playerId)
+  const pendingPoolPlayer = pendingMove
+    ? poolPlayers.find((player) => player.id === pendingMove.playerId)
     : null;
 
   const pendingTeamName = pendingMove
@@ -495,8 +492,12 @@ function MultiTeamSwapPanel({
       `Team ${pendingMove.targetTeam.toUpperCase()}`)
     : null;
 
+  const pendingTargetTeam = pendingMove
+    ? teams.find((team) => team.key === pendingMove.targetTeam)
+    : null;
+
   const hint = pendingMove
-    ? `${pendingAddedPlayer?.name ?? 'Player'} added to ${pendingTeamName} — tap who moves to ${poolLabel.toLowerCase()}.`
+    ? `${pendingPoolPlayer?.name ?? 'Player'} joins ${pendingTeamName} when you tap who moves to ${poolLabel.toLowerCase()} (${pendingTargetTeam?.players.length ?? 0} on ${pendingTeamName} now).`
     : selected
       ? selectedName
         ? selected.source === 'pool'
@@ -590,13 +591,15 @@ function MultiTeamSwapPanel({
                 col.players.map((player) => {
                   const isSelected =
                     selected?.source === col.key && selected.playerId === player.id;
+                  const isPendingJoin =
+                    pendingMove?.playerId === player.id && col.key === 'pool';
                   return (
                     <button
                       key={player.id}
                       type="button"
                       className={cn(
                         'flex w-full items-center gap-2 rounded-xl border p-2 text-left transition',
-                        isSelected
+                        isSelected || isPendingJoin
                           ? col.selectedBorder
                           : 'border-slate-200 bg-slate-50/60 hover:border-elite-200',
                       )}
@@ -611,49 +614,25 @@ function MultiTeamSwapPanel({
                 col.players.map((player) => {
                   const isSelected =
                     selected?.source === col.key && selected.playerId === player.id;
-                  const isJustAdded =
-                    pendingMove?.targetTeam === col.key &&
-                    pendingMove.playerId === player.id;
-                  const showMoveOut =
-                    pendingMove?.targetTeam === col.key && !isJustAdded;
+                  const showPickLeave =
+                    pendingMove?.targetTeam === col.key;
                   return (
-                    <div
+                    <button
                       key={player.id}
+                      type="button"
                       className={cn(
-                        'flex items-center gap-2 rounded-xl border p-2 transition',
+                        'flex w-full items-center gap-2 rounded-xl border p-2 text-left transition',
                         isSelected
                           ? col.selectedBorder
-                          : isJustAdded
-                            ? 'border-emerald-300 bg-emerald-50/50 ring-1 ring-emerald-200'
-                            : showMoveOut
-                              ? 'border-amber-200 bg-amber-50/40 hover:border-amber-300'
-                              : 'border-slate-200 bg-slate-50/60 hover:border-elite-200',
+                          : showPickLeave
+                            ? 'border-amber-200 bg-amber-50/40 hover:border-amber-300'
+                            : 'border-slate-200 bg-slate-50/60 hover:border-elite-200',
                       )}
+                      onClick={() => handlePick(col.key, player.id)}
                     >
-                      <button
-                        type="button"
-                        className="min-w-0 flex-1 text-left"
-                        onClick={() => handlePick(col.key, player.id)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <PlayerAvatar player={player} />
-                          <PlayerSummary player={player} />
-                        </div>
-                      </button>
-                      {showMoveOut ? (
-                        <button
-                          type="button"
-                          className="shrink-0 rounded-lg border border-amber-300 bg-white px-2 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-50"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onSendTeamPlayerToPool(player.id);
-                          }}
-                          title={`${player.name} moves to ${poolLabel.toLowerCase()}`}
-                        >
-                          To rest of squad
-                        </button>
-                      ) : null}
-                    </div>
+                      <PlayerAvatar player={player} />
+                      <PlayerSummary player={player} />
+                    </button>
                   );
                 })
               )}
@@ -764,30 +743,21 @@ export function TeamEditor({
     const playerId = multiSelected.playerId;
     const targetPlayers = getTeamPlayers(targetTeam);
     const capacity = getTeamCapacity(targetTeam);
-    const wasFull = targetPlayers.length >= capacity;
+    const isFull = targetPlayers.length >= capacity;
 
-    onMoveToTeam(playerId, targetTeam);
-
-    if (wasFull) {
+    if (isFull) {
       setPendingMove({ playerId, targetTeam });
       setMultiSelected(null);
       setSwapWithMode(false);
       return;
     }
 
+    onMoveToTeam(playerId, targetTeam);
     clearSwapSelection();
   }
 
   function cancelPendingAdd() {
-    if (pendingMove) {
-      onReturnToPool(pendingMove.playerId);
-    }
     setPendingMove(null);
-  }
-
-  function finishPendingAdd(leavingPlayerId: string) {
-    onReturnToPool(leavingPlayerId);
-    clearSwapSelection();
   }
 
   function handleDropOnPlayer(toTeam: EditorTeam, toPlayerId: string) {
@@ -828,6 +798,8 @@ export function TeamEditor({
     onReturnToPool(dragging.playerId);
     resetDrag();
   }
+
+  const saveReady = canSave && !pendingMove;
 
   return (
     <section className="card space-y-4 p-4">
@@ -925,7 +897,6 @@ export function TeamEditor({
             clearSwapSelection();
           }}
           onMoveToTeam={handleHopInToTeam}
-          onSendTeamPlayerToPool={finishPendingAdd}
           onCancelPendingMove={cancelPendingAdd}
           onToggleSwapWith={() => setSwapWithMode((current) => !current)}
         />
@@ -1021,20 +992,34 @@ export function TeamEditor({
       </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        {tab === 'lock' ? (
-          <button type="button" className="btn-secondary" disabled={busy} onClick={onFillRest}>
-            <Wand2 className="h-4 w-4" />
-            Fill rest of teams
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-2">
+          {tab === 'lock' ? (
+            <button type="button" className="btn-secondary" disabled={busy} onClick={onFillRest}>
+              <Wand2 className="h-4 w-4" />
+              Fill rest of teams
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="btn-primary"
+            disabled={busy || !saveReady}
+            onClick={onSave}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {busy ? 'Saving…' : 'Save teams'}
           </button>
+          <button type="button" className="btn-secondary" disabled={busy} onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
+        {pendingMove ? (
+          <p className="text-sm text-amber-700">
+            Tap who moves to rest of squad to finish adding, then save.
+          </p>
+        ) : !canSave && tab === 'swap' ? (
+          <p className="text-sm text-slate-500">Team sizes must match before you can save.</p>
         ) : null}
-        <button type="button" className="btn-primary" disabled={busy || !canSave} onClick={onSave}>
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          {busy ? 'Saving…' : 'Save teams'}
-        </button>
-        <button type="button" className="btn-secondary" disabled={busy} onClick={onCancel}>
-          Cancel
-        </button>
       </div>
     </section>
   );
