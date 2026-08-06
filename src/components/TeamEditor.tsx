@@ -370,10 +370,7 @@ function HopInToolbar({
       ) : null}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         {!swapWithMode ? (
-          <p className="text-xs text-slate-500">
-            Adds to the team. If the side is already full, tap one player on that team who moves to
-            rest of squad.
-          </p>
+          <p className="text-xs text-slate-500">Adds straight to the team.</p>
         ) : (
           <p className="text-sm text-slate-700">
             Swap <strong>{playerName}</strong> with someone on a team — tap that player.
@@ -399,21 +396,21 @@ function MultiTeamSwapPanel({
   poolPlayers,
   poolLabel = 'Rest of squad',
   threeTeam,
+  teamCapacities,
   selected,
-  pendingMove,
   swapWithMode,
   onSelect,
   onSwapPair,
   onMoveToTeam,
-  onCancelPendingMove,
+  onReturnToPool,
   onToggleSwapWith,
 }: {
   teams: Array<{ key: EditorTeam; name: string; players: Player[]; accent: string }>;
   poolPlayers: Player[];
   poolLabel?: string;
   threeTeam: boolean;
+  teamCapacities: Record<EditorTeam, number>;
   selected: { source: DragSource; playerId: string } | null;
-  pendingMove: { playerId: string; targetTeam: EditorTeam } | null;
   swapWithMode: boolean;
   onSelect: (source: DragSource, playerId: string) => void;
   onSwapPair: (
@@ -423,20 +420,19 @@ function MultiTeamSwapPanel({
     toPlayerId: string,
   ) => void;
   onMoveToTeam: (targetTeam: EditorTeam) => void;
-  onCancelPendingMove: () => void;
+  onReturnToPool: (playerId: string) => void;
   onToggleSwapWith: () => void;
 }) {
+  function teamOverCapacity(team: EditorTeam): boolean {
+    const column = teams.find((entry) => entry.key === team);
+    const capacity = teamCapacities[team];
+    if (!column || capacity <= 0) return false;
+    return column.players.length > capacity;
+  }
+
   function handlePick(source: DragSource, playerId: string) {
-    if (pendingMove) {
-      if (source === pendingMove.targetTeam) {
-        onSwapPair('pool', pendingMove.playerId, source, playerId);
-        return;
-      }
-      if (source === 'pool' && playerId === pendingMove.playerId) {
-        onCancelPendingMove();
-        return;
-      }
-      onSelect(source, playerId);
+    if (!selected && source !== 'pool' && teamOverCapacity(source)) {
+      onReturnToPool(playerId);
       return;
     }
 
@@ -483,21 +479,10 @@ function MultiTeamSwapPanel({
     return team?.players.find((p) => p.id === selected.playerId)?.name ?? null;
   })();
 
-  const pendingPoolPlayer = pendingMove
-    ? poolPlayers.find((player) => player.id === pendingMove.playerId)
-    : null;
+  const overCapacityTeams = teams.filter((team) => teamOverCapacity(team.key));
 
-  const pendingTeamName = pendingMove
-    ? (teams.find((t) => t.key === pendingMove.targetTeam)?.name ??
-      `Team ${pendingMove.targetTeam.toUpperCase()}`)
-    : null;
-
-  const pendingTargetTeam = pendingMove
-    ? teams.find((team) => team.key === pendingMove.targetTeam)
-    : null;
-
-  const hint = pendingMove
-    ? `${pendingPoolPlayer?.name ?? 'Player'} joins ${pendingTeamName} when you tap who moves to ${poolLabel.toLowerCase()} (${pendingTargetTeam?.players.length ?? 0} on ${pendingTeamName} now).`
+  const hint = overCapacityTeams.length > 0
+    ? `${overCapacityTeams.map((team) => team.name).join(', ')} ${overCapacityTeams.length === 1 ? 'has' : 'have'} extra players — tap someone on ${overCapacityTeams.length === 1 ? 'that team' : 'those teams'} to move to ${poolLabel.toLowerCase()}, then save.`
     : selected
       ? selectedName
         ? selected.source === 'pool'
@@ -527,7 +512,7 @@ function MultiTeamSwapPanel({
   }));
 
   const columns = [...teamColumns, poolColumn];
-  const poolOnlySelected = selected?.source === 'pool' && !pendingMove;
+  const poolOnlySelected = selected?.source === 'pool';
   const selectedPoolName = poolOnlySelected ? selectedName : null;
   const teamAName = teams.find((t) => t.key === 'a')?.name ?? 'Team A';
   const teamBName = teams.find((t) => t.key === 'b')?.name ?? 'Team B';
@@ -535,18 +520,7 @@ function MultiTeamSwapPanel({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <p className="text-sm text-slate-600">{hint}</p>
-        {pendingMove ? (
-          <button
-            type="button"
-            className="text-sm font-semibold text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
-            onClick={onCancelPendingMove}
-          >
-            Cancel
-          </button>
-        ) : null}
-      </div>
+      <p className="text-sm text-slate-600">{hint}</p>
       {poolOnlySelected && selectedPoolName ? (
         <HopInToolbar
           playerName={selectedPoolName}
@@ -569,18 +543,29 @@ function MultiTeamSwapPanel({
               : 'lg:grid-cols-2',
         )}
       >
-        {columns.map((col) => (
+        {columns.map((col) => {
+          const capacity =
+            col.key !== 'pool' ? teamCapacities[col.key as EditorTeam] : null;
+          const overCapacity =
+            capacity != null && capacity > 0 && col.players.length > capacity;
+
+          return (
           <section
             key={col.key}
             className={cn(
               'overflow-hidden rounded-2xl border bg-white',
               col.borderClass,
-              pendingMove?.targetTeam === col.key && 'border-elite-400 ring-2 ring-elite-100',
+              overCapacity && 'border-amber-300 ring-2 ring-amber-100',
             )}
           >
             <div className={cn('border-b px-3 py-2.5', col.headerClass)}>
               <h3 className="font-display font-bold text-slate-900">{col.name}</h3>
-              <p className="text-xs text-slate-500">{col.players.length} players</p>
+              <p className="text-xs text-slate-500">
+                {col.players.length} players
+                {overCapacity
+                  ? ` · tap someone to move to ${poolLabel.toLowerCase()}`
+                  : ''}
+              </p>
             </div>
             <div className="max-h-[480px] space-y-2 overflow-y-auto p-2">
               {col.players.length === 0 ? (
@@ -591,15 +576,13 @@ function MultiTeamSwapPanel({
                 col.players.map((player) => {
                   const isSelected =
                     selected?.source === col.key && selected.playerId === player.id;
-                  const isPendingJoin =
-                    pendingMove?.playerId === player.id && col.key === 'pool';
                   return (
                     <button
                       key={player.id}
                       type="button"
                       className={cn(
                         'flex w-full items-center gap-2 rounded-xl border p-2 text-left transition',
-                        isSelected || isPendingJoin
+                        isSelected
                           ? col.selectedBorder
                           : 'border-slate-200 bg-slate-50/60 hover:border-elite-200',
                       )}
@@ -614,8 +597,7 @@ function MultiTeamSwapPanel({
                 col.players.map((player) => {
                   const isSelected =
                     selected?.source === col.key && selected.playerId === player.id;
-                  const showPickLeave =
-                    pendingMove?.targetTeam === col.key;
+                  const showMoveOut = overCapacity;
                   return (
                     <button
                       key={player.id}
@@ -624,7 +606,7 @@ function MultiTeamSwapPanel({
                         'flex w-full items-center gap-2 rounded-xl border p-2 text-left transition',
                         isSelected
                           ? col.selectedBorder
-                          : showPickLeave
+                          : showMoveOut
                             ? 'border-amber-200 bg-amber-50/40 hover:border-amber-300'
                             : 'border-slate-200 bg-slate-50/60 hover:border-elite-200',
                       )}
@@ -638,7 +620,8 @@ function MultiTeamSwapPanel({
               )}
             </div>
           </section>
-        ))}
+        );
+        })}
       </div>
     </div>
   );
@@ -707,10 +690,6 @@ export function TeamEditor({
     source: DragSource;
     playerId: string;
   } | null>(null);
-  const [pendingMove, setPendingMove] = useState<{
-    playerId: string;
-    targetTeam: EditorTeam;
-  } | null>(null);
   const [swapWithMode, setSwapWithMode] = useState(false);
 
   const resetDrag = () => {
@@ -719,45 +698,15 @@ export function TeamEditor({
     setDropTargetTeam(null);
   };
 
-  function getTeamPlayers(team: EditorTeam): Player[] {
-    if (team === 'a') return teamAPlayers;
-    if (team === 'b') return teamBPlayers;
-    return teamCPlayers;
-  }
-
-  function getTeamCapacity(team: EditorTeam): number {
-    if (team === 'a') return teamACapacity;
-    if (team === 'b') return teamBCapacity;
-    return teamCCapacity;
-  }
-
   function clearSwapSelection() {
     setMultiSelected(null);
-    setPendingMove(null);
     setSwapWithMode(false);
   }
 
   function handleHopInToTeam(targetTeam: EditorTeam) {
     if (!multiSelected || multiSelected.source !== 'pool') return;
-
-    const playerId = multiSelected.playerId;
-    const targetPlayers = getTeamPlayers(targetTeam);
-    const capacity = getTeamCapacity(targetTeam);
-    const isFull = targetPlayers.length >= capacity;
-
-    if (isFull) {
-      setPendingMove({ playerId, targetTeam });
-      setMultiSelected(null);
-      setSwapWithMode(false);
-      return;
-    }
-
-    onMoveToTeam(playerId, targetTeam);
+    onMoveToTeam(multiSelected.playerId, targetTeam);
     clearSwapSelection();
-  }
-
-  function cancelPendingAdd() {
-    setPendingMove(null);
   }
 
   function handleDropOnPlayer(toTeam: EditorTeam, toPlayerId: string) {
@@ -799,7 +748,7 @@ export function TeamEditor({
     resetDrag();
   }
 
-  const saveReady = canSave && !pendingMove;
+  const saveReady = canSave;
 
   return (
     <section className="card space-y-4 p-4">
@@ -884,11 +833,14 @@ export function TeamEditor({
           ]}
           poolPlayers={poolPlayers}
           threeTeam={threeTeam}
+          teamCapacities={{
+            a: teamACapacity,
+            b: teamBCapacity,
+            c: teamCCapacity,
+          }}
           selected={multiSelected}
-          pendingMove={pendingMove}
           swapWithMode={swapWithMode}
           onSelect={(source, playerId) => {
-            setPendingMove(null);
             setSwapWithMode(false);
             setMultiSelected({ source, playerId });
           }}
@@ -897,7 +849,7 @@ export function TeamEditor({
             clearSwapSelection();
           }}
           onMoveToTeam={handleHopInToTeam}
-          onCancelPendingMove={cancelPendingAdd}
+          onReturnToPool={onReturnToPool}
           onToggleSwapWith={() => setSwapWithMode((current) => !current)}
         />
       ) : (
@@ -1013,12 +965,14 @@ export function TeamEditor({
             Cancel
           </button>
         </div>
-        {pendingMove ? (
-          <p className="text-sm text-amber-700">
-            Tap who moves to rest of squad to finish adding, then save.
+        {!saveReady && tab === 'swap' ? (
+          <p className="text-sm text-slate-500">
+            {teamAPlayers.length > teamACapacity ||
+            teamBPlayers.length > teamBCapacity ||
+            (threeTeam && teamCPlayers.length > teamCCapacity)
+              ? 'A team has extra players — tap someone on that team to move to rest of squad, then save.'
+              : 'Team sizes must match before you can save.'}
           </p>
-        ) : !canSave && tab === 'swap' ? (
-          <p className="text-sm text-slate-500">Team sizes must match before you can save.</p>
         ) : null}
       </div>
     </section>

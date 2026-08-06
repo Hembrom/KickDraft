@@ -369,7 +369,9 @@ export function MatchPage() {
           ? match.teamB.players.length
           : match.teamC?.players.length ?? 0;
     const targetPlayers = getDraftTeam(targetTeam);
-    if (targetPlayers.length >= targetCapacity) {
+    const addingFromPool = location === 'pool';
+    const allowOverflow = editTab === 'swap' && addingFromPool;
+    if (targetPlayers.length >= targetCapacity && !allowOverflow) {
       setError(`Team ${teamLabel(targetTeam)} is full (${targetCapacity}). Return someone first.`);
       return;
     }
