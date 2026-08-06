@@ -74,11 +74,11 @@ export function CaptainsGuidePage() {
       </section>
 
       <section className="card space-y-3 p-5">
-        <h2 className="font-display text-lg font-bold">4 · Balance teams</h2>
+        <h2 className="font-display text-lg font-bold">4 · Split into teams</h2>
         <p className="text-sm text-slate-600">
-          Tap <strong>Balance teams</strong> for two sides, or <strong>Three-way split</strong>{' '}
-          when you have 12+ players and want three rotating sides (e.g. 15 → 5v5v5). The app builds
-          fair sides using:
+          Tap <strong>Two-way split</strong> for two sides, or <strong>Three-way split</strong> when
+          you have 12+ players and want three rotating sides (e.g. 15 → 5v5v5). The app builds fair
+          sides using:
         </p>
         <ul className="list-inside list-disc space-y-1 text-sm text-slate-600">
           <li>
@@ -111,9 +111,9 @@ export function CaptainsGuidePage() {
             Three-way split (12–22 players)
           </p>
           <p className="mt-1">
-            Tap <strong>Three-way split</strong> instead of Balance teams. You get Team A, B, and C
-            on one pitch — e.g. 15 players → 5v5v5, 21 → 7v7v7. Extra squad members who are not
-            on a team stay in <strong>Rest of squad</strong> until you swap them in.
+            With 12+ players ticked, use <strong>Three-way split</strong> instead of Two-way split.
+            Everyone you selected goes onto Team A, B, and C — e.g. 15 players → 5v5v5, 21 →
+            7v7v7.
           </p>
         </div>
       </section>
@@ -173,16 +173,11 @@ export function CaptainsGuidePage() {
                   Opens by default. Current lineups are loaded — tap one player, then tap another on
                   a different list to swap them.
                 </p>
-                <ul className="mt-1 list-inside list-disc space-y-0.5 text-sm text-slate-600">
-                  <li>
-                    <strong>2 teams</strong> — swap between Team A, Team B, or{' '}
-                    <strong>Rest of squad</strong> (players you ticked but left off the pitch)
-                  </li>
-                  <li>
-                    <strong>3 teams</strong> — swap between Team A, B, C, or Rest of squad the same
-                    way
-                  </li>
-                </ul>
+                <p className="mt-1 text-sm text-slate-600">
+                  <strong>Rest of squad</strong> lists squad members you{' '}
+                  <strong>didn&apos;t tick</strong> as coming — e.g. someone shows up late and
+                  wants to hop in. Swap them with a player already on a team.
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-2">
@@ -250,7 +245,7 @@ export function CaptainsGuidePage() {
           <li>Need 9–22 players for two teams, or 12–22 for three-way split</li>
           <li>Stamina (STA) counts in OVR and in the top-4 stamina split</li>
           <li>
-            Shuffle again = new teams; Edit teams = swap with rest of squad, lock, or assign
+            Shuffle again = new teams; Edit teams = swap in late arrivals, lock, or assign
             players yourself
           </li>
           <li>Match history keeps lineups from the last 30 days</li>

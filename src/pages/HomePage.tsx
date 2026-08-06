@@ -73,7 +73,7 @@ export function HomePage() {
           {
             icon: Sparkles,
             title: 'Match day ready',
-            text: 'Tick who is coming, balance teams, and share the lineup.',
+            text: 'Tick who is coming, two-way or three-way split, and share the lineup.',
           },
         ].map(({ icon: Icon, title, text }) => (
           <article key={title} className="card p-5">

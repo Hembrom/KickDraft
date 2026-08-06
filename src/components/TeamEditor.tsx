@@ -605,8 +605,8 @@ export function TeamEditor({
         <p className="mt-2 text-sm text-slate-600">
           {tab === 'swap'
             ? threeTeam
-              ? 'Swap between A / B / C or with the rest of the squad. Tap two players to exchange them.'
-              : 'Swap between Team A, Team B, or the rest of the squad. Tap two players to exchange them.'
+              ? 'Swap between A / B / C, or with Rest of squad (not ticked as coming). Tap two players to exchange them.'
+              : 'Swap between Team A, Team B, or Rest of squad (not ticked as coming). Tap two players to exchange them.'
             : tab === 'lock'
               ? threeTeam
                 ? 'Name each team, place the players you want fixed, then Fill rest of teams to balance the remainder.'

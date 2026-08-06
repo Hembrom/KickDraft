@@ -230,7 +230,7 @@ export function GroupPage() {
               onClick={() => handleGenerate(2)}
             >
               <UsersRound className="h-4 w-4" />
-              {generating === 'two' ? 'Generating…' : 'Balance teams'}
+              {generating === 'two' ? 'Splitting…' : 'Two-way split'}
             </button>
 
             <button
@@ -272,7 +272,7 @@ export function GroupPage() {
 
         {selectedCount >= 9 && selectedCount < 12 ? (
           <p className="mt-2 text-sm text-slate-500">
-            Three-way split unlocks at 12+ players. Use Balance teams for now.
+            Three-way split unlocks at 12+ players. Use Two-way split for now.
           </p>
         ) : null}
 
