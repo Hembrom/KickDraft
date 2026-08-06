@@ -170,13 +170,9 @@ export function CaptainsGuidePage() {
               <div>
                 <p className="text-sm font-semibold text-slate-800">Quick swap</p>
                 <p className="text-sm text-slate-600">
-                  Opens by default. Current lineups are loaded — tap one player, then tap another on
-                  a different list to swap them.
-                </p>
-                <p className="mt-1 text-sm text-slate-600">
-                  <strong>Rest of squad</strong> lists squad members you{' '}
-                  <strong>didn&apos;t tick</strong> as coming — e.g. someone shows up late and
-                  wants to hop in. Swap them with a player already on a team.
+                  <strong>Rest of squad only:</strong> tap <strong>A / B / C</strong> to hop in, then{' '}
+                  <strong>Replace</strong> on who goes to rest of squad.{' '}
+                  <strong>Team player selected:</strong> tap another player to swap.
                 </p>
               </div>
             </div>
