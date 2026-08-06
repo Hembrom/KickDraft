@@ -170,9 +170,10 @@ export function CaptainsGuidePage() {
               <div>
                 <p className="text-sm font-semibold text-slate-800">Quick swap</p>
                 <p className="text-sm text-slate-600">
-                  <strong>Rest of squad only:</strong> tap <strong>A / B / C</strong> to hop in, then{' '}
-                  <strong>Replace</strong> on who goes to rest of squad.{' '}
-                  <strong>Team player selected:</strong> tap another player to swap.
+                  <strong>Swap:</strong> tap a player on Team A / B / C, then tap someone in{' '}
+                  <strong>Rest of squad</strong>.{' '}
+                  <strong>Hop in:</strong> select rest of squad only — a Move to team bar appears;
+                  then tap Replace on who goes out.
                 </p>
               </div>
             </div>
