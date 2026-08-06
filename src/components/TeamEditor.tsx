@@ -317,18 +317,92 @@ function PlayerPool({
   );
 }
 
+function PoolMoveButtons({
+  playerId,
+  threeTeam,
+  onMoveToTeam,
+}: {
+  playerId: string;
+  threeTeam: boolean;
+  onMoveToTeam: (playerId: string, targetTeam: EditorTeam) => void;
+}) {
+  if (threeTeam) {
+    return (
+      <>
+        <button
+          type="button"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs font-bold text-blue-700 hover:border-blue-300"
+          onClick={() => onMoveToTeam(playerId, 'a')}
+          aria-label="Move to Team A"
+          title="Team A"
+        >
+          A
+        </button>
+        <button
+          type="button"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs font-bold text-red-700 hover:border-red-300"
+          onClick={() => onMoveToTeam(playerId, 'b')}
+          aria-label="Move to Team B"
+          title="Team B"
+        >
+          B
+        </button>
+        <button
+          type="button"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs font-bold text-amber-700 hover:border-amber-300"
+          onClick={() => onMoveToTeam(playerId, 'c')}
+          aria-label="Move to Team C"
+          title="Team C"
+        >
+          C
+        </button>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:text-blue-700"
+        onClick={() => onMoveToTeam(playerId, 'a')}
+        aria-label="Move to Team A"
+        title="Team A"
+      >
+        <ArrowUp className="h-4 w-4 xl:hidden" />
+        <ArrowLeft className="hidden h-4 w-4 xl:block" />
+      </button>
+      <button
+        type="button"
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-red-300 hover:text-red-700"
+        onClick={() => onMoveToTeam(playerId, 'b')}
+        aria-label="Move to Team B"
+        title="Team B"
+      >
+        <ArrowDown className="h-4 w-4 xl:hidden" />
+        <ArrowRight className="hidden h-4 w-4 xl:block" />
+      </button>
+    </>
+  );
+}
+
 function MultiTeamSwapPanel({
   teams,
   poolPlayers,
   poolLabel = 'Rest of squad',
+  threeTeam,
   selected,
+  pendingMove,
   onSelect,
   onSwapPair,
+  onMoveFromPool,
 }: {
   teams: Array<{ key: EditorTeam; name: string; players: Player[]; accent: string }>;
   poolPlayers: Player[];
   poolLabel?: string;
+  threeTeam: boolean;
   selected: { source: DragSource; playerId: string } | null;
+  pendingMove: { playerId: string; targetTeam: EditorTeam } | null;
   onSelect: (source: DragSource, playerId: string) => void;
   onSwapPair: (
     from: DragSource,
@@ -336,8 +410,14 @@ function MultiTeamSwapPanel({
     to: DragSource,
     toPlayerId: string,
   ) => void;
+  onMoveFromPool: (playerId: string, targetTeam: EditorTeam) => void;
 }) {
   function handlePick(source: DragSource, playerId: string) {
+    if (pendingMove && source === pendingMove.targetTeam) {
+      onSwapPair('pool', pendingMove.playerId, source, playerId);
+      return;
+    }
+
     if (!selected) {
       onSelect(source, playerId);
       return;
@@ -361,6 +441,20 @@ function MultiTeamSwapPanel({
     const team = teams.find((t) => t.key === selected.source);
     return team?.players.find((p) => p.id === selected.playerId)?.name ?? null;
   })();
+
+  const pendingTeamName = pendingMove
+    ? (teams.find((t) => t.key === pendingMove.targetTeam)?.name ?? `Team ${pendingMove.targetTeam.toUpperCase()}`)
+    : null;
+
+  const hint = pendingMove
+    ? `Tap someone on ${pendingTeamName} to replace — ${poolPlayers.find((p) => p.id === pendingMove.playerId)?.name ?? 'player'} hops in.`
+    : selected
+      ? selectedName
+        ? selected.source === 'pool'
+          ? `Selected ${selectedName} — tap A / B${threeTeam ? ' / C' : ''} to hop in, or tap a player on a team to swap.`
+          : `Selected ${selectedName} — tap rest of squad or another team to swap, or use move buttons on pool.`
+        : 'Selected — tap another player to swap'
+      : `Rest of squad: tap A / B${threeTeam ? ' / C' : ''} to hop in. Or tap two players on different lists to swap.`;
 
   const columns: Array<{
     key: DragSource;
@@ -390,13 +484,7 @@ function MultiTeamSwapPanel({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-600">
-        {selected
-          ? selectedName
-            ? `Selected ${selectedName} — tap another player (any team or rest) to swap`
-            : 'Selected — tap another player to swap'
-          : 'Tap one player, then tap another on a different list to swap them.'}
-      </p>
+      <p className="text-sm text-slate-600">{hint}</p>
       <div
         className={cn(
           'grid gap-3',
@@ -410,7 +498,11 @@ function MultiTeamSwapPanel({
         {columns.map((col) => (
           <section
             key={col.key}
-            className={cn('overflow-hidden rounded-2xl border bg-white', col.borderClass)}
+            className={cn(
+              'overflow-hidden rounded-2xl border bg-white',
+              col.borderClass,
+              pendingMove?.targetTeam === col.key && 'border-elite-400 ring-2 ring-elite-100',
+            )}
           >
             <div className={cn('border-b px-3 py-2.5', col.headerClass)}>
               <h3 className="font-display font-bold text-slate-900">{col.name}</h3>
@@ -421,6 +513,41 @@ function MultiTeamSwapPanel({
                 <p className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-400">
                   Empty
                 </p>
+              ) : col.key === 'pool' ? (
+                col.players.map((player) => {
+                  const isSelected =
+                    selected?.source === col.key && selected.playerId === player.id;
+                  const isPending = pendingMove?.playerId === player.id;
+                  return (
+                    <div
+                      key={player.id}
+                      className={cn(
+                        'flex items-center gap-2 rounded-xl border p-2 transition',
+                        isSelected || isPending
+                          ? col.selectedBorder
+                          : 'border-slate-200 bg-slate-50/60',
+                      )}
+                    >
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 text-left"
+                        onClick={() => handlePick(col.key, player.id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <PlayerAvatar player={player} />
+                          <PlayerSummary player={player} />
+                        </div>
+                      </button>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <PoolMoveButtons
+                          playerId={player.id}
+                          threeTeam={threeTeam}
+                          onMoveToTeam={onMoveFromPool}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
               ) : (
                 col.players.map((player) => {
                   const isSelected =
@@ -514,12 +641,53 @@ export function TeamEditor({
     source: DragSource;
     playerId: string;
   } | null>(null);
+  const [pendingMove, setPendingMove] = useState<{
+    playerId: string;
+    targetTeam: EditorTeam;
+  } | null>(null);
 
   const resetDrag = () => {
     setDragging(null);
     setDropTargetId(null);
     setDropTargetTeam(null);
   };
+
+  function getTeamPlayers(team: EditorTeam): Player[] {
+    if (team === 'a') return teamAPlayers;
+    if (team === 'b') return teamBPlayers;
+    return teamCPlayers;
+  }
+
+  function getTeamCapacity(team: EditorTeam): number {
+    if (team === 'a') return teamACapacity;
+    if (team === 'b') return teamBCapacity;
+    return teamCCapacity;
+  }
+
+  function clearSwapSelection() {
+    setMultiSelected(null);
+    setPendingMove(null);
+  }
+
+  function handleMoveFromPool(playerId: string, targetTeam: EditorTeam) {
+    const targetPlayers = getTeamPlayers(targetTeam);
+    const capacity = getTeamCapacity(targetTeam);
+
+    if (targetPlayers.length < capacity) {
+      onMoveToTeam(playerId, targetTeam);
+      clearSwapSelection();
+      return;
+    }
+
+    if (multiSelected?.source === targetTeam && multiSelected.playerId !== playerId) {
+      onSwap('pool', playerId, targetTeam, multiSelected.playerId);
+      clearSwapSelection();
+      return;
+    }
+
+    setPendingMove({ playerId, targetTeam });
+    setMultiSelected({ source: 'pool', playerId });
+  }
 
   function handleDropOnPlayer(toTeam: EditorTeam, toPlayerId: string) {
     if (!dragging || dragging.playerId === toPlayerId) {
@@ -605,8 +773,8 @@ export function TeamEditor({
         <p className="mt-2 text-sm text-slate-600">
           {tab === 'swap'
             ? threeTeam
-              ? 'Swap between A / B / C, or with Rest of squad (not ticked as coming). Tap two players to exchange them.'
-              : 'Swap between Team A, Team B, or Rest of squad (not ticked as coming). Tap two players to exchange them.'
+              ? 'Rest of squad: tap A / B / C to hop in (tap who to replace if the team is full). Tap two players to swap.'
+              : 'Rest of squad: tap Team A / B to hop in (tap who to replace if the team is full). Tap two players to swap.'
             : tab === 'lock'
               ? threeTeam
                 ? 'Name each team, place the players you want fixed, then Fill rest of teams to balance the remainder.'
@@ -644,12 +812,18 @@ export function TeamEditor({
               : []),
           ]}
           poolPlayers={poolPlayers}
+          threeTeam={threeTeam}
           selected={multiSelected}
-          onSelect={(source, playerId) => setMultiSelected({ source, playerId })}
+          pendingMove={pendingMove}
+          onSelect={(source, playerId) => {
+            setPendingMove(null);
+            setMultiSelected({ source, playerId });
+          }}
           onSwapPair={(from, fromId, to, toId) => {
             onSwap(from, fromId, to, toId);
-            setMultiSelected(null);
+            clearSwapSelection();
           }}
+          onMoveFromPool={handleMoveFromPool}
         />
       ) : (
       <div

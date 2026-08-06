@@ -61,11 +61,11 @@ export function CaptainsGuidePage() {
         <figure className="overflow-hidden rounded-xl border border-slate-200">
           <img
             src="/guide/select-players.png"
-            alt="Newtown Sporting Club — tick checkboxes under Today's availability"
+            alt="Newtown Sporting Club — tick availability, then Two-way split or Three-way split"
             className="w-full"
           />
           <figcaption className="bg-slate-50 px-3 py-2 text-center text-xs text-slate-500">
-            Tick everyone who is coming or will show up
+            Tick who is coming — then choose Two-way split or Three-way split
           </figcaption>
         </figure>
         <p className="text-sm text-slate-600">
