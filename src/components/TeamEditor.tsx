@@ -371,8 +371,8 @@ function HopInToolbar({
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         {!swapWithMode ? (
           <p className="text-xs text-slate-500">
-            Adds to the team when there is space. If the side is full, choose who moves to rest of
-            squad.
+            Adds straight to the team. If the side is already full, pick who moves to rest of squad
+            next.
           </p>
         ) : (
           <p className="text-sm text-slate-700">
@@ -405,6 +405,7 @@ function MultiTeamSwapPanel({
   onSelect,
   onSwapPair,
   onMoveToTeam,
+  onSendTeamPlayerToPool,
   onCancelPendingMove,
   onToggleSwapWith,
 }: {
@@ -423,13 +424,17 @@ function MultiTeamSwapPanel({
     toPlayerId: string,
   ) => void;
   onMoveToTeam: (targetTeam: EditorTeam) => void;
+  onSendTeamPlayerToPool: (playerId: string) => void;
   onCancelPendingMove: () => void;
   onToggleSwapWith: () => void;
 }) {
   function handlePick(source: DragSource, playerId: string) {
     if (pendingMove) {
-      if (source === pendingMove.targetTeam) {
-        onSwapPair('pool', pendingMove.playerId, source, playerId);
+      if (
+        source === pendingMove.targetTeam &&
+        playerId !== pendingMove.playerId
+      ) {
+        onSendTeamPlayerToPool(playerId);
         return;
       }
       onSelect(source, playerId);
@@ -479,8 +484,10 @@ function MultiTeamSwapPanel({
     return team?.players.find((p) => p.id === selected.playerId)?.name ?? null;
   })();
 
-  const pendingPoolPlayer = pendingMove
-    ? poolPlayers.find((p) => p.id === pendingMove.playerId)
+  const pendingAddedPlayer = pendingMove
+    ? teams
+        .find((team) => team.key === pendingMove.targetTeam)
+        ?.players.find((player) => player.id === pendingMove.playerId)
     : null;
 
   const pendingTeamName = pendingMove
@@ -489,7 +496,7 @@ function MultiTeamSwapPanel({
     : null;
 
   const hint = pendingMove
-    ? `Adding ${pendingPoolPlayer?.name ?? 'player'} to ${pendingTeamName} — tap who moves to ${poolLabel.toLowerCase()}.`
+    ? `${pendingAddedPlayer?.name ?? 'Player'} added to ${pendingTeamName} — tap who moves to ${poolLabel.toLowerCase()}.`
     : selected
       ? selectedName
         ? selected.source === 'pool'
@@ -583,14 +590,13 @@ function MultiTeamSwapPanel({
                 col.players.map((player) => {
                   const isSelected =
                     selected?.source === col.key && selected.playerId === player.id;
-                  const isPending = pendingMove?.playerId === player.id;
                   return (
                     <button
                       key={player.id}
                       type="button"
                       className={cn(
                         'flex w-full items-center gap-2 rounded-xl border p-2 text-left transition',
-                        isSelected || isPending
+                        isSelected
                           ? col.selectedBorder
                           : 'border-slate-200 bg-slate-50/60 hover:border-elite-200',
                       )}
@@ -605,7 +611,11 @@ function MultiTeamSwapPanel({
                 col.players.map((player) => {
                   const isSelected =
                     selected?.source === col.key && selected.playerId === player.id;
-                  const showMoveOut = pendingMove?.targetTeam === col.key;
+                  const isJustAdded =
+                    pendingMove?.targetTeam === col.key &&
+                    pendingMove.playerId === player.id;
+                  const showMoveOut =
+                    pendingMove?.targetTeam === col.key && !isJustAdded;
                   return (
                     <div
                       key={player.id}
@@ -613,9 +623,11 @@ function MultiTeamSwapPanel({
                         'flex items-center gap-2 rounded-xl border p-2 transition',
                         isSelected
                           ? col.selectedBorder
-                          : showMoveOut
-                            ? 'border-amber-200 bg-amber-50/40 hover:border-amber-300'
-                            : 'border-slate-200 bg-slate-50/60 hover:border-elite-200',
+                          : isJustAdded
+                            ? 'border-emerald-300 bg-emerald-50/50 ring-1 ring-emerald-200'
+                            : showMoveOut
+                              ? 'border-amber-200 bg-amber-50/40 hover:border-amber-300'
+                              : 'border-slate-200 bg-slate-50/60 hover:border-elite-200',
                       )}
                     >
                       <button
@@ -628,13 +640,13 @@ function MultiTeamSwapPanel({
                           <PlayerSummary player={player} />
                         </div>
                       </button>
-                      {showMoveOut && pendingMove ? (
+                      {showMoveOut ? (
                         <button
                           type="button"
                           className="shrink-0 rounded-lg border border-amber-300 bg-white px-2 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-50"
                           onClick={(event) => {
                             event.stopPropagation();
-                            onSwapPair('pool', pendingMove.playerId, col.key, player.id);
+                            onSendTeamPlayerToPool(player.id);
                           }}
                           title={`${player.name} moves to ${poolLabel.toLowerCase()}`}
                         >
@@ -752,15 +764,30 @@ export function TeamEditor({
     const playerId = multiSelected.playerId;
     const targetPlayers = getTeamPlayers(targetTeam);
     const capacity = getTeamCapacity(targetTeam);
+    const wasFull = targetPlayers.length >= capacity;
 
-    if (targetPlayers.length < capacity) {
-      onMoveToTeam(playerId, targetTeam);
-      clearSwapSelection();
+    onMoveToTeam(playerId, targetTeam);
+
+    if (wasFull) {
+      setPendingMove({ playerId, targetTeam });
+      setMultiSelected(null);
+      setSwapWithMode(false);
       return;
     }
 
-    setPendingMove({ playerId, targetTeam });
-    setMultiSelected({ source: 'pool', playerId });
+    clearSwapSelection();
+  }
+
+  function cancelPendingAdd() {
+    if (pendingMove) {
+      onReturnToPool(pendingMove.playerId);
+    }
+    setPendingMove(null);
+  }
+
+  function finishPendingAdd(leavingPlayerId: string) {
+    onReturnToPool(leavingPlayerId);
+    clearSwapSelection();
   }
 
   function handleDropOnPlayer(toTeam: EditorTeam, toPlayerId: string) {
@@ -898,7 +925,8 @@ export function TeamEditor({
             clearSwapSelection();
           }}
           onMoveToTeam={handleHopInToTeam}
-          onCancelPendingMove={() => setPendingMove(null)}
+          onSendTeamPlayerToPool={finishPendingAdd}
+          onCancelPendingMove={cancelPendingAdd}
           onToggleSwapWith={() => setSwapWithMode((current) => !current)}
         />
       ) : (
