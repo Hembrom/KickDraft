@@ -59,23 +59,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? [...teamAPlayerIds, ...teamBPlayerIds, ...teamCPlayerIds]
       : [...teamAPlayerIds, ...teamBPlayerIds];
 
-    if (
-      teamAPlayerIds.length !== match.teamA.players.length ||
-      teamBPlayerIds.length !== match.teamB.players.length ||
-      (isThreeWay &&
-        match.teamC &&
-        teamCPlayerIds.length !== match.teamC.players.length)
-    ) {
-      return error(res, 400, 'Team sizes must stay the same');
-    }
     if (new Set(submittedIds).size !== submittedIds.length) {
       return error(res, 400, 'A player cannot appear on more than one team');
     }
 
-    // Same roster size only; players can be swapped with anyone in the group.
-    if (submittedIds.length !== match.selectedPlayerIds.length) {
-      return error(res, 400, 'Match must keep the same number of players');
+    if (teamAPlayerIds.length < 1 || teamBPlayerIds.length < 1) {
+      return error(res, 400, 'Each team needs at least one player');
     }
+    if (isThreeWay && teamCPlayerIds.length < 1) {
+      return error(res, 400, 'Each team needs at least one player');
+    }
+
+    // Team sizes may change when late arrivals hop in via quick swap edit.
 
     const { players: rawPlayers } = await getGroupPlayers(slug);
     const players = await applyEffectiveRatingsForGroup(slug, rawPlayers);

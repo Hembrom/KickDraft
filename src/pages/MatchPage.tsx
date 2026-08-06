@@ -369,8 +369,7 @@ export function MatchPage() {
           ? match.teamB.players.length
           : match.teamC?.players.length ?? 0;
     const targetPlayers = getDraftTeam(targetTeam);
-    const addingFromPool = location === 'pool';
-    const allowOverflow = editTab === 'swap' && addingFromPool;
+    const allowOverflow = editTab === 'swap';
     if (targetPlayers.length >= targetCapacity && !allowOverflow) {
       setError(`Team ${teamLabel(targetTeam)} is full (${targetCapacity}). Return someone first.`);
       return;
@@ -434,16 +433,22 @@ export function MatchPage() {
   async function saveEditedTeams() {
     if (!match || saving) return;
 
-    const teamACapacity = match.teamA.players.length;
-    const teamBCapacity = match.teamB.players.length;
-    const teamCCapacity = match.teamC?.players.length ?? 0;
     const threeWay = isThreeTeamMatch(match);
     const sizesOk =
-      draftTeamA.length === teamACapacity &&
-      draftTeamB.length === teamBCapacity &&
-      (!threeWay || draftTeamC.length === teamCCapacity);
+      draftTeamA.length === match.teamA.players.length &&
+      draftTeamB.length === match.teamB.players.length &&
+      (!threeWay || draftTeamC.length === (match.teamC?.players.length ?? 0));
+    const swapSaveOk =
+      draftTeamA.length >= 1 &&
+      draftTeamB.length >= 1 &&
+      (!threeWay || draftTeamC.length >= 1);
 
-    if (!sizesOk || (editTab !== 'swap' && draftPool.length > 0)) {
+    if (editTab === 'swap') {
+      if (!swapSaveOk) {
+        setError('Each team needs at least one player.');
+        return;
+      }
+    } else if (!sizesOk || draftPool.length > 0) {
       setError(`Assign all players first (${getMatchLabel(match)}).`);
       return;
     }
@@ -512,8 +517,13 @@ export function MatchPage() {
     draftTeamA.length === match.teamA.players.length &&
     draftTeamB.length === match.teamB.players.length &&
     (!threeWay || draftTeamC.length === (match.teamC?.players.length ?? 0));
-  // Quick-swap may keep "rest of squad" in the pool; lock/manual require everyone assigned.
-  const teamsComplete = sizesOk && (editTab === 'swap' || draftPool.length === 0);
+  const swapSaveOk =
+    draftTeamA.length >= 1 &&
+    draftTeamB.length >= 1 &&
+    (!threeWay || draftTeamC.length >= 1);
+  // Quick swap may change team sizes when players hop in; lock/manual require full assignment.
+  const teamsComplete =
+    editTab === 'swap' ? swapSaveOk : sizesOk && draftPool.length === 0;
   const displayedMatch =
     editing && teamsComplete
       ? {

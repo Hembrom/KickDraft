@@ -172,9 +172,9 @@ export function CaptainsGuidePage() {
                 <p className="text-sm text-slate-600">
                   <strong>Swap:</strong> tap a player on Team A / B / C, then tap someone in{' '}
                   <strong>Rest of squad</strong>.{' '}
-                  <strong>Add:</strong> select rest of squad → Move to Team A / B / C adds them
-                  straight away. If a side ends up with extra players, tap someone on that team to
-                  move to rest of squad, then save.
+                  <strong>Move:</strong> select anyone — use the Move bar (to another team or rest of
+                  squad). Tap someone on a different team or in rest of squad to swap instead.
+                  Team sizes can grow.
                 </p>
               </div>
             </div>
