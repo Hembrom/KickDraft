@@ -237,6 +237,53 @@ export const GROUND_VENUES: GroundVenue[] = [
       ],
     },
   },
+  {
+    id: 'v-play-chinarpark',
+    name: 'V Play Chinarpark',
+    location: 'PS Newtown Square, Atghara, Chinarmore, West Bengal 700136 (New Town Square)',
+    imageUrl: '/grounds/v-play-chinarpark.png',
+    mapsUrl: 'https://maps.app.goo.gl/tmsF2r89vYFnjPmU9',
+    bookingMethod: 'online',
+    bookingUrl:
+      'https://www.district.in/sgw/play/buy/6a3e174118cd7b60ad0aaf97/turf%20football/',
+    bookingSiteLabel: 'District',
+    phoneDisplay: '92309 98563',
+    phoneContacts: [{ display: '92309 98563', number: '919230998563' }],
+    openingHours: 'Open daily · closes 11:30 PM',
+    priceHint: '5v5 ₹1,700/hr · 7v7 ₹2,000/hr',
+    steps: [
+      'Open Book on District — pick Turf Football, choose your date and time slot.',
+      'Select 5v5 or 7v7 — rates are ₹1,700 or ₹2,000 per hour respectively.',
+      'Pay online to confirm. Arrive a few minutes early with your booking confirmation.',
+    ],
+    notes: [
+      'Rooftop enclosed turf with floodlights — football and cricket.',
+      '5v5: ₹1,700 per hour · 7v7: ₹2,000 per hour.',
+      'Book on District or call 92309 98563 for queries.',
+      'Located in New Town Square, Atghara (Chinarpark area).',
+      'Also listed at vplay.in.',
+    ],
+    rateChart: [
+      {
+        title: 'Turf football',
+        rows: [
+          { label: '5v5', price: '₹1,700 / hour' },
+          { label: '7v7', price: '₹2,000 / hour' },
+        ],
+      },
+    ],
+    pitchInfo: {
+      dimensions: 'Rooftop enclosed turf',
+      dimensionsMetric: '5v5 or 7v7 football',
+      dimensionsNote: 'Netted rooftop box — good ground size per local reviews.',
+      playingArea: 'New Town Square rooftop',
+      formatRatings: [
+        { format: '5v5', stars: 5, note: '₹1,700/hr' },
+        { format: '6v6', stars: 4 },
+        { format: '7v7', stars: 5, note: '₹2,000/hr' },
+      ],
+    },
+  },
 ];
 
 export function getGroundVenue(id: string): GroundVenue | undefined {
