@@ -66,6 +66,8 @@ You can remove the Vercel Blob store; it is no longer used.
 | URL | Description |
 |-----|-------------|
 | `/` | Home + squad list |
+| `/guide` | Captain's guide — how to make teams |
+| `/guide/rate` | How to rate players (claim, sliders, 2-week cooldown) |
 | `/{groupSlug}` | Squad & generate teams |
 | `/{groupSlug}/history` | Match history |
 | `/admin` | Admin login |

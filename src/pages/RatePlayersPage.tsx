@@ -177,7 +177,10 @@ export function RatePlayersPage() {
           <h1 className="font-display text-3xl font-bold text-slate-900">Rate teammates</h1>
           <p className="mt-1 max-w-xl text-sm text-slate-600">
             Browse the squad below. Sign in and claim your player to rate others (once every two
-            weeks per teammate).
+            weeks per teammate).{' '}
+            <Link to="/guide/rate" className="font-medium text-elite-600 hover:underline">
+              How to rate
+            </Link>
           </p>
         </div>
         {signedIn ? (

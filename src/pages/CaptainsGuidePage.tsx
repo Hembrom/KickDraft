@@ -254,6 +254,9 @@ export function CaptainsGuidePage() {
         <Link to={`/${NEWTOWN_SLUG}`} className="btn-primary">
           Start a match
         </Link>
+        <Link to="/guide/rate" className="btn-secondary">
+          How to rate players
+        </Link>
         <Link to="/" className="btn-secondary">
           Back home
         </Link>

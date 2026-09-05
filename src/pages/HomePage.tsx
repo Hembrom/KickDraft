@@ -38,6 +38,9 @@ export function HomePage() {
             <Link to="/guide" className="btn-secondary">
               Captain&apos;s guide
             </Link>
+            <Link to="/guide/rate" className="btn-secondary">
+              How to rate
+            </Link>
             <Link to="/admin" className="btn-secondary">
               Admin setup
             </Link>
@@ -47,12 +50,16 @@ export function HomePage() {
             <Link to="/guide" className="font-medium text-elite-600 underline-offset-2 hover:underline">
               captain&apos;s guide
             </Link>{' '}
+            or{' '}
+            <Link to="/guide/rate" className="font-medium text-elite-600 underline-offset-2 hover:underline">
+              how to rate
+            </Link>{' '}
             —{' '}
             <a
-              href="https://kick-draft.vercel.app/guide"
+              href="https://kick-draft.vercel.app/guide/rate"
               className="font-medium text-elite-600 underline-offset-2 hover:underline"
             >
-              kick-draft.vercel.app/guide
+              kick-draft.vercel.app/guide/rate
             </a>
           </p>
         </div>

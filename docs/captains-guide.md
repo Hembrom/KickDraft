@@ -75,4 +75,5 @@ https://kick-draft.vercel.app/newtown-sporting-club/match/...
 
 ---
 
-*Share this guide: https://kick-draft.vercel.app/guide*
+*Share this guide: https://kick-draft.vercel.app/guide*  
+*How to rate players: https://kick-draft.vercel.app/guide/rate*

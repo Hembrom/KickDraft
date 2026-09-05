@@ -180,6 +180,9 @@ export function GroupPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link to="/guide/rate" className="btn-secondary">
+            How to rate
+          </Link>
           <Link to={`/${slug}/claim`} className="btn-secondary">
             Claim / rate
           </Link>

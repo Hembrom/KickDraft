@@ -106,7 +106,10 @@ export function ClaimPlayerPage() {
           <h1 className="font-display text-3xl font-bold text-slate-900">Claim your player</h1>
           <p className="mt-1 max-w-xl text-sm text-slate-600">
             Browse the squad below. Sign in with Google to claim your card once — then you can rate
-            teammates every two weeks.
+            teammates every two weeks.{' '}
+            <Link to="/guide/rate" className="font-medium text-elite-600 hover:underline">
+              How to rate
+            </Link>
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
