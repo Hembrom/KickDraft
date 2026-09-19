@@ -47,7 +47,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       teamCount?: TeamCount;
       kind?: MatchKind;
       format?: number;
-      formation?: number[];
+      formation?: number[] | string;
+      formationKey?: string;
     }>(req);
     const playerIds = body.playerIds ?? [];
     const name = typeof body.name === 'string' ? body.name.trim() : '';
@@ -81,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return error(res, 400, 'Select at most 22 players');
         }
 
-        const formation = parseRotationFormation(body.formation, format);
+        const formation = parseRotationFormation(body.formation ?? body.formationKey, format);
         const { starters, rotation } = buildRotationLineup(selected, format, formation);
         const teams = buildRotationMatchTeams(starters, rotation);
 

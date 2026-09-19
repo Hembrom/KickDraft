@@ -9,7 +9,6 @@ import { formatDate } from '@/lib/utils';
 import { enrichMatchWithRoster } from '@shared/match-utils';
 import {
   ROTATION_SLOTS,
-  buildRotationLineup,
   emptyRotationBoxes,
   formationLabel,
   isRotationFormat,
@@ -86,6 +85,7 @@ export function RotationMatchView({
     [display.formation, format],
   );
   const captureRef = useRef<HTMLDivElement>(null);
+  const saveTimerRef = useRef<number>(0);
 
   const initialSlots = useMemo(() => {
     const starters = [...display.teamA.players];
@@ -126,9 +126,52 @@ export function RotationMatchView({
     if (formationLabel(parsed) === formationLabel(shape)) return;
     setShape(parsed);
     setSelectedPlayerId(null);
-    const filled = slots.filter((player): player is Player => Boolean(player));
-    if (filled.length !== format) return;
-    setSlots(buildRotationLineup(filled, format, parsed).starters);
+    setError('');
+    void persistLineup(slots, boxes, parsed).catch(() => {
+      setError('Could not save shape');
+    });
+  }
+
+  async function persistLineup(
+    nextSlots: Array<Player | null>,
+    nextBoxes: RotationBoxes,
+    nextShape: number[],
+  ): Promise<MatchRecord | null> {
+    if (nextSlots.some((player) => !player)) return null;
+    const updated = await api.updateRotationMatch(
+      slug,
+      match.id,
+      nextSlots.map((player) => player?.id).filter((id): id is string => Boolean(id)),
+      rotationBoxesToIds(nextBoxes),
+      match.teamA.name,
+      nextShape,
+    );
+    const keptFormation = parseRotationFormation(nextShape, format);
+    const next = { ...updated, formation: keptFormation };
+    onMatchChange(next);
+    setShape(keptFormation);
+    return next;
+  }
+
+  async function saveLineup() {
+    if (slots.some((player) => !player)) {
+      setError(`Fill all ${format} starting places — extras go in the rotation boxes.`);
+      return;
+    }
+
+    window.clearTimeout(saveTimerRef.current);
+    setSaving(true);
+    setError('');
+    try {
+      const saved = await persistLineup(slots, boxes, shape);
+      if (!saved) {
+        setError(`Fill all ${format} starting places — extras go in the rotation boxes.`);
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to save lineup');
+    } finally {
+      setSaving(false);
+    }
   }
 
   function applyMove(playerId: string, dest: { type: 'pitch'; index: number } | { type: 'bench'; slot: RotationSlot }) {
@@ -166,40 +209,12 @@ export function RotationMatchView({
     setSlots(nextSlots);
     setBoxes(nextBoxes);
     setSelectedPlayerId(null);
-  }
-
-  async function saveLineup() {
-    if (slots.some((player) => !player)) {
-      setError(`Fill all ${format} starting places — extras go in the rotation boxes.`);
-      return;
-    }
-
-    setSaving(true);
-    setError('');
-    try {
-      const updated = await api.updateRotationMatch(
-        slug,
-        match.id,
-        slots.map((player) => player?.id).filter((id): id is string => Boolean(id)),
-        rotationBoxesToIds(boxes),
-        match.teamA.name,
-        shape,
-      );
-      onMatchChange(updated);
-      const next = roster.length > 0 ? enrichMatchWithRoster(updated, roster) : updated;
-      setSlots(() => {
-        const filled = [...next.teamA.players];
-        const nextSlots: Array<Player | null> = filled.slice(0, format);
-        while (nextSlots.length < format) nextSlots.push(null);
-        return nextSlots;
+    window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(() => {
+      void persistLineup(nextSlots, nextBoxes, shape).catch(() => {
+        setError('Could not save lineup');
       });
-      setBoxes(next.rotation ?? emptyRotationBoxes());
-      setShape(parseRotationFormation(next.formation, format));
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save lineup');
-    } finally {
-      setSaving(false);
-    }
+    }, 500);
   }
 
   async function handleShuffle() {
@@ -226,8 +241,18 @@ export function RotationMatchView({
     setSharing(true);
     setError('');
     try {
+      window.clearTimeout(saveTimerRef.current);
+      if (slots.some((player) => !player)) {
+        setError(`Fill all ${format} starting places before sharing.`);
+        return;
+      }
+      const saved = await persistLineup(slots, boxes, shape);
+      if (!saved) {
+        setError('Could not save lineup before sharing. Try Save lineup, then share again.');
+        return;
+      }
       const result = await shareMatchLineup({
-        match,
+        match: saved,
         groupName,
         captureEl: captureRef.current,
       });
@@ -242,7 +267,8 @@ export function RotationMatchView({
     }
   }
 
-  const matchTitle = (match.name ?? '').trim() || getMatchLabel(match);
+  const displayMatch = { ...match, formation: shape };
+  const matchTitle = (match.name ?? '').trim() || getMatchLabel(displayMatch);
 
   return (
     <div className="space-y-6">
@@ -253,7 +279,7 @@ export function RotationMatchView({
           </p>
           <h1 className="font-display text-3xl font-bold text-slate-900">{matchTitle}</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {getMatchLabel(match)} · {formatDate(match.date)}
+            {getMatchLabel(displayMatch)} · {formatDate(match.date)}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

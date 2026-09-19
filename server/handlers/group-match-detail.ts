@@ -54,7 +54,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       kind?: 'rotation';
       starterIds?: string[];
       rotationIds?: Partial<Record<RotationSlot, string[]>>;
-      formation?: number[];
+      formation?: number[] | string;
+      formationKey?: string;
       teamAPlayerIds?: string[];
       teamBPlayerIds?: string[];
       teamCPlayerIds?: string[];
@@ -103,7 +104,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           : match.teamA.name;
       const teams = buildRotationMatchTeams(starters, rotation, starterName);
       const formation = parseRotationFormation(
-        body.formation ?? match.formation,
+        body.formation ?? body.formationKey ?? match.formation,
         match.format,
       );
 

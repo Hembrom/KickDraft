@@ -2,6 +2,10 @@ import { toPng } from 'html-to-image';
 import { formatDate } from '@/lib/utils';
 import { getMatchLabel, type MatchRecord } from '@shared/types';
 
+export function matchPageUrl(match: Pick<MatchRecord, 'groupSlug' | 'id'>): string {
+  return `${window.location.origin}/${match.groupSlug}/match/${match.id}`;
+}
+
 export function buildShareCaption(match: MatchRecord, url: string): string {
   const sizeLabel = getMatchLabel(match);
   const title = (match.name ?? '').trim() || `${sizeLabel} lineup`;
@@ -27,33 +31,28 @@ export async function shareMatchLineup(options: {
   groupName: string;
   captureEl: HTMLElement | null;
 }): Promise<'shared' | 'copied' | 'cancelled'> {
-  const url = window.location.href;
+  const url = matchPageUrl(options.match);
   const caption = buildShareCaption(options.match, url);
   const title = (options.match.name ?? '').trim() || options.groupName;
 
   const imageFile = options.captureEl ? await captureLineupImage(options.captureEl) : null;
 
   if (typeof navigator.share === 'function') {
-    const base: ShareData = { title, text: caption };
-
+    const attempts: ShareData[] = [];
     if (imageFile) {
-      const withImage: ShareData = { ...base, files: [imageFile] };
-      if (navigator.canShare?.(withImage) !== false) {
-        try {
-          await navigator.share(withImage);
-          return 'shared';
-        } catch (err) {
-          if (err instanceof Error && err.name === 'AbortError') return 'cancelled';
-        }
-      }
+      attempts.push({ title, text: caption, url, files: [imageFile] });
+      attempts.push({ title, text: caption, files: [imageFile] });
     }
+    attempts.push({ title, text: caption, url });
 
-    try {
-      await navigator.share(base);
-      return 'shared';
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return 'cancelled';
-      throw err;
+    for (const data of attempts) {
+      if (data.files && navigator.canShare?.(data) === false) continue;
+      try {
+        await navigator.share(data);
+        return 'shared';
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return 'cancelled';
+      }
     }
   }
 

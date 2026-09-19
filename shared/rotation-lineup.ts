@@ -95,15 +95,27 @@ export function getRotationShapes(format: number): number[][] {
   return ROTATION_SHAPES[format] ?? [getRotationFormation(format)];
 }
 
+function rowsFromFormationInput(input: unknown): number[] {
+  if (typeof input === 'string') {
+    return input
+      .split(/[-x/,]/)
+      .map((value) => Number(value.trim()))
+      .filter((value) => Number.isInteger(value) && value > 0);
+  }
+  if (!Array.isArray(input)) return [];
+  return input.map((value) => Number(value)).filter((value) => Number.isInteger(value) && value > 0);
+}
+
 export function parseRotationFormation(input: unknown, format: number): number[] {
-  const fallback = getRotationFormation(format);
-  if (!Array.isArray(input) || input.length < 2) return fallback;
-  const rows = input.map((value) => Number(value)).filter((value) => Number.isInteger(value) && value > 0);
+  const size = Number(format);
+  const fallback = getRotationFormation(size);
+  const rows = rowsFromFormationInput(input);
+  if (rows.length < 2) return fallback;
   const total = rows.reduce((sum, n) => sum + n, 0);
-  if (total !== format) return fallback;
-  const allowed = getRotationShapes(format);
+  if (total !== size) return fallback;
+  const allowed = getRotationShapes(size);
   const match = allowed.find((shape) => formationLabel(shape) === formationLabel(rows));
-  return match ?? fallback;
+  return match ?? rows;
 }
 
 function getPitchSlotRole(rowIndex: number, rowCount: number): PlayerPosition {

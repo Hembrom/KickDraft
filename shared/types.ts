@@ -335,8 +335,10 @@ export function isThreeTeamMatch(match: MatchRecord): boolean {
   return match.teamCount === 3 && Boolean(match.teamC);
 }
 
-export function isRotationMatch(match: Pick<MatchRecord, 'kind'>): boolean {
-  return match.kind === 'rotation';
+export function isRotationMatch(
+  match: Pick<MatchRecord, 'kind'> & { teamB?: { name?: string } },
+): boolean {
+  return match.kind === 'rotation' || match.teamB?.name === 'Rotation';
 }
 
 export function getMatchLabel(match: MatchRecord): string {

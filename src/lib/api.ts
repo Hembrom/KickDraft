@@ -116,6 +116,7 @@ export const api = {
         kind: options?.kind,
         format: options?.format,
         formation: options?.formation,
+        formationKey: options?.formation?.join('-'),
       }),
     });
   },
@@ -152,6 +153,7 @@ export const api = {
         rotationIds,
         teamAName,
         formation,
+        formationKey: formation?.join('-'),
       }),
     });
   },

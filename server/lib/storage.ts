@@ -11,6 +11,7 @@ import {
 } from '../../shared/types.js';
 import {
   attachRotationToTeamB,
+  hydrateMatchRecord,
   parseRotationFromTeamB,
 } from '../../shared/rotation-persist.js';
 import { parseRotationFormation } from '../../shared/rotation-lineup.js';
@@ -145,6 +146,16 @@ function playerToRow(slug: string, player: Player): PlayerRow {
 
 function rowToMatch(row: MatchRow): MatchRecord {
   const parsed = parseRotationFromTeamB(row.team_b);
+  let teamA = row.team_a;
+  if (parsed.kind === 'rotation' && parsed.starterIds?.length && teamA?.players?.length) {
+    const byId = new Map(teamA.players.map((player) => [player.id, player]));
+    const ordered = parsed.starterIds
+      .map((id) => byId.get(id))
+      .filter((player): player is NonNullable<typeof player> => Boolean(player));
+    if (ordered.length === teamA.players.length) {
+      teamA = { ...teamA, players: ordered };
+    }
+  }
   return {
     id: row.id,
     groupSlug: row.group_slug,
@@ -154,13 +165,14 @@ function rowToMatch(row: MatchRow): MatchRecord {
     selectedPlayerIds: row.selected_player_ids,
     teamCount: row.team_count === 3 ? 3 : 2,
     kind: parsed.kind,
-    teamA: row.team_a,
+    teamA,
     teamB: parsed.teamB,
     teamC: row.team_c ?? undefined,
     rotation: parsed.rotation,
-    formation: parsed.formation
-      ? parseRotationFormation(parsed.formation, row.format)
-      : undefined,
+    formation:
+      parsed.kind === 'rotation'
+        ? parseRotationFormation(parsed.formation, row.format)
+        : undefined,
     ratingDifference: Number(row.rating_difference),
     recordedAsPlayed: Boolean(row.recorded_as_played),
     recordedAt: row.recorded_at ?? null,
@@ -450,7 +462,9 @@ export async function updateMatch(record: MatchRecord) {
 }
 
 export async function listMatches(slug: string): Promise<MatchRecord[]> {
-  if (useLocalStorage()) return listMatchesLocal(slug);
+  if (useLocalStorage()) {
+    return (await listMatchesLocal(slug)).map(hydrateMatchRecord);
+  }
 
   const supabase = getSupabase();
   const { data, error } = await supabase
@@ -465,7 +479,8 @@ export async function listMatches(slug: string): Promise<MatchRecord[]> {
 
 export async function getMatch(slug: string, matchId: string): Promise<MatchRecord | null> {
   if (useLocalStorage()) {
-    return readJsonLocal<MatchRecord>(groupPath(slug, 'matches', `${matchId}.json`));
+    const record = await readJsonLocal<MatchRecord>(groupPath(slug, 'matches', `${matchId}.json`));
+    return record ? hydrateMatchRecord(record) : null;
   }
 
   const supabase = getSupabase();
