@@ -1,12 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Repeat, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PitchPlayerMarker } from '@/components/PitchPlayerMarker';
 import { PositionBadge } from '@/components/PlayerCard';
 import {
   ROTATION_SLOT_LABELS,
   ROTATION_SLOTS,
-  getRotationFormation,
+  parseRotationFormation,
   rotationSlotRoles,
   startersToRows,
   type RotationFormat,
@@ -14,7 +13,10 @@ import {
 import { getPitchSlotRole } from '@shared/pitch-formation';
 import { roundRating, type Player, type RotationBoxes, type RotationSlot } from '@shared/types';
 
-const DRAG_MIME = 'application/x-kickdraft-rotation';
+function shortName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return (parts.length > 1 ? parts[parts.length - 1] : parts[0]).toUpperCase();
+}
 
 function PlayerChip({
   player,
@@ -39,24 +41,29 @@ function PlayerChip({
         'flex cursor-grab items-center gap-2 rounded-xl border px-2 py-1.5 active:cursor-grabbing',
         playing
           ? 'border-emerald-400 bg-emerald-50'
-          : 'border-slate-200 bg-slate-50',
-        selected && (playing ? 'ring-2 ring-emerald-500' : 'border-amber-400 bg-amber-50'),
+          : 'border-amber-900 bg-[#f3e5d0]',
+        selected && (playing ? 'ring-2 ring-emerald-500' : 'ring-2 ring-amber-900'),
       )}
     >
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-slate-200">
+      <div className="pointer-events-none flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-slate-200">
         {player.photoUrl ? (
-          <img src={player.photoUrl} alt="" className="h-full w-full object-cover" />
+          <img
+            src={player.photoUrl}
+            alt=""
+            draggable={false}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <User className="h-4 w-4 text-slate-300" />
         )}
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="pointer-events-none min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <p className="truncate text-xs font-semibold text-slate-900">{player.name}</p>
           <span
             className={cn(
               'shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide',
-              playing ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600',
+              playing ? 'bg-emerald-600 text-white' : 'bg-amber-900 text-amber-50',
             )}
           >
             {playing ? 'On' : 'Sub'}
@@ -73,8 +80,33 @@ function PlayerChip({
   );
 }
 
+function PitchToken({ player }: { player: Player }) {
+  return (
+    <div className="pointer-events-none flex flex-col items-center">
+      <div className="h-10 w-10 overflow-hidden rounded-full border-2 border-white/90 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.35)]">
+        {player.photoUrl ? (
+          <img
+            src={player.photoUrl}
+            alt=""
+            draggable={false}
+            className="h-full w-full object-cover object-top"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-400">
+            <User className="h-4 w-4" />
+          </div>
+        )}
+      </div>
+      <p className="mt-1 max-w-[54px] truncate text-center text-[7px] font-bold uppercase leading-tight tracking-wide text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+        {shortName(player.name)}
+      </p>
+    </div>
+  );
+}
+
 export function RotationLineupBoard({
   format,
+  shape,
   slots,
   boxes,
   selectedPlayerId,
@@ -83,6 +115,7 @@ export function RotationLineupBoard({
   onDropOnBench,
 }: {
   format: RotationFormat;
+  shape?: number[];
   slots: Array<Player | null>;
   boxes: RotationBoxes;
   selectedPlayerId: string | null;
@@ -90,26 +123,32 @@ export function RotationLineupBoard({
   onDropOnPitch: (playerId: string, index: number) => void;
   onDropOnBench: (playerId: string, slot: RotationSlot) => void;
 }) {
-  const roles = useMemo(() => rotationSlotRoles(format), [format]);
-  const rows = useMemo(() => startersToRows(slots, format), [slots, format]);
-  const formation = getRotationFormation(format);
+  const roles = useMemo(() => rotationSlotRoles(format, shape), [format, shape]);
+  const rows = useMemo(() => startersToRows(slots, format, shape), [slots, format, shape]);
+  const formation = useMemo(() => parseRotationFormation(shape, format), [format, shape]);
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const dragIdRef = useRef<string | null>(null);
 
   function readDragId(event: React.DragEvent): string | null {
-    const raw = event.dataTransfer.getData(DRAG_MIME) || event.dataTransfer.getData('text/plain');
-    return raw || null;
+    return (
+      event.dataTransfer.getData('text/plain') ||
+      event.dataTransfer.getData('text') ||
+      dragIdRef.current
+    );
   }
 
   function startDrag(playerId: string) {
     return (event: React.DragEvent) => {
-      event.dataTransfer.setData(DRAG_MIME, playerId);
+      dragIdRef.current = playerId;
       event.dataTransfer.setData('text/plain', playerId);
+      event.dataTransfer.setData('text', playerId);
       event.dataTransfer.effectAllowed = 'move';
     };
   }
 
   const rowCount = formation.length;
   const pitchHeight = Math.max(420, 80 + rowCount * 110);
+  const placing = Boolean(selectedPlayerId);
 
   return (
     <div className="space-y-4">
@@ -130,10 +169,10 @@ export function RotationLineupBoard({
         <div className="pointer-events-none absolute bottom-2 left-1/2 h-10 w-20 -translate-x-1/2 border-2 border-b-0 border-white/40" />
 
         <p className="pointer-events-none absolute left-3 top-3 rounded-full bg-blue-600/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-          Starting {format}
+          Starting {format} · {formation.join('-')}
         </p>
 
-        <div className="relative flex h-full flex-col justify-evenly px-2 py-8">
+        <div className="relative z-10 flex h-full flex-col justify-evenly px-2 py-8">
           {rows.map((row, rowIndex) => {
             const role = getPitchSlotRole(rowIndex, rowCount);
             const startIndex = formation.slice(0, rowIndex).reduce((sum, n) => sum + n, 0);
@@ -144,13 +183,19 @@ export function RotationLineupBoard({
                   const index = startIndex + colIndex;
                   const key = `pitch-${index}`;
                   const selectedHere = Boolean(player && selectedPlayerId === player.id);
+                  const emptyTarget = !player && placing;
 
                   return (
-                    <button
+                    <div
                       key={key}
-                      type="button"
+                      role="button"
+                      tabIndex={0}
                       draggable={Boolean(player)}
                       onDragStart={player ? startDrag(player.id) : undefined}
+                      onDragEnd={() => {
+                        dragIdRef.current = null;
+                        setDragOverKey(null);
+                      }}
                       onDragOver={(event) => {
                         event.preventDefault();
                         event.dataTransfer.dropEffect = 'move';
@@ -161,8 +206,10 @@ export function RotationLineupBoard({
                       }
                       onDrop={(event) => {
                         event.preventDefault();
+                        event.stopPropagation();
                         setDragOverKey(null);
                         const playerId = readDragId(event);
+                        dragIdRef.current = null;
                         if (playerId) onDropOnPitch(playerId, index);
                       }}
                       onClick={() => {
@@ -172,20 +219,38 @@ export function RotationLineupBoard({
                         }
                         onSelectPlayer(selectedHere ? null : player?.id ?? null);
                       }}
+                      onKeyDown={(event) => {
+                        if (event.key !== 'Enter' && event.key !== ' ') return;
+                        event.preventDefault();
+                        if (selectedPlayerId && selectedPlayerId !== player?.id) {
+                          onDropOnPitch(selectedPlayerId, index);
+                          return;
+                        }
+                        onSelectPlayer(selectedHere ? null : player?.id ?? null);
+                      }}
                       className={cn(
-                        'flex min-h-[72px] min-w-[64px] flex-col items-center justify-end rounded-xl p-1',
-                        dragOverKey === key && 'bg-white/20 ring-2 ring-white',
+                        'flex min-h-[84px] min-w-[72px] cursor-pointer flex-col items-center justify-end rounded-xl p-1',
+                        player && 'cursor-grab active:cursor-grabbing',
+                        dragOverKey === key && 'bg-white/25 ring-2 ring-white',
                         selectedHere && 'bg-white/15 ring-2 ring-amber-300',
+                        emptyTarget && 'bg-amber-300/25 ring-2 ring-amber-200',
                       )}
                     >
                       {player ? (
-                        <PitchPlayerMarker player={player} pitchRole={roles[index]} compact />
+                        <PitchToken player={player} />
                       ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed border-white/70 text-[10px] font-bold text-white/90">
+                        <div
+                          className={cn(
+                            'flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed text-[10px] font-bold',
+                            emptyTarget
+                              ? 'border-amber-200 text-amber-100'
+                              : 'border-white/70 text-white/90',
+                          )}
+                        >
                           {role}
                         </div>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -195,8 +260,15 @@ export function RotationLineupBoard({
       </div>
 
       <p className="text-center text-xs text-slate-500">
-        Each box lists that position: <span className="font-semibold text-emerald-700">green = on
-        the pitch</span>, grey = sub. Drag or tap to swap.
+        {placing ? (
+          <span className="font-semibold text-amber-800">
+            Tap an empty circle (or a player) on the pitch to place them. Drag also works.
+          </span>
+        ) : (
+          <>
+            Drag a brown sub onto an empty circle, or tap the sub then tap the circle.
+          </>
+        )}
       </p>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -224,6 +296,7 @@ export function RotationLineupBoard({
                 event.stopPropagation();
                 setDragOverKey(null);
                 const playerId = readDragId(event);
+                dragIdRef.current = null;
                 if (playerId) onDropOnBench(playerId, slot);
               }}
               onClick={() => {
@@ -234,6 +307,7 @@ export function RotationLineupBoard({
                 dragOverKey === boxKey
                   ? 'border-elite-400 ring-2 ring-elite-100'
                   : 'border-slate-200',
+                placing && 'ring-1 ring-amber-200',
               )}
             >
               <div className="mb-2 flex items-center justify-between gap-1">
@@ -244,7 +318,7 @@ export function RotationLineupBoard({
                 <span className="text-[11px] text-slate-500">
                   <span className="font-semibold text-emerald-700">{playing.length}</span>
                   {' on · '}
-                  {subs.length} sub
+                  <span className="font-semibold text-amber-900">{subs.length}</span> sub
                 </span>
               </div>
               {empty ? (

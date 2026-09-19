@@ -13,6 +13,7 @@ import {
   attachRotationToTeamB,
   parseRotationFromTeamB,
 } from '../../shared/rotation-persist.js';
+import { parseRotationFormation } from '../../shared/rotation-lineup.js';
 import { getErrorMessage } from './auth.js';
 import { getSupabase, isSupabaseConfigured } from './supabase-client.js';
 import {
@@ -157,6 +158,9 @@ function rowToMatch(row: MatchRow): MatchRecord {
     teamB: parsed.teamB,
     teamC: row.team_c ?? undefined,
     rotation: parsed.rotation,
+    formation: parsed.formation
+      ? parseRotationFormation(parsed.formation, row.format)
+      : undefined,
     ratingDifference: Number(row.rating_difference),
     recordedAsPlayed: Boolean(row.recorded_as_played),
     recordedAt: row.recorded_at ?? null,

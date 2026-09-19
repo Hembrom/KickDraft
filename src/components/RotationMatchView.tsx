@@ -2,16 +2,18 @@ import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Check, Loader2, Save, Share2, Shuffle } from 'lucide-react';
 import { RotationLineupBoard } from '@/components/RotationLineupBoard';
-import { SessionWhoRatesWhom } from '@/components/SessionWhoRatesWhom';
+import { RotationShapePicker } from '@/components/RotationShapePicker';
 import { api, ApiError } from '@/lib/api';
 import { shareMatchLineup } from '@/lib/share-match';
 import { formatDate } from '@/lib/utils';
 import { enrichMatchWithRoster } from '@shared/match-utils';
 import {
   ROTATION_SLOTS,
+  buildRotationLineup,
   emptyRotationBoxes,
-  flattenRotation,
+  formationLabel,
   isRotationFormat,
+  parseRotationFormation,
   rotationBoxesToIds,
 } from '@shared/rotation-lineup';
 import {
@@ -63,10 +65,6 @@ function takePlayer(
   return null;
 }
 
-function sessionPlayers(slots: Array<Player | null>, boxes: RotationBoxes): Player[] {
-  return [...slots.filter((player): player is Player => Boolean(player)), ...flattenRotation(boxes)];
-}
-
 export function RotationMatchView({
   slug,
   groupName,
@@ -83,6 +81,10 @@ export function RotationMatchView({
   const navigate = useNavigate();
   const display = roster.length > 0 ? enrichMatchWithRoster(match, roster) : match;
   const format = isRotationFormat(match.format) ? match.format : 5;
+  const savedShape = useMemo(
+    () => parseRotationFormation(display.formation, format),
+    [display.formation, format],
+  );
   const captureRef = useRef<HTMLDivElement>(null);
 
   const initialSlots = useMemo(() => {
@@ -99,6 +101,7 @@ export function RotationMatchView({
 
   const [slots, setSlots] = useState<Array<Player | null>>(initialSlots);
   const [boxes, setBoxes] = useState<RotationBoxes>(initialBoxes);
+  const [shape, setShape] = useState<number[]>(savedShape);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -107,6 +110,7 @@ export function RotationMatchView({
   const [error, setError] = useState('');
 
   const dirty = useMemo(() => {
+    if (formationLabel(shape) !== formationLabel(savedShape)) return true;
     const startIds = slots.map((player) => player?.id ?? '').join(',');
     const savedStart = initialSlots.map((player) => player?.id ?? '').join(',');
     if (startIds !== savedStart) return true;
@@ -115,7 +119,17 @@ export function RotationMatchView({
         boxes[slot].map((player) => player.id).join(',') !==
         initialBoxes[slot].map((player) => player.id).join(','),
     );
-  }, [slots, boxes, initialSlots, initialBoxes]);
+  }, [slots, boxes, initialSlots, initialBoxes, shape, savedShape]);
+
+  function applyShape(nextShape: number[]) {
+    const parsed = parseRotationFormation(nextShape, format);
+    if (formationLabel(parsed) === formationLabel(shape)) return;
+    setShape(parsed);
+    setSelectedPlayerId(null);
+    const filled = slots.filter((player): player is Player => Boolean(player));
+    if (filled.length !== format) return;
+    setSlots(buildRotationLineup(filled, format, parsed).starters);
+  }
 
   function applyMove(playerId: string, dest: { type: 'pitch'; index: number } | { type: 'bench'; slot: RotationSlot }) {
     setError('');
@@ -169,6 +183,7 @@ export function RotationMatchView({
         slots.map((player) => player?.id).filter((id): id is string => Boolean(id)),
         rotationBoxesToIds(boxes),
         match.teamA.name,
+        shape,
       );
       onMatchChange(updated);
       const next = roster.length > 0 ? enrichMatchWithRoster(updated, roster) : updated;
@@ -179,6 +194,7 @@ export function RotationMatchView({
         return nextSlots;
       });
       setBoxes(next.rotation ?? emptyRotationBoxes());
+      setShape(parseRotationFormation(next.formation, format));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to save lineup');
     } finally {
@@ -196,7 +212,7 @@ export function RotationMatchView({
         match.selectedPlayerIds,
         (match.name ?? '').trim(),
         2,
-        { kind: 'rotation', format },
+        { kind: 'rotation', format, formation: shape },
       );
       navigate(`/${slug}/match/${newMatch.id}`);
     } catch (err) {
@@ -226,7 +242,6 @@ export function RotationMatchView({
     }
   }
 
-  const people = sessionPlayers(slots, boxes);
   const matchTitle = (match.name ?? '').trim() || getMatchLabel(match);
 
   return (
@@ -289,16 +304,18 @@ export function RotationMatchView({
       </div>
 
       <p className="text-sm text-slate-600">
-        Starting {format} on the pitch. Each rotation box shows that position —{' '}
-        <span className="font-semibold text-emerald-700">green = playing now</span>, grey = sub
-        who can rotate in.
+        Drag a brown sub onto an empty circle on the pitch, or tap the sub then tap the circle.
+        Green = playing now, brown = bench.
       </p>
+
+      <RotationShapePicker format={format} value={shape} onChange={applyShape} />
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       <div ref={captureRef} className="space-y-4 rounded-2xl bg-white p-3 sm:p-4">
         <RotationLineupBoard
           format={format}
+          shape={shape}
           slots={slots}
           boxes={boxes}
           selectedPlayerId={selectedPlayerId}
@@ -307,8 +324,6 @@ export function RotationMatchView({
           onDropOnBench={(playerId, slot) => applyMove(playerId, { type: 'bench', slot })}
         />
       </div>
-
-      <SessionWhoRatesWhom slug={slug} players={people} />
     </div>
   );
 }

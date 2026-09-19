@@ -12,7 +12,8 @@ import {
   sortablePeerOvr,
   type Player,
 } from '@shared/types';
-import { ROTATION_FORMATS, type RotationFormat } from '@shared/rotation-lineup';
+import { ROTATION_FORMATS, getRotationFormation, type RotationFormat } from '@shared/rotation-lineup';
+import { RotationShapePicker } from '@/components/RotationShapePicker';
 import { cn } from '@/lib/utils';
 
 function matchNamePlaceholder() {
@@ -51,6 +52,7 @@ export function GroupPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<'two' | 'three' | 'rotation' | null>(null);
   const [rotationFormat, setRotationFormat] = useState<RotationFormat>(5);
+  const [rotationShape, setRotationShape] = useState<number[]>(() => getRotationFormation(5));
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -146,7 +148,7 @@ export function GroupPage() {
         Array.from(selected),
         matchName.trim(),
         2,
-        { kind: 'rotation', format: rotationFormat },
+        { kind: 'rotation', format: rotationFormat, formation: rotationShape },
       );
       navigate(`/${slug}/match/${match.id}`);
     } catch (err) {
@@ -285,12 +287,20 @@ export function GroupPage() {
                       ? 'bg-elite-600 text-white'
                       : 'text-slate-600 hover:bg-slate-50',
                   )}
-                  onClick={() => setRotationFormat(size)}
+                  onClick={() => {
+                    setRotationFormat(size);
+                    setRotationShape(getRotationFormation(size));
+                  }}
                 >
                   {size}
                 </button>
               ))}
             </div>
+            <RotationShapePicker
+              format={rotationFormat}
+              value={rotationShape}
+              onChange={setRotationShape}
+            />
             <button
               type="button"
               className="btn-primary"
@@ -305,8 +315,8 @@ export function GroupPage() {
 
         {selectedCount === 0 ? (
           <p className="mt-3 text-sm text-slate-600">
-            Tick who is coming. Rotation: pick how many start on the pitch (5–11) — the rest
-            rotate. Two teams: 9–22. Three teams: 12–22.
+            Tick who is coming. Rotation: pick how many start on the pitch (5–11) and the
+            shape (e.g. 1-2-2 or 1-3-1) — the rest rotate. Two teams: 9–22. Three teams: 12–22.
           </p>
         ) : null}
 
@@ -318,8 +328,8 @@ export function GroupPage() {
 
         {canGenerateRotation ? (
           <p className="mt-3 text-sm text-emerald-700">
-            Rotation — {rotationFormat} start, {selectedCount - rotationFormat} on GK / Defence /
-            Mid / Striker benches.
+            Rotation — {rotationFormat} start in {rotationShape.join('-')},{' '}
+            {selectedCount - rotationFormat} on GK / Defence / Mid / Striker benches.
           </p>
         ) : null}
 

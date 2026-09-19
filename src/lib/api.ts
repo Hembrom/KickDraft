@@ -105,7 +105,7 @@ export const api = {
     playerIds: string[],
     name: string,
     teamCount: 2 | 3 = 2,
-    options?: { kind?: 'rotation'; format?: RotationFormat },
+    options?: { kind?: 'rotation'; format?: RotationFormat; formation?: number[] },
   ) {
     return request<MatchRecord>(`/api/groups/${slug}/matches`, {
       method: 'POST',
@@ -115,6 +115,7 @@ export const api = {
         teamCount,
         kind: options?.kind,
         format: options?.format,
+        formation: options?.formation,
       }),
     });
   },
@@ -141,6 +142,7 @@ export const api = {
     starterIds: string[],
     rotationIds: { GK: string[]; DEF: string[]; MID: string[]; FWD: string[] },
     teamAName?: string,
+    formation?: number[],
   ) {
     return request<MatchRecord>(`/api/groups/${slug}/matches/${matchId}`, {
       method: 'PUT',
@@ -149,6 +151,7 @@ export const api = {
         starterIds,
         rotationIds,
         teamAName,
+        formation,
       }),
     });
   },

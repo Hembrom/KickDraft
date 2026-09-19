@@ -169,6 +169,8 @@ export interface MatchRecord {
   teamC?: GeneratedTeam;
   /** Players off the pitch, grouped by the position they rotate into. */
   rotation?: RotationBoxes;
+  /** Pitch rows for a rotation match, e.g. [1, 2, 2] or [1, 3, 1]. */
+  formation?: number[];
   ratingDifference: number;
   /** Admin marked this lineup as an official played game (attendance data). */
   recordedAsPlayed?: boolean;
@@ -340,9 +342,9 @@ export function isRotationMatch(match: Pick<MatchRecord, 'kind'>): boolean {
 export function getMatchLabel(match: MatchRecord): string {
   if (isRotationMatch(match)) {
     const rotating = match.teamB.players.length;
-    return rotating > 0
-      ? `${match.format}-a-side · ${rotating} on rotation`
-      : `${match.format}-a-side`;
+    const shape = match.formation?.join('-');
+    const base = shape ? `${match.format}-a-side · ${shape}` : `${match.format}-a-side`;
+    return rotating > 0 ? `${base} · ${rotating} on rotation` : base;
   }
   if (isThreeTeamMatch(match) && match.teamC) {
     return getThreeWayMatchSizeLabel(

@@ -22,7 +22,7 @@ export const ROTATION_SLOT_LABELS: Record<RotationSlot, string> = {
 
 export const ROTATION_BENCH_NAME = 'Rotation';
 
-/** Single-team shapes (GK → DEF → MID → STR). */
+/** Default single-team shape per size. */
 const ROTATION_FORMATIONS: Record<number, number[]> = {
   5: [1, 2, 2],
   6: [1, 2, 1, 2],
@@ -33,12 +33,77 @@ const ROTATION_FORMATIONS: Record<number, number[]> = {
   11: [1, 4, 4, 2],
 };
 
+/** Alternate shapes (always sum to the on-pitch count). */
+const ROTATION_SHAPES: Record<number, number[][]> = {
+  5: [
+    [1, 2, 2],
+    [1, 3, 1],
+    [1, 2, 1, 1],
+    [1, 1, 2, 1],
+  ],
+  6: [
+    [1, 2, 1, 2],
+    [1, 3, 2],
+    [1, 2, 2, 1],
+    [1, 3, 1, 1],
+  ],
+  7: [
+    [1, 2, 2, 2],
+    [1, 3, 3],
+    [1, 2, 3, 1],
+    [1, 3, 2, 1],
+  ],
+  8: [
+    [1, 2, 3, 2],
+    [1, 3, 2, 2],
+    [1, 3, 3, 1],
+    [1, 2, 2, 3],
+  ],
+  9: [
+    [1, 3, 3, 2],
+    [1, 4, 4],
+    [1, 3, 4, 1],
+    [1, 2, 4, 2],
+  ],
+  10: [
+    [1, 3, 4, 2],
+    [1, 4, 3, 2],
+    [1, 4, 4, 1],
+    [1, 3, 3, 3],
+  ],
+  11: [
+    [1, 4, 4, 2],
+    [1, 4, 3, 3],
+    [1, 3, 5, 2],
+    [1, 5, 4, 1],
+  ],
+};
+
 export function isRotationFormat(value: number): value is RotationFormat {
   return (ROTATION_FORMATS as readonly number[]).includes(value);
 }
 
 export function getRotationFormation(format: number): number[] {
   return ROTATION_FORMATIONS[format] ?? ROTATION_FORMATIONS[5];
+}
+
+export function formationLabel(shape: number[]): string {
+  return shape.join('-');
+}
+
+export function getRotationShapes(format: number): number[][] {
+  return ROTATION_SHAPES[format] ?? [getRotationFormation(format)];
+}
+
+export function parseRotationFormation(input: unknown, format: number): number[] {
+  const fallback = getRotationFormation(format);
+  if (!Array.isArray(input) || input.length < 2) return fallback;
+  const rows = input.map((value) => Number(value)).filter((value) => Number.isInteger(value) && value > 0);
+  const total = rows.reduce((sum, n) => sum + n, 0);
+  if (total !== format) return fallback;
+  const allowed = getRotationShapes(format);
+  const match = allowed.find((shape) => formationLabel(shape) === formationLabel(rows));
+  return match ?? fallback;
 }
 
 function getPitchSlotRole(rowIndex: number, rowCount: number): PlayerPosition {
@@ -57,8 +122,8 @@ export function flattenRotation(boxes: RotationBoxes | undefined): Player[] {
   return ROTATION_SLOTS.flatMap((slot) => boxes[slot]);
 }
 
-export function rotationSlotRoles(format: number): PlayerPosition[] {
-  const rows = getRotationFormation(format);
+export function rotationSlotRoles(format: number, shape?: number[]): PlayerPosition[] {
+  const rows = parseRotationFormation(shape, format);
   const roles: PlayerPosition[] = [];
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
     const role = getPitchSlotRole(rowIndex, rows.length);
@@ -70,8 +135,9 @@ export function rotationSlotRoles(format: number): PlayerPosition[] {
 export function startersToRows(
   starters: Array<Player | null>,
   format: number,
+  shape?: number[],
 ): Array<Array<Player | null>> {
-  const rows = getRotationFormation(format);
+  const rows = parseRotationFormation(shape, format);
   const result: Array<Array<Player | null>> = [];
   let offset = 0;
   for (const count of rows) {
@@ -135,8 +201,9 @@ function pickBestForRole(pool: Player[], role: PlayerPosition): number {
 export function buildRotationLineup(
   players: Player[],
   format: RotationFormat,
+  shape?: number[],
 ): { starters: Player[]; rotation: RotationBoxes } {
-  const roles = rotationSlotRoles(format);
+  const roles = rotationSlotRoles(format, shape);
   const pool = [...players];
   const starters: Player[] = [];
 

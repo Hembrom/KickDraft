@@ -12,6 +12,7 @@ import {
   buildRotationLineup,
   buildRotationMatchTeams,
   isRotationFormat,
+  parseRotationFormation,
 } from '../../shared/rotation-lineup.js';
 import {
   formatFromPlayerCount,
@@ -46,6 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       teamCount?: TeamCount;
       kind?: MatchKind;
       format?: number;
+      formation?: number[];
     }>(req);
     const playerIds = body.playerIds ?? [];
     const name = typeof body.name === 'string' ? body.name.trim() : '';
@@ -79,7 +81,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return error(res, 400, 'Select at most 22 players');
         }
 
-        const { starters, rotation } = buildRotationLineup(selected, format);
+        const formation = parseRotationFormation(body.formation, format);
+        const { starters, rotation } = buildRotationLineup(selected, format, formation);
         const teams = buildRotationMatchTeams(starters, rotation);
 
         const record: MatchRecord = {
@@ -94,6 +97,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           teamA: teams.teamA,
           teamB: teams.teamB,
           rotation: teams.rotation,
+          formation,
           ratingDifference: 0,
         };
 
