@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeftRight, ArrowRight, Lock, Pencil, Shuffle, Split, Wand2 } from 'lucide-react';
+import { ArrowLeftRight, ArrowRight, Lock, Pencil, Repeat, Shuffle, Split, Wand2 } from 'lucide-react';
 
 const APP_URL = 'https://kick-draft.vercel.app';
 const GUIDE_URL = `${APP_URL}/guide`;
@@ -61,11 +61,11 @@ export function CaptainsGuidePage() {
         <figure className="overflow-hidden rounded-xl border border-slate-200">
           <img
             src="/guide/select-players.png"
-            alt="Newtown Sporting Club — tick availability, then Two-way split or Three-way split"
+            alt="Newtown Sporting Club — tick availability, then Two-way split, Three-way split, or Rotation lineup"
             className="w-full"
           />
           <figcaption className="bg-slate-50 px-3 py-2 text-center text-xs text-slate-500">
-            Tick who is coming — then choose Two-way split or Three-way split
+            Tick who is coming — then Two-way split, Three-way split, or Rotation lineup
           </figcaption>
         </figure>
         <p className="text-sm text-slate-600">
@@ -119,7 +119,50 @@ export function CaptainsGuidePage() {
       </section>
 
       <section className="card space-y-4 p-5">
-        <h2 className="font-display text-lg font-bold">5 · Check the lineup</h2>
+        <h2 className="font-display text-lg font-bold">5 · Rotation lineup (one team + benches)</h2>
+        <p className="text-sm text-slate-600">
+          When you are not splitting into two sides — everyone is one squad, some start, the rest
+          rotate in — pick how many start on the pitch (5–11) and a <strong>shape</strong> such as{' '}
+          <strong>1-2-2</strong> or <strong>1-2-1-1</strong>. Then tap{' '}
+          <strong>Rotation lineup</strong>.
+        </p>
+        <figure className="overflow-hidden rounded-xl border border-slate-200">
+          <img
+            src="/guide/rotation-lineup.png"
+            alt="Rotation lineup — 1-2-1-1 on the pitch, green playing, brown on the bench"
+            className="w-full"
+          />
+          <figcaption className="bg-slate-50 px-3 py-2 text-center text-xs text-slate-500">
+            Green = playing now · brown = bench · change shape (1-2-2, 1-3-1, 1-2-1-1…)
+          </figcaption>
+        </figure>
+        <ul className="list-inside list-disc space-y-1 text-sm text-slate-600">
+          <li>
+            <strong>Green On</strong> — starting now. <strong>Brown Sub</strong> — waiting in that
+            position box (GK, Defence, Mid, Striker)
+          </li>
+          <li>
+            Drag a brown sub onto an empty circle, or tap the sub then tap the circle
+          </li>
+          <li>
+            Change the shape anytime — Share saves first, so the link stays on this lineup, not a
+            new random team
+          </li>
+        </ul>
+        <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 text-sm text-slate-600">
+          <p className="flex items-start gap-2 font-semibold text-slate-800">
+            <Repeat className="mt-0.5 h-4 w-4 shrink-0 text-elite-600" />
+            Need at least as many players as you put on the pitch
+          </p>
+          <p className="mt-1">
+            Example: 5-a-side with 8 coming → 5 start, 3 on the benches. Extras always go in the
+            four position boxes.
+          </p>
+        </div>
+      </section>
+
+      <section className="card space-y-4 p-5">
+        <h2 className="font-display text-lg font-bold">6 · Check the lineup</h2>
         <p className="text-sm text-slate-600">
           You get a pitch view — Team A vs Team B with formation (e.g. 5v5 = 1-2-2).
         </p>
@@ -136,7 +179,7 @@ export function CaptainsGuidePage() {
       </section>
 
       <section className="card space-y-4 p-5">
-        <h2 className="font-display text-lg font-bold">6 · Not happy? Shuffle or edit</h2>
+        <h2 className="font-display text-lg font-bold">7 · Not happy? Shuffle or edit</h2>
         <p className="text-sm text-slate-600">
           On the match page you have two ways to try another split — without re-selecting
           everyone.
@@ -207,7 +250,7 @@ export function CaptainsGuidePage() {
       </section>
 
       <section className="card space-y-4 p-5">
-        <h2 className="font-display text-lg font-bold">7 · Share on WhatsApp</h2>
+        <h2 className="font-display text-lg font-bold">8 · Share on WhatsApp</h2>
         <p className="text-sm text-slate-600">
           Tap <strong>Share match</strong>. You get:
         </p>
@@ -240,11 +283,15 @@ export function CaptainsGuidePage() {
       <section className="card space-y-2 p-5">
         <h2 className="font-display text-lg font-bold">Quick tips</h2>
         <ul className="list-inside list-disc space-y-1 text-sm text-slate-600">
-          <li>Need 9–22 players for two teams, or 12–22 for three-way split</li>
+          <li>Need 9–22 players for two teams, 12–22 for three-way, or 5–22 for rotation</li>
           <li>Stamina (STA) counts in OVR and in the top-4 stamina split</li>
           <li>
             Shuffle again = new teams; Edit teams = swap in late arrivals, lock, or assign
             players yourself
+          </li>
+          <li>
+            Rotation: green is on the pitch, brown is the bench — the shared link keeps that
+            lineup
           </li>
           <li>Match history keeps lineups from the last 30 days</li>
         </ul>

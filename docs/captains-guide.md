@@ -5,7 +5,7 @@
 
 ---
 
-## In 7 steps
+## In 8 steps
 
 ### 1. Open your squad
 Go to **Newtown Sporting Club**:  
@@ -28,6 +28,8 @@ Under **Today's availability**, tap the checkbox for each player who is coming o
 
 **Three-way split** (12–22 players): with 12+ ticked, use **Three-way split** instead of **Two-way split** — everyone selected goes onto three sides, e.g. 15 → 5v5v5, 21 → 7v7v7.
 
+**Rotation lineup** (5–22 players): one starting side plus position benches. Pick 5–11 on the pitch and a shape (e.g. 1-2-2 or 1-2-1-1), then tap **Rotation lineup**.
+
 ### 4. Split into teams
 Tap **Two-way split** for two sides, or **Three-way split** for three rotating sides. The app splits your selection using:
 
@@ -37,11 +39,19 @@ Tap **Two-way split** for two sides, or **Three-way split** for three rotating s
 - **Handicap** (6v5, 7v6) — smaller side gets a rating boost
 - **Goalkeepers** — one per side when possible
 
-### 5. Check the lineup
+### 5. Rotation lineup (one team + benches)
+When you are not splitting into two sides, tap **Rotation lineup**.
+
+- Pick how many **start on the pitch** (5–11) and a **shape** (1-2-2, 1-3-1, 1-2-1-1…)
+- **Green On** = playing now. **Brown Sub** = waiting in GK / Defence / Mid / Striker
+- Drag a brown sub onto an empty circle, or tap the sub then tap the circle
+- Share saves first — anyone with the link sees this lineup, not a new random team
+
+### 6. Check the lineup
 Team A vs Team B on the pitch with formation (e.g. 5v5 = 1-2-2).  
 Tap a player to see their card — **STA** is stamina.
 
-### 6. Not happy? Shuffle or edit
+### 7. Not happy? Shuffle or edit
 
 **Shuffle again** — same players, completely new auto-balanced teams, new link.
 
@@ -53,7 +63,7 @@ Tap a player to see their card — **STA** is stamina.
 | **Lock & shuffle** | Place a few players on each team (name A/B/C on three-way matches), tap **Fill rest of teams** — app balances the remainder |
 | **Manual** | Assign every player yourself (arrows or drag). Three-way shows A, B, C plus the pool. Nothing auto-filled |
 
-### 7. Share on WhatsApp
+### 8. Share on WhatsApp
 Tap **Share match**. You get:
 - **Image** — pitch with both teams
 - **Text** — match name, size, date, and one link
@@ -68,9 +78,10 @@ https://kick-draft.vercel.app/newtown-sporting-club/match/...
 ---
 
 ## Tips
-- Select **9–22 players** for two teams, or **12–22** for three-way split
+- Select **9–22 players** for two teams, **12–22** for three-way split, or **5–22** for rotation
 - Stamina (STA) is in OVR and in the top-4 stamina split
 - Shuffle again = new teams; Edit teams = swap in late arrivals, lock, or assign players yourself
+- Rotation: green is on the pitch, brown is the bench — the shared link keeps that lineup
 - Past matches are in **Match history** (30 days)
 
 ---
