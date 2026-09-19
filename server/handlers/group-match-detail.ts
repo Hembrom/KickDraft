@@ -12,7 +12,21 @@ import {
 import { applyEffectiveRatingsForGroup } from '../lib/peer-ratings.js';
 import { error, json, readBody } from '../lib/auth.js';
 import { buildGeneratedTeam } from '../../shared/team-generator.js';
-import { isThreeTeamMatch, roundRating, sanitizeTeamName, slugify } from '../../shared/types.js';
+import {
+  buildRotationMatchTeams,
+  collectRotationPlayerIds,
+  hasDuplicateIds,
+  idsToRotationBoxes,
+  isRotationFormat,
+} from '../../shared/rotation-lineup.js';
+import {
+  isRotationMatch,
+  isThreeTeamMatch,
+  roundRating,
+  sanitizeTeamName,
+  slugify,
+  type RotationSlot,
+} from '../../shared/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const slug = slugify(String(req.query.slug ?? ''));
@@ -36,6 +50,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'PUT') {
     const body = await readBody<{
       namesOnly?: boolean;
+      kind?: 'rotation';
+      starterIds?: string[];
+      rotationIds?: Partial<Record<RotationSlot, string[]>>;
       teamAPlayerIds?: string[];
       teamBPlayerIds?: string[];
       teamCPlayerIds?: string[];
@@ -43,6 +60,69 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       teamBName?: string;
       teamCName?: string;
     }>(req);
+
+    if (isRotationMatch(match) || body.kind === 'rotation') {
+      const { players: rawPlayers } = await getGroupPlayers(slug);
+      const players = await applyEffectiveRatingsForGroup(slug, rawPlayers);
+      const byId = new Map(players.map((player) => [player.id, player]));
+
+      const starterIds = body.starterIds ?? match.teamA.players.map((player) => player.id);
+      const rotation = idsToRotationBoxes(
+        byId,
+        body.rotationIds ?? {
+          GK: match.rotation?.GK.map((p) => p.id) ?? [],
+          DEF: match.rotation?.DEF.map((p) => p.id) ?? [],
+          MID: match.rotation?.MID.map((p) => p.id) ?? [],
+          FWD: match.rotation?.FWD.map((p) => p.id) ?? [],
+        },
+      );
+      const starters = starterIds
+        .map((id) => byId.get(id))
+        .filter((player): player is NonNullable<typeof player> => Boolean(player));
+
+      if (starters.length !== starterIds.length) {
+        return error(res, 400, 'One or more starters were not found in this group');
+      }
+      if (!isRotationFormat(match.format) && !isRotationFormat(Number(match.format))) {
+        return error(res, 400, 'Rotation matches must be 5–11 a-side');
+      }
+      if (starters.length > match.format) {
+        return error(res, 400, `Starting lineup can have at most ${match.format} players`);
+      }
+
+      const allIds = collectRotationPlayerIds(starters, rotation);
+      if (hasDuplicateIds(allIds)) {
+        return error(res, 400, 'A player cannot be in the lineup and on rotation');
+      }
+
+      const starterName =
+        typeof body.teamAName === 'string'
+          ? sanitizeTeamName(body.teamAName, match.teamA.name)
+          : match.teamA.name;
+      const teams = buildRotationMatchTeams(starters, rotation, starterName);
+
+      const updated = {
+        ...match,
+        kind: 'rotation' as const,
+        selectedPlayerIds: allIds,
+        teamA: teams.teamA,
+        teamB: teams.teamB,
+        rotation: teams.rotation,
+        teamC: undefined,
+        ratingDifference: 0,
+      };
+
+      await updateMatch(updated);
+
+      if (updated.recordedAsPlayed) {
+        const recordedAt = updated.recordedAt ?? new Date().toISOString();
+        const rows = buildAppearancesFromMatch({ ...updated, recordedAt }, recordedAt);
+        await replaceAppearancesForMatch(updated, rows);
+      }
+
+      return json(res, 200, updated);
+    }
+
     const isThreeWay = isThreeTeamMatch(match);
     const namesOnly = body.namesOnly === true;
 

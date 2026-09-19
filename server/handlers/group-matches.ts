@@ -9,11 +9,17 @@ import { applyEffectiveRatingsForGroup } from '../lib/peer-ratings.js';
 import { error, getErrorMessage, json, readBody } from '../lib/auth.js';
 import { generateBalancedTeams, generateBalancedThreeTeams } from '../../shared/team-generator.js';
 import {
+  buildRotationLineup,
+  buildRotationMatchTeams,
+  isRotationFormat,
+} from '../../shared/rotation-lineup.js';
+import {
   formatFromPlayerCount,
   formatFromThreeWayPlayerCount,
   slugify,
   teamSizesFromPlayerCount,
   teamSizesFromThreeWaySplit,
+  type MatchKind,
   type MatchRecord,
   type TeamCount,
 } from '../../shared/types.js';
@@ -34,9 +40,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === 'POST') {
-    const body = await readBody<{ playerIds?: string[]; name?: string; teamCount?: TeamCount }>(req);
+    const body = await readBody<{
+      playerIds?: string[];
+      name?: string;
+      teamCount?: TeamCount;
+      kind?: MatchKind;
+      format?: number;
+    }>(req);
     const playerIds = body.playerIds ?? [];
     const name = typeof body.name === 'string' ? body.name.trim() : '';
+    const kind: MatchKind = body.kind === 'rotation' ? 'rotation' : 'split';
     const teamCount: TeamCount = body.teamCount === 3 ? 3 : 2;
 
     if (playerIds.length === 0) {
@@ -54,6 +67,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
+      if (kind === 'rotation') {
+        const format = Number(body.format);
+        if (!isRotationFormat(format)) {
+          return error(res, 400, 'Choose 5–11 on the pitch');
+        }
+        if (selected.length < format) {
+          return error(res, 400, `Select at least ${format} players for ${format}-a-side`);
+        }
+        if (selected.length > 22) {
+          return error(res, 400, 'Select at most 22 players');
+        }
+
+        const { starters, rotation } = buildRotationLineup(selected, format);
+        const teams = buildRotationMatchTeams(starters, rotation);
+
+        const record: MatchRecord = {
+          id: crypto.randomUUID(),
+          groupSlug: slug,
+          date: new Date().toISOString(),
+          name,
+          format,
+          kind: 'rotation',
+          teamCount: 2,
+          selectedPlayerIds: selected.map((p) => p.id),
+          teamA: teams.teamA,
+          teamB: teams.teamB,
+          rotation: teams.rotation,
+          ratingDifference: 0,
+        };
+
+        await saveMatch(record);
+        return json(res, 201, record);
+      }
+
       if (teamCount === 3) {
         const sizes = teamSizesFromThreeWaySplit(playerIds.length);
         if (!sizes) {

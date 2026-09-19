@@ -8,6 +8,7 @@ import type {
   PeerRating,
 } from '@shared/types';
 import { normalizePlayer } from '@shared/types';
+import type { RotationFormat } from '@shared/rotation-lineup';
 import { getAdminToken } from './utils';
 import { getGoogleAccessToken } from './supabase-auth';
 
@@ -99,10 +100,22 @@ export const api = {
     );
   },
 
-  generateMatch(slug: string, playerIds: string[], name: string, teamCount: 2 | 3 = 2) {
+  generateMatch(
+    slug: string,
+    playerIds: string[],
+    name: string,
+    teamCount: 2 | 3 = 2,
+    options?: { kind?: 'rotation'; format?: RotationFormat },
+  ) {
     return request<MatchRecord>(`/api/groups/${slug}/matches`, {
       method: 'POST',
-      body: JSON.stringify({ playerIds, name, teamCount }),
+      body: JSON.stringify({
+        playerIds,
+        name,
+        teamCount,
+        kind: options?.kind,
+        format: options?.format,
+      }),
     });
   },
 
@@ -118,6 +131,24 @@ export const api = {
         teamAName: teamNames.teamA,
         teamBName: teamNames.teamB,
         teamCName: teamNames.teamC,
+      }),
+    });
+  },
+
+  updateRotationMatch(
+    slug: string,
+    matchId: string,
+    starterIds: string[],
+    rotationIds: { GK: string[]; DEF: string[]; MID: string[]; FWD: string[] },
+    teamAName?: string,
+  ) {
+    return request<MatchRecord>(`/api/groups/${slug}/matches/${matchId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        kind: 'rotation',
+        starterIds,
+        rotationIds,
+        teamAName,
       }),
     });
   },

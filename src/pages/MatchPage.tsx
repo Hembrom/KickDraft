@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Check, Loader2, Pencil, Share2, Shuffle, Tag } from 'lucide-react';
 import { PitchView } from '@/components/PitchView';
+import { RotationMatchView } from '@/components/RotationMatchView';
 import { ThreeTeamMatchView } from '@/components/ThreeTeamMatchView';
 import { TeamEditor, type EditTab, type EditorTeam } from '@/components/TeamEditor';
 import { TeamNameEditor } from '@/components/TeamNameEditor';
@@ -14,7 +15,7 @@ import {
   generateBalancedTeamsWithLocks,
   generateBalancedThreeTeamsWithLocks,
 } from '@shared/team-generator';
-import { getMatchLabel, isThreeTeamMatch, sanitizeTeamName, DEFAULT_TEAM_NAMES, type MatchRecord, type Player } from '@shared/types';
+import { isRotationMatch, getMatchLabel, isThreeTeamMatch, sanitizeTeamName, DEFAULT_TEAM_NAMES, type MatchRecord, type Player } from '@shared/types';
 
 function teamLabel(team: EditorTeam): string {
   if (team === 'a') return 'A';
@@ -507,6 +508,19 @@ export function MatchPage() {
           Back to squad
         </Link>
       </div>
+    );
+  }
+
+  if (isRotationMatch(match)) {
+    return (
+      <RotationMatchView
+        key={match.id}
+        slug={slug}
+        groupName={groupName}
+        match={match}
+        roster={players}
+        onMatchChange={setMatch}
+      />
     );
   }
 

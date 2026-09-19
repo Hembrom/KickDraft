@@ -141,6 +141,17 @@ export function sanitizeTeamName(value: string, fallback: string): string {
 
 export type TeamCount = 2 | 3;
 
+export type MatchKind = 'split' | 'rotation';
+
+export type RotationSlot = 'GK' | 'DEF' | 'MID' | 'FWD';
+
+export interface RotationBoxes {
+  GK: Player[];
+  DEF: Player[];
+  MID: Player[];
+  FWD: Player[];
+}
+
 export interface MatchRecord {
   id: string;
   groupSlug: string;
@@ -151,9 +162,13 @@ export interface MatchRecord {
   selectedPlayerIds: string[];
   /** 2 = standard sides, 3 = three-way split. Defaults to 2 for older matches. */
   teamCount?: TeamCount;
+  /** split = two/three teams. rotation = one starting XI + position benches. */
+  kind?: MatchKind;
   teamA: GeneratedTeam;
   teamB: GeneratedTeam;
   teamC?: GeneratedTeam;
+  /** Players off the pitch, grouped by the position they rotate into. */
+  rotation?: RotationBoxes;
   ratingDifference: number;
   /** Admin marked this lineup as an official played game (attendance data). */
   recordedAsPlayed?: boolean;
@@ -318,7 +333,17 @@ export function isThreeTeamMatch(match: MatchRecord): boolean {
   return match.teamCount === 3 && Boolean(match.teamC);
 }
 
+export function isRotationMatch(match: Pick<MatchRecord, 'kind'>): boolean {
+  return match.kind === 'rotation';
+}
+
 export function getMatchLabel(match: MatchRecord): string {
+  if (isRotationMatch(match)) {
+    const rotating = match.teamB.players.length;
+    return rotating > 0
+      ? `${match.format}-a-side · ${rotating} on rotation`
+      : `${match.format}-a-side`;
+  }
   if (isThreeTeamMatch(match) && match.teamC) {
     return getThreeWayMatchSizeLabel(
       match.teamA.players.length,

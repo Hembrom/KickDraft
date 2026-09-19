@@ -23,6 +23,16 @@ export function enrichMatchWithRoster(match: MatchRecord, roster: Player[]): Mat
     ...(match.teamC
       ? { teamC: { ...match.teamC, players: enrichPlayers(match.teamC.players) } }
       : {}),
+    ...(match.rotation
+      ? {
+          rotation: {
+            GK: enrichPlayers(match.rotation.GK),
+            DEF: enrichPlayers(match.rotation.DEF),
+            MID: enrichPlayers(match.rotation.MID),
+            FWD: enrichPlayers(match.rotation.FWD),
+          },
+        }
+      : {}),
   };
 }
 

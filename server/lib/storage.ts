@@ -9,6 +9,10 @@ import {
   type Player,
   type PlayerPosition,
 } from '../../shared/types.js';
+import {
+  attachRotationToTeamB,
+  parseRotationFromTeamB,
+} from '../../shared/rotation-lineup.js';
 import { getErrorMessage } from './auth.js';
 import { getSupabase, isSupabaseConfigured } from './supabase-client.js';
 import {
@@ -139,6 +143,7 @@ function playerToRow(slug: string, player: Player): PlayerRow {
 }
 
 function rowToMatch(row: MatchRow): MatchRecord {
+  const parsed = parseRotationFromTeamB(row.team_b);
   return {
     id: row.id,
     groupSlug: row.group_slug,
@@ -147,9 +152,11 @@ function rowToMatch(row: MatchRow): MatchRecord {
     format: row.format,
     selectedPlayerIds: row.selected_player_ids,
     teamCount: row.team_count === 3 ? 3 : 2,
+    kind: parsed.kind,
     teamA: row.team_a,
-    teamB: row.team_b,
+    teamB: parsed.teamB,
     teamC: row.team_c ?? undefined,
+    rotation: parsed.rotation,
     ratingDifference: Number(row.rating_difference),
     recordedAsPlayed: Boolean(row.recorded_as_played),
     recordedAt: row.recorded_at ?? null,
@@ -165,7 +172,7 @@ function matchToRow(record: MatchRecord) {
     format: record.format,
     selected_player_ids: record.selectedPlayerIds,
     team_a: record.teamA,
-    team_b: record.teamB,
+    team_b: attachRotationToTeamB(record),
     rating_difference: record.ratingDifference,
     recorded_as_played: Boolean(record.recordedAsPlayed),
     recorded_at: record.recordedAt ?? null,

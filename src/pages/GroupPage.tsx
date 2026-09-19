@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowDownWideNarrow, History, Split, Users, UsersRound } from 'lucide-react';
+import { ArrowDownWideNarrow, History, Repeat, Split, Users, UsersRound } from 'lucide-react';
 import { PlayerCard } from '@/components/PlayerCard';
 import { api, ApiError } from '@/lib/api';
 import {
@@ -12,6 +12,7 @@ import {
   sortablePeerOvr,
   type Player,
 } from '@shared/types';
+import { ROTATION_FORMATS, type RotationFormat } from '@shared/rotation-lineup';
 import { cn } from '@/lib/utils';
 
 function matchNamePlaceholder() {
@@ -48,7 +49,8 @@ export function GroupPage() {
   const [sortMode, setSortMode] = useState<SquadSortMode>('default');
   const [gamesByYear, setGamesByYear] = useState<Record<string, Record<string, number>>>({});
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState<'two' | 'three' | null>(null);
+  const [generating, setGenerating] = useState<'two' | 'three' | 'rotation' | null>(null);
+  const [rotationFormat, setRotationFormat] = useState<RotationFormat>(5);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -119,6 +121,7 @@ export function GroupPage() {
     : null;
   const canGenerateTwo = teamSizes !== null && generating === null;
   const canGenerateThree = threeWaySizes !== null && generating === null;
+  const canGenerateRotation = selectedCount >= rotationFormat && selectedCount <= 22 && generating === null;
 
   function togglePlayer(id: string) {
     setSelected((prev) => {
@@ -131,6 +134,26 @@ export function GroupPage() {
 
   function clearSelection() {
     setSelected(new Set());
+  }
+
+  async function handleRotation() {
+    if (!canGenerateRotation) return;
+    setGenerating('rotation');
+    setError('');
+    try {
+      const match = await api.generateMatch(
+        slug,
+        Array.from(selected),
+        matchName.trim(),
+        2,
+        { kind: 'rotation', format: rotationFormat },
+      );
+      navigate(`/${slug}/match/${match.id}`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to make rotation lineup');
+    } finally {
+      setGenerating(null);
+    }
   }
 
   async function handleGenerate(teamCount: 2 | 3) {
@@ -246,12 +269,57 @@ export function GroupPage() {
               {generating === 'three' ? 'Splitting…' : 'Three-way split'}
             </button>
           </div>
+
+          <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              On the pitch
+            </p>
+            <div className="flex flex-wrap rounded-xl border border-slate-200 p-1">
+              {ROTATION_FORMATS.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  className={cn(
+                    'rounded-lg px-2.5 py-1.5 text-sm font-semibold sm:px-3',
+                    rotationFormat === size
+                      ? 'bg-elite-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50',
+                  )}
+                  onClick={() => setRotationFormat(size)}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={!canGenerateRotation}
+              onClick={() => void handleRotation()}
+            >
+              <Repeat className="h-4 w-4" />
+              {generating === 'rotation' ? 'Building…' : 'Rotation lineup'}
+            </button>
+          </div>
         </div>
 
         {selectedCount === 0 ? (
           <p className="mt-3 text-sm text-slate-600">
-            Tick who is coming. Two teams: 9–22 players (11 → 6v5, 12 → 6v6). Three teams: 12–22
-            players (15 → 5v5v5, 21 → 7v7v7).
+            Tick who is coming. Rotation: pick how many start on the pitch (5–11) — the rest
+            rotate. Two teams: 9–22. Three teams: 12–22.
+          </p>
+        ) : null}
+
+        {selectedCount > 0 && selectedCount < rotationFormat ? (
+          <p className="mt-3 text-sm text-amber-700">
+            {selectedCount} selected — need {rotationFormat} for {rotationFormat}-a-side rotation.
+          </p>
+        ) : null}
+
+        {canGenerateRotation ? (
+          <p className="mt-3 text-sm text-emerald-700">
+            Rotation — {rotationFormat} start, {selectedCount - rotationFormat} on GK / Defence /
+            Mid / Striker benches.
           </p>
         ) : null}
 

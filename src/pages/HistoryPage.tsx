@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
-import { formatRatingGap, getMatchLabel, type MatchRecord } from '@shared/types';
+import { formatRatingGap, getMatchLabel, isRotationMatch, type MatchRecord } from '@shared/types';
 
 export function HistoryPage() {
   const { slug = '' } = useParams();
@@ -64,7 +64,8 @@ export function HistoryPage() {
                 </p>
                 <p className="text-xs text-slate-500">
                   {match.name.trim() ? `${getMatchLabel(match)} · ` : ''}
-                  {formatRatingGap(match.ratingDifference)} · {formatDate(match.date)}
+                  {isRotationMatch(match) ? '' : `${formatRatingGap(match.ratingDifference)} · `}
+                  {formatDate(match.date)}
                 </p>
               </div>
               <span className="text-xs font-medium text-elite-600">View</span>
