@@ -4,7 +4,7 @@ import {
   type MatchRecord,
   type Player,
   type PlayerPosition,
-} from './types';
+} from './types.js';
 
 export function enrichMatchWithRoster(match: MatchRecord, roster: Player[]): MatchRecord {
   const byId = new Map(roster.map((player) => [player.id, normalizePlayer(player)]));

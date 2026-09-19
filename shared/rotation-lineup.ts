@@ -1,10 +1,7 @@
-import { getPitchSlotRole } from './pitch-formation.js';
 import { buildGeneratedTeam } from './team-generator.js';
 import {
   canPlayGoalkeeper,
   isGoalkeeperOnly,
-  isRotationMatch,
-  type MatchRecord,
   type Player,
   type PlayerPosition,
   type RotationBoxes,
@@ -42,6 +39,13 @@ export function isRotationFormat(value: number): value is RotationFormat {
 
 export function getRotationFormation(format: number): number[] {
   return ROTATION_FORMATIONS[format] ?? ROTATION_FORMATIONS[5];
+}
+
+function getPitchSlotRole(rowIndex: number, rowCount: number): PlayerPosition {
+  if (rowIndex === 0) return 'GK';
+  if (rowIndex === 1) return 'DEF';
+  if (rowIndex === rowCount - 1) return 'FWD';
+  return 'MID';
 }
 
 export function emptyRotationBoxes(): RotationBoxes {
@@ -191,35 +195,4 @@ export function collectRotationPlayerIds(starters: Player[], rotation: RotationB
 
 export function hasDuplicateIds(ids: string[]): boolean {
   return new Set(ids).size !== ids.length;
-}
-
-type TeamBPayload = MatchRecord['teamB'] & {
-  matchKind?: 'rotation';
-  rotation?: RotationBoxes;
-};
-
-export function attachRotationToTeamB(record: MatchRecord): MatchRecord['teamB'] {
-  if (!isRotationMatch(record)) return record.teamB;
-  const payload: TeamBPayload = {
-    ...record.teamB,
-    matchKind: 'rotation',
-    rotation: record.rotation ?? emptyRotationBoxes(),
-  };
-  return payload;
-}
-
-export function parseRotationFromTeamB(
-  teamB: MatchRecord['teamB'] | TeamBPayload,
-): { kind?: 'rotation'; rotation?: RotationBoxes; teamB: MatchRecord['teamB'] } {
-  const payload = teamB as TeamBPayload;
-  if (payload?.matchKind !== 'rotation') {
-    return { teamB };
-  }
-
-  const { matchKind: _kind, rotation, ...rest } = payload;
-  return {
-    kind: 'rotation',
-    rotation: rotation ?? emptyRotationBoxes(),
-    teamB: rest,
-  };
 }

@@ -12,7 +12,7 @@ import {
 import {
   attachRotationToTeamB,
   parseRotationFromTeamB,
-} from '../../shared/rotation-lineup.js';
+} from '../../shared/rotation-persist.js';
 import { getErrorMessage } from './auth.js';
 import { getSupabase, isSupabaseConfigured } from './supabase-client.js';
 import {

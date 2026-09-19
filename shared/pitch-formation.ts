@@ -1,5 +1,5 @@
-import type { Player, PlayerPosition } from './types';
-import { canPlayGoalkeeper, isGoalkeeperOnly } from './types';
+import type { Player, PlayerPosition } from './types.js';
+import { canPlayGoalkeeper, isGoalkeeperOnly } from './types.js';
 
 /** Rows from goal line to attack (GK → outfield). */
 const FORMATIONS: Record<number, number[]> = {
