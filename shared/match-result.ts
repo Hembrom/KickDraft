@@ -11,15 +11,34 @@ export const MAX_PLAYER_GOALS = 30;
 
 export function normalizeMatchResult(input: unknown): MatchResult | undefined {
   if (!input || typeof input !== 'object') return undefined;
-  const raw = (input as { scorers?: unknown }).scorers;
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const payload = input as { scorers?: unknown; conceded?: unknown };
   const scorers: Record<string, number> = {};
-  for (const [id, value] of Object.entries(raw)) {
-    const n = Number(value);
-    if (!id || !Number.isInteger(n) || n <= 0) continue;
-    scorers[id] = Math.min(n, MAX_PLAYER_GOALS);
+  if (payload.scorers && typeof payload.scorers === 'object' && !Array.isArray(payload.scorers)) {
+    for (const [id, value] of Object.entries(payload.scorers)) {
+      const n = Number(value);
+      if (!id || !Number.isInteger(n) || n <= 0) continue;
+      scorers[id] = Math.min(n, MAX_PLAYER_GOALS);
+    }
   }
-  return Object.keys(scorers).length > 0 ? { scorers } : undefined;
+  const concededRaw = Number(payload.conceded);
+  const conceded =
+    Number.isInteger(concededRaw) && concededRaw > 0
+      ? Math.min(concededRaw, 99)
+      : undefined;
+  if (Object.keys(scorers).length === 0 && conceded == null) return undefined;
+  return { scorers, ...(conceded != null ? { conceded } : {}) };
+}
+
+export function goalsFor(match: MatchRecord): number {
+  const totals = scoreTotals(match);
+  if (isRotationMatch(match)) return totals.A + totals.B;
+  return totals.A;
+}
+
+export function goalsAgainst(match: MatchRecord): number {
+  if (isRotationMatch(match)) return match.result?.conceded ?? 0;
+  if (isThreeTeamMatch(match)) return 0;
+  return scoreTotals(match).B;
 }
 
 export function matchPlayers(match: MatchRecord): Player[] {
@@ -62,8 +81,7 @@ export function formatMatchScore(match: MatchRecord): string | null {
   if (!isExternalMatch(match) || !match.result) return null;
   const totals = scoreTotals(match);
   if (isRotationMatch(match)) {
-    const goals = totals.A + totals.B;
-    return `${goals} ${goals === 1 ? 'goal' : 'goals'}`;
+    return `${goalsFor(match)}–${goalsAgainst(match)}`;
   }
   if (isThreeTeamMatch(match)) {
     return `${totals.A}–${totals.B}–${totals.C}`;
@@ -90,6 +108,26 @@ export function applyGoalDelta(
   if (next === 0) delete scorers[playerId];
   else scorers[playerId] = next;
 
-  const result = normalizeMatchResult({ scorers });
+  const result = normalizeMatchResult({
+    scorers,
+    conceded: match.result?.conceded,
+  });
+  return { ...match, result };
+}
+
+export function applyConcededDelta(match: MatchRecord, delta: number): MatchRecord {
+  if (!isRotationMatch(match)) {
+    throw new Error('Goals conceded are only for rotation matches');
+  }
+  if (!isExternalMatch(match)) {
+    throw new Error('Mark this as an external match before recording the score');
+  }
+  const step = Math.trunc(delta);
+  if (step === 0) return match;
+  const next = Math.max(0, Math.min(99, (match.result?.conceded ?? 0) + step));
+  const result = normalizeMatchResult({
+    scorers: match.result?.scorers ?? {},
+    conceded: next,
+  });
   return { ...match, result };
 }

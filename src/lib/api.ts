@@ -92,7 +92,7 @@ export const api = {
   adminUpdateMatchResult(
     slug: string,
     matchId: string,
-    body: { playerId?: string; delta?: number; external?: boolean },
+    body: { playerId?: string; delta?: number; external?: boolean; concededDelta?: number },
   ) {
     return request<{ match: MatchRecord }>(
       `/api/admin/groups/${slug}/matches/${matchId}/result`,

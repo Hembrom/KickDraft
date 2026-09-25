@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { applyGoalDelta } from '../../shared/match-result.js';
+import { applyConcededDelta, applyGoalDelta } from '../../shared/match-result.js';
 import { error, getErrorMessage, json, readBody, requireAdmin } from '../lib/auth.js';
 import { getMatch, groupExists, updateMatch } from '../lib/storage.js';
 import { slugify } from '../../shared/types.js';
@@ -17,14 +17,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!matchId) return error(res, 400, 'Invalid match id');
   if (!(await groupExists(slug))) return error(res, 404, 'Group not found');
 
-  const body = await readBody<{ playerId?: string; delta?: number; external?: boolean }>(req);
+  const body = await readBody<{
+    playerId?: string;
+    delta?: number;
+    external?: boolean;
+    concededDelta?: number;
+  }>(req);
   const hasExternal = typeof body.external === 'boolean';
   const playerId = typeof body.playerId === 'string' ? body.playerId.trim() : '';
   const delta = Number(body.delta);
-  const hasDelta = playerId && Number.isInteger(delta) && delta !== 0;
+  const hasDelta = Boolean(playerId && Number.isInteger(delta) && delta !== 0);
+  const concededDelta = Number(body.concededDelta);
+  const hasConceded = Number.isInteger(concededDelta) && concededDelta !== 0;
 
-  if (!hasExternal && !hasDelta) {
-    return error(res, 400, 'Set external or a player goal change');
+  if (!hasExternal && !hasDelta && !hasConceded) {
+    return error(res, 400, 'Set external, a player goal change, or goals conceded');
   }
 
   try {
@@ -34,6 +41,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let updated = match;
     if (hasExternal) {
       updated = { ...updated, external: body.external };
+    }
+    if (hasConceded) {
+      updated = applyConcededDelta(updated, concededDelta);
     }
     if (hasDelta) {
       updated = applyGoalDelta(updated, playerId, delta);

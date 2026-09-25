@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, Loader2, Save, Share2, Shuffle } from 'lucide-react';
+import { Check, Loader2, Pencil, Plus, Save, Share2, Shuffle, User, X } from 'lucide-react';
 import { MatchResultPanel } from '@/components/MatchResultPanel';
 import { RotationLineupBoard } from '@/components/RotationLineupBoard';
 import { RotationShapePicker } from '@/components/RotationShapePicker';
@@ -14,6 +14,7 @@ import {
   formationLabel,
   isRotationFormat,
   parseRotationFormation,
+  preferredRotationSlot,
   rotationBoxesToIds,
 } from '@shared/rotation-lineup';
 import { formatMatchScore } from '@shared/match-result';
@@ -111,6 +112,7 @@ export function RotationMatchView({
   const [sharing, setSharing] = useState(false);
   const [shuffling, setShuffling] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [error, setError] = useState('');
 
   const dirty = useMemo(() => {
@@ -136,16 +138,39 @@ export function RotationMatchView({
     });
   }
 
+  const poolPlayers = useMemo(() => {
+    const inMatch = new Set([
+      ...slots.filter((player): player is Player => Boolean(player)).map((player) => player.id),
+      ...ROTATION_SLOTS.flatMap((slot) => boxes[slot].map((player) => player.id)),
+    ]);
+    return roster
+      .filter((player) => !inMatch.has(player.id))
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  }, [roster, slots, boxes]);
+
+  const squadRows = useMemo(() => {
+    const onPitch = slots
+      .filter((player): player is Player => Boolean(player))
+      .map((player) => ({ player, where: 'On' as const }));
+    const onBench = ROTATION_SLOTS.flatMap((slot) =>
+      boxes[slot].map((player) => ({ player, where: 'Sub' as const })),
+    );
+    return [...onPitch, ...onBench];
+  }, [slots, boxes]);
+
   async function persistLineup(
     nextSlots: Array<Player | null>,
     nextBoxes: RotationBoxes,
     nextShape: number[],
   ): Promise<MatchRecord | null> {
-    if (nextSlots.some((player) => !player)) return null;
+    const starterIds = nextSlots
+      .map((player) => player?.id)
+      .filter((id): id is string => Boolean(id));
     const updated = await api.updateRotationMatch(
       slug,
       match.id,
-      nextSlots.map((player) => player?.id).filter((id): id is string => Boolean(id)),
+      starterIds,
       rotationBoxesToIds(nextBoxes),
       match.teamA.name,
       nextShape,
@@ -155,6 +180,35 @@ export function RotationMatchView({
     onMatchChange(next);
     setShape(keptFormation);
     return next;
+  }
+
+  function addToMatch(player: Player) {
+    const nextBoxes = cloneBoxes(boxes);
+    nextBoxes[preferredRotationSlot(player)].push(player);
+    setBoxes(nextBoxes);
+    setSelectedPlayerId(null);
+    setError('');
+    window.clearTimeout(saveTimerRef.current);
+    void persistLineup(slots, nextBoxes, shape).catch(() => {
+      setError('Could not add player');
+    });
+  }
+
+  function removeFromMatch(playerId: string) {
+    const taken = takePlayer(slots, boxes, playerId);
+    if (!taken) return;
+    const nextSlots: Array<Player | null> = taken.nextSlots.filter(
+      (player): player is Player => Boolean(player),
+    );
+    while (nextSlots.length < format) nextSlots.push(null);
+    setSlots(nextSlots);
+    setBoxes(taken.nextBoxes);
+    setSelectedPlayerId(null);
+    setError('');
+    window.clearTimeout(saveTimerRef.current);
+    void persistLineup(nextSlots, taken.nextBoxes, shape).catch(() => {
+      setError('Could not remove player');
+    });
   }
 
   async function saveLineup() {
@@ -298,7 +352,16 @@ export function RotationMatchView({
           <button
             type="button"
             className="btn-secondary"
-            disabled={saving || shuffling || !dirty}
+            disabled={saving || shuffling}
+            onClick={() => setEditing((open) => !open)}
+          >
+            <Pencil className="h-4 w-4" />
+            {editing ? 'Done' : 'Edit teams'}
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={saving || shuffling || editing || !dirty}
             onClick={() => void saveLineup()}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -307,7 +370,7 @@ export function RotationMatchView({
           <button
             type="button"
             className="btn-secondary"
-            disabled={saving || shuffling}
+            disabled={saving || shuffling || editing}
             onClick={() => void handleShuffle()}
           >
             {shuffling ? (
@@ -320,7 +383,7 @@ export function RotationMatchView({
           <button
             type="button"
             className="btn-primary"
-            disabled={sharing || shuffling}
+            disabled={sharing || shuffling || editing}
             onClick={() => void handleShare()}
           >
             {sharing ? (
@@ -344,6 +407,9 @@ export function RotationMatchView({
       <p className="text-sm text-slate-600">
         Drag a brown sub onto an empty circle on the pitch, or tap the sub then tap the circle.
         Green = playing now, brown = bench.
+        {editing
+          ? ' Edit teams adds late arrivals to the bench or drops someone who did not play.'
+          : ''}
       </p>
 
       <RotationShapePicker format={format} value={shape} onChange={applyShape} />
@@ -356,6 +422,105 @@ export function RotationMatchView({
         admin={isAdmin}
         onMatchChange={onMatchChange}
       />
+
+      {editing ? (
+        <section className="card space-y-4 p-4 sm:p-5">
+          <div>
+            <h2 className="font-display text-xl font-bold text-slate-900">Edit teams</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Add late arrivals from the rest of the squad. They land on the brown bench — drag
+              them onto a circle if they start. Remove anyone who did not play.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                In this match
+              </p>
+              {squadRows.length === 0 ? (
+                <p className="text-sm text-slate-500">Nobody in this lineup yet.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {squadRows.map(({ player, where }) => (
+                    <div
+                      key={player.id}
+                      className="flex items-center gap-2 rounded-xl border border-slate-100 bg-white px-2 py-1.5"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200">
+                        {player.photoUrl ? (
+                          <img src={player.photoUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <User className="h-4 w-4 text-slate-300" />
+                        )}
+                      </div>
+                      <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900">
+                        {player.name}
+                      </p>
+                      <span
+                        className={
+                          where === 'On'
+                            ? 'text-[11px] font-semibold uppercase tracking-wide text-emerald-700'
+                            : 'text-[11px] font-semibold uppercase tracking-wide text-amber-800'
+                        }
+                      >
+                        {where}
+                      </span>
+                      <button
+                        type="button"
+                        className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 px-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                        disabled={saving}
+                        onClick={() => removeFromMatch(player.id)}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Rest of squad
+              </p>
+              {poolPlayers.length === 0 ? (
+                <p className="text-sm text-slate-500">Everyone is already in this match.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {poolPlayers.map((player) => (
+                    <div
+                      key={player.id}
+                      className="flex items-center gap-2 rounded-xl border border-slate-100 bg-white px-2 py-1.5"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200">
+                        {player.photoUrl ? (
+                          <img src={player.photoUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <User className="h-4 w-4 text-slate-300" />
+                        )}
+                      </div>
+                      <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900">
+                        {player.name}
+                      </p>
+                      <button
+                        type="button"
+                        className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 px-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                        disabled={saving}
+                        onClick={() => addToMatch(player)}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Add
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <div ref={captureRef} className="space-y-4 rounded-2xl bg-white p-3 sm:p-4">
         <RotationLineupBoard

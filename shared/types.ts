@@ -155,6 +155,8 @@ export interface RotationBoxes {
 export interface MatchResult {
   /** Goals scored by each player in this match. */
   scorers: Record<string, number>;
+  /** Goals conceded to the other side (external rotation games). */
+  conceded?: number;
 }
 
 export interface MatchRecord {

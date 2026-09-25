@@ -1,14 +1,97 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Minus, Plus, User } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { formatMatchScore, matchPlayers, scoreTotals } from '@shared/match-result';
+import {
+  MAX_PLAYER_GOALS,
+  goalsAgainst,
+  goalsFor,
+  matchPlayers,
+  scoreTotals,
+} from '@shared/match-result';
 import {
   isRotationMatch,
   isThreeTeamMatch,
   type MatchRecord,
   type Player,
 } from '@shared/types';
+
+const MAX_CONCEDED = 99;
+
+function sortByGoals(players: Player[], scorers: Record<string, number>): Player[] {
+  return [...players].sort((a, b) => {
+    const goalGap = (scorers[b.id] ?? 0) - (scorers[a.id] ?? 0);
+    if (goalGap !== 0) return goalGap;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+}
+
+function GoalInput({
+  value,
+  max,
+  disabled,
+  ariaLabel,
+  large,
+  onCommit,
+}: {
+  value: number;
+  max: number;
+  disabled?: boolean;
+  ariaLabel: string;
+  large?: boolean;
+  onCommit: (next: number) => void;
+}) {
+  const [draft, setDraft] = useState(String(value));
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) setDraft(String(value));
+  }, [value, focused]);
+
+  function commit(raw: string) {
+    const parsed = raw.trim() === '' ? 0 : Number(raw);
+    if (!Number.isFinite(parsed)) {
+      setDraft(String(value));
+      return;
+    }
+    const next = Math.max(0, Math.min(max, Math.trunc(parsed)));
+    setDraft(String(next));
+    if (next !== value) onCommit(next);
+  }
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      aria-label={ariaLabel}
+      disabled={disabled}
+      value={draft}
+      onFocus={(event) => {
+        setFocused(true);
+        event.currentTarget.select();
+      }}
+      onChange={(event) => setDraft(event.target.value.replace(/\D/g, '').slice(0, 2))}
+      onBlur={() => {
+        setFocused(false);
+        commit(draft);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') event.currentTarget.blur();
+        if (event.key === 'Escape') {
+          setDraft(String(value));
+          event.currentTarget.blur();
+        }
+      }}
+      className={cn(
+        'rounded-lg border border-slate-200 bg-white text-center font-bold tabular-nums text-slate-900 outline-none focus:border-elite-400 focus:ring-2 focus:ring-elite-100 disabled:opacity-40',
+        large
+          ? 'h-11 w-14 font-display text-3xl sm:text-4xl'
+          : 'h-8 w-10 text-sm',
+      )}
+    />
+  );
+}
 
 function teamSections(match: MatchRecord) {
   if (isRotationMatch(match)) {
@@ -27,15 +110,66 @@ function teamSections(match: MatchRecord) {
   return sections;
 }
 
-function ScoreHero({ match }: { match: MatchRecord }) {
+function ScoreHero({
+  match,
+  admin,
+  busy,
+  onConcededDelta,
+  onConcededSet,
+}: {
+  match: MatchRecord;
+  admin?: boolean;
+  busy?: boolean;
+  onConcededDelta?: (delta: number) => void;
+  onConcededSet?: (next: number) => void;
+}) {
   const totals = scoreTotals(match);
-  const label = formatMatchScore(match) ?? (isRotationMatch(match) ? '0 goals' : isThreeTeamMatch(match) ? '0–0–0' : '0–0');
 
   if (isRotationMatch(match)) {
+    const scored = goalsFor(match);
+    const conceded = goalsAgainst(match);
     return (
-      <div className="text-center">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Score</p>
-        <p className="font-display text-4xl font-bold text-slate-900">{label}</p>
+      <div className="flex items-center justify-center gap-3 sm:gap-6">
+        <div className="min-w-0 flex-1 text-right">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Us</p>
+          <p className="font-display text-4xl font-bold tabular-nums text-slate-900">{scored}</p>
+        </div>
+        <span className="text-2xl font-semibold text-slate-300">–</span>
+        <div className="min-w-0 flex-1 text-left">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Them</p>
+          {admin && onConcededDelta && onConcededSet ? (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                disabled={busy || conceded <= 0}
+                onClick={() => onConcededDelta(-1)}
+                aria-label="Remove a conceded goal"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <GoalInput
+                value={conceded}
+                max={MAX_CONCEDED}
+                disabled={busy}
+                large
+                ariaLabel="Goals conceded"
+                onCommit={onConcededSet}
+              />
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                disabled={busy}
+                onClick={() => onConcededDelta(1)}
+                aria-label="Add a conceded goal"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <p className="font-display text-4xl font-bold tabular-nums text-slate-900">{conceded}</p>
+          )}
+        </div>
       </div>
     );
   }
@@ -86,12 +220,14 @@ function PlayerGoalRow({
   admin,
   busy,
   onDelta,
+  onSet,
 }: {
   player: Player;
   goals: number;
   admin: boolean;
   busy: boolean;
   onDelta: (delta: number) => void;
+  onSet: (next: number) => void;
 }) {
   if (!admin && goals <= 0) return null;
 
@@ -116,9 +252,13 @@ function PlayerGoalRow({
           >
             <Minus className="h-4 w-4" />
           </button>
-          <span className="w-7 text-center text-sm font-bold tabular-nums text-slate-900">
-            {goals}
-          </span>
+          <GoalInput
+            value={goals}
+            max={MAX_PLAYER_GOALS}
+            disabled={busy}
+            ariaLabel={`Goals for ${player.name}`}
+            onCommit={onSet}
+          />
           <button
             type="button"
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
@@ -153,17 +293,32 @@ export function MatchResultPanel({
   const scorers = match.result?.scorers ?? {};
   const sections = teamSections(match);
   const anyGoals = matchPlayers(match).some((player) => (scorers[player.id] ?? 0) > 0);
+  const anyScore = anyGoals || (match.result?.conceded ?? 0) > 0;
   const external = match.external === true;
 
   if (!admin && !external) return null;
-  if (!admin && !anyGoals) return null;
+  if (!admin && !anyScore) return null;
 
   async function changeGoals(playerId: string, delta: number) {
-    if (busyId || !external) return;
+    if (busyId || !external || !Number.isInteger(delta) || delta === 0) return;
     setBusyId(playerId);
     setError('');
     try {
       const updated = await api.adminUpdateMatchResult(slug, match.id, { playerId, delta });
+      onMatchChange(updated.match);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to update score');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function changeConceded(delta: number) {
+    if (busyId || !external || !Number.isInteger(delta) || delta === 0) return;
+    setBusyId('conceded');
+    setError('');
+    try {
+      const updated = await api.adminUpdateMatchResult(slug, match.id, { concededDelta: delta });
       onMatchChange(updated.match);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to update score');
@@ -208,7 +363,15 @@ export function MatchResultPanel({
         </p>
       )}
 
-      {external ? <ScoreHero match={match} /> : admin ? (
+      {external ? (
+        <ScoreHero
+          match={match}
+          admin={admin}
+          busy={busyId === 'conceded'}
+          onConcededDelta={(delta) => void changeConceded(delta)}
+          onConcededSet={(next) => void changeConceded(next - goalsAgainst(match))}
+        />
+      ) : admin ? (
         <p className="text-sm text-slate-500">
           Tick External match to record the score and goal scorers. Internal splits and rotation
           nights stay uncounted.
@@ -218,9 +381,12 @@ export function MatchResultPanel({
       {external ? (
         <div className={cn('grid gap-4', sections.length > 1 && 'sm:grid-cols-2', sections.length > 2 && 'lg:grid-cols-3')}>
           {sections.map((section) => {
-            const rows = admin
-              ? section.players
-              : section.players.filter((player) => (scorers[player.id] ?? 0) > 0);
+            const rows = sortByGoals(
+              admin
+                ? section.players
+                : section.players.filter((player) => (scorers[player.id] ?? 0) > 0),
+              scorers,
+            );
             if (rows.length === 0) return null;
             return (
               <div key={section.key} className="space-y-2">
@@ -237,6 +403,7 @@ export function MatchResultPanel({
                       admin={admin}
                       busy={busyId === player.id}
                       onDelta={(delta) => void changeGoals(player.id, delta)}
+                      onSet={(next) => void changeGoals(player.id, next - (scorers[player.id] ?? 0))}
                     />
                   ))}
                 </div>
@@ -248,7 +415,9 @@ export function MatchResultPanel({
 
       {admin && external ? (
         <p className="text-xs text-slate-500">
-          Use + / − for each player. The match score is the sum of those goals.
+          {isRotationMatch(match)
+            ? 'Type a number or use + / −. Us is the sum of those goals. Them is goals conceded.'
+            : 'Type a number or use + / −. The match score is the sum of those goals.'}
         </p>
       ) : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
