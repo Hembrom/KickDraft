@@ -17,6 +17,7 @@ import groupRatings from './handlers/group-ratings.js';
 import groupPeerReviews from './handlers/group-peer-reviews.js';
 import groupAppearances from './handlers/group-appearances.js';
 import adminMatchRecord from './handlers/admin-match-record.js';
+import adminMatchResult from './handlers/admin-match-result.js';
 import me from './handlers/me.js';
 import cronPurgeMatches from './handlers/cron-purge-matches.js';
 import { error } from './lib/auth.js';
@@ -158,6 +159,12 @@ const routes: Route[] = [
     method: 'PUT',
     regex: /^\/api\/admin\/groups\/([^/]+)\/matches\/([^/]+)\/record$/,
     handler: adminMatchRecord,
+    params: ['slug', 'matchId'],
+  },
+  {
+    method: 'PUT',
+    regex: /^\/api\/admin\/groups\/([^/]+)\/matches\/([^/]+)\/result$/,
+    handler: adminMatchResult,
     params: ['slug', 'matchId'],
   },
   {

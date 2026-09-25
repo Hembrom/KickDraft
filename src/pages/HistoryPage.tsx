@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { formatMatchScore } from '@shared/match-result';
 import { formatRatingGap, getMatchLabel, isRotationMatch, type MatchRecord } from '@shared/types';
 
 export function HistoryPage() {
@@ -47,7 +48,9 @@ export function HistoryPage() {
         <div className="card p-6 text-sm text-slate-600">No matches yet for this squad.</div>
       ) : (
         <div className="space-y-3">
-          {matches.map((match) => (
+          {matches.map((match) => {
+            const score = formatMatchScore(match);
+            return (
             <Link
               key={match.id}
               to={`/${slug}/match/${match.id}`}
@@ -56,6 +59,11 @@ export function HistoryPage() {
               <div>
                 <p className="font-semibold text-slate-900">
                   {match.name.trim() || getMatchLabel(match)}
+                  {match.external ? (
+                    <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide text-sky-700">
+                      External
+                    </span>
+                  ) : null}
                   {match.recordedAsPlayed ? (
                     <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
                       Played
@@ -63,6 +71,9 @@ export function HistoryPage() {
                   ) : null}
                 </p>
                 <p className="text-xs text-slate-500">
+                  {score ? (
+                    <span className="mr-2 font-semibold text-slate-700">{score}</span>
+                  ) : null}
                   {match.name.trim() ? `${getMatchLabel(match)} · ` : ''}
                   {isRotationMatch(match) ? '' : `${formatRatingGap(match.ratingDifference)} · `}
                   {formatDate(match.date)}
@@ -70,7 +81,8 @@ export function HistoryPage() {
               </div>
               <span className="text-xs font-medium text-elite-600">View</span>
             </Link>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

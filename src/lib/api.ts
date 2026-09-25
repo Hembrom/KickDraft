@@ -89,6 +89,21 @@ export const api = {
     }>(`/api/groups/${slug}/appearances`);
   },
 
+  adminUpdateMatchResult(
+    slug: string,
+    matchId: string,
+    body: { playerId?: string; delta?: number; external?: boolean },
+  ) {
+    return request<{ match: MatchRecord }>(
+      `/api/admin/groups/${slug}/matches/${matchId}/result`,
+      {
+        method: 'PUT',
+        headers: adminHeaders(),
+        body: JSON.stringify(body),
+      },
+    );
+  },
+
   adminRecordMatch(slug: string, matchId: string, recorded: boolean) {
     return request<{ match: MatchRecord; appearanceCount: number }>(
       `/api/admin/groups/${slug}/matches/${matchId}/record`,

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Check, Loader2, Pencil, Share2, Shuffle, Tag } from 'lucide-react';
+import { MatchResultPanel } from '@/components/MatchResultPanel';
 import { PitchView } from '@/components/PitchView';
 import { RotationMatchView } from '@/components/RotationMatchView';
 import { ThreeTeamMatchView } from '@/components/ThreeTeamMatchView';
@@ -15,6 +16,7 @@ import {
   generateBalancedTeamsWithLocks,
   generateBalancedThreeTeamsWithLocks,
 } from '@shared/team-generator';
+import { formatMatchScore } from '@shared/match-result';
 import { isRotationMatch, getMatchLabel, isThreeTeamMatch, sanitizeTeamName, DEFAULT_TEAM_NAMES, type MatchRecord, type Player } from '@shared/types';
 
 function teamLabel(team: EditorTeam): string {
@@ -519,6 +521,7 @@ export function MatchPage() {
         groupName={groupName}
         match={match}
         roster={players}
+        isAdmin={isAdmin}
         onMatchChange={setMatch}
       />
     );
@@ -568,7 +571,15 @@ export function MatchPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{groupName}</p>
           <h1 className="font-display text-3xl font-bold text-slate-900">{displayTitle}</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {matchLabel} · {formatDate(match.date)}
+            {matchLabel}
+            {formatMatchScore(match) ? ` · ${formatMatchScore(match)}` : ''}
+            {' · '}
+            {formatDate(match.date)}
+            {match.external ? (
+              <span className="ml-2 inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-800 ring-1 ring-sky-200">
+                External
+              </span>
+            ) : null}
             {match.recordedAsPlayed ? (
               <span className="ml-2 inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
                 Counted as played
@@ -651,11 +662,18 @@ export function MatchPage() {
         Edit teams moves players. Rename teams changes labels only. Shuffle again opens a separate
         lineup link.
         {isAdmin
-          ? ' Check “Count as played” after the game so player games-played totals update.'
+          ? ' Check “Count as played” after the game so player games-played totals update. Tick External match only for games vs another side — those scores count.'
           : ''}
       </p>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+      <MatchResultPanel
+        slug={slug}
+        match={displayedMatch}
+        admin={isAdmin}
+        onMatchChange={setMatch}
+      />
 
       {renamingTeams ? (
         <TeamNameEditor

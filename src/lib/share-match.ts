@@ -1,5 +1,6 @@
 import { toPng } from 'html-to-image';
 import { formatDate } from '@/lib/utils';
+import { formatMatchScore } from '@shared/match-result';
 import { getMatchLabel, type MatchRecord } from '@shared/types';
 
 export function matchPageUrl(match: Pick<MatchRecord, 'groupSlug' | 'id'>): string {
@@ -9,7 +10,9 @@ export function matchPageUrl(match: Pick<MatchRecord, 'groupSlug' | 'id'>): stri
 export function buildShareCaption(match: MatchRecord, url: string): string {
   const sizeLabel = getMatchLabel(match);
   const title = (match.name ?? '').trim() || `${sizeLabel} lineup`;
-  return `${title}\n${sizeLabel} · ${formatDate(match.date)}\n${url}`;
+  const score = formatMatchScore(match);
+  const detail = score ? `${sizeLabel} · ${score} · ${formatDate(match.date)}` : `${sizeLabel} · ${formatDate(match.date)}`;
+  return `${title}\n${detail}\n${url}`;
 }
 
 export async function captureLineupImage(element: HTMLElement): Promise<File | null> {

@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Check, Loader2, Save, Share2, Shuffle } from 'lucide-react';
+import { MatchResultPanel } from '@/components/MatchResultPanel';
 import { RotationLineupBoard } from '@/components/RotationLineupBoard';
 import { RotationShapePicker } from '@/components/RotationShapePicker';
 import { api, ApiError } from '@/lib/api';
@@ -15,6 +16,7 @@ import {
   parseRotationFormation,
   rotationBoxesToIds,
 } from '@shared/rotation-lineup';
+import { formatMatchScore } from '@shared/match-result';
 import {
   getMatchLabel,
   type MatchRecord,
@@ -69,12 +71,14 @@ export function RotationMatchView({
   groupName,
   match,
   roster,
+  isAdmin = false,
   onMatchChange,
 }: {
   slug: string;
   groupName: string;
   match: MatchRecord;
   roster: Player[];
+  isAdmin?: boolean;
   onMatchChange: (match: MatchRecord) => void;
 }) {
   const navigate = useNavigate();
@@ -279,7 +283,15 @@ export function RotationMatchView({
           </p>
           <h1 className="font-display text-3xl font-bold text-slate-900">{matchTitle}</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {getMatchLabel(displayMatch)} · {formatDate(match.date)}
+            {getMatchLabel(displayMatch)}
+            {formatMatchScore(match) ? ` · ${formatMatchScore(match)}` : ''}
+            {' · '}
+            {formatDate(match.date)}
+            {match.external ? (
+              <span className="ml-2 inline-flex items-center rounded-full bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-800 ring-1 ring-sky-200">
+                External
+              </span>
+            ) : null}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -337,6 +349,13 @@ export function RotationMatchView({
       <RotationShapePicker format={format} value={shape} onChange={applyShape} />
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+      <MatchResultPanel
+        slug={slug}
+        match={match}
+        admin={isAdmin}
+        onMatchChange={onMatchChange}
+      />
 
       <div ref={captureRef} className="space-y-4 rounded-2xl bg-white p-3 sm:p-4">
         <RotationLineupBoard

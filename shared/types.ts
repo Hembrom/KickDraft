@@ -152,6 +152,11 @@ export interface RotationBoxes {
   FWD: Player[];
 }
 
+export interface MatchResult {
+  /** Goals scored by each player in this match. */
+  scorers: Record<string, number>;
+}
+
 export interface MatchRecord {
   id: string;
   groupSlug: string;
@@ -171,6 +176,10 @@ export interface MatchRecord {
   rotation?: RotationBoxes;
   /** Pitch rows for a rotation match, e.g. [1, 2, 2] or [1, 3, 1]. */
   formation?: number[];
+  /** Goals scored in this match, by player id. Only counted when `external` is true. */
+  result?: MatchResult;
+  /** Admin flagged this as a game vs another side — score and goals count. */
+  external?: boolean;
   ratingDifference: number;
   /** Admin marked this lineup as an official played game (attendance data). */
   recordedAsPlayed?: boolean;
@@ -339,6 +348,10 @@ export function isRotationMatch(
   match: Pick<MatchRecord, 'kind'> & { teamB?: { name?: string } },
 ): boolean {
   return match.kind === 'rotation' || match.teamB?.name === 'Rotation';
+}
+
+export function isExternalMatch(match: Pick<MatchRecord, 'external'>): boolean {
+  return match.external === true;
 }
 
 export function getMatchLabel(match: MatchRecord): string {

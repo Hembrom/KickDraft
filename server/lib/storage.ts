@@ -15,6 +15,11 @@ import {
   parseRotationFromTeamB,
 } from '../../shared/rotation-persist.js';
 import { parseRotationFormation } from '../../shared/rotation-lineup.js';
+import {
+  attachResultToTeamA,
+  parseResultFromTeamA,
+} from '../../shared/match-result-persist.js';
+import { normalizeMatchResult } from '../../shared/match-result.js';
 import { getErrorMessage } from './auth.js';
 import { getSupabase, isSupabaseConfigured } from './supabase-client.js';
 import {
@@ -146,7 +151,8 @@ function playerToRow(slug: string, player: Player): PlayerRow {
 
 function rowToMatch(row: MatchRow): MatchRecord {
   const parsed = parseRotationFromTeamB(row.team_b);
-  let teamA = row.team_a;
+  const parsedA = parseResultFromTeamA(row.team_a);
+  let teamA = parsedA.teamA;
   if (parsed.kind === 'rotation' && parsed.starterIds?.length && teamA?.players?.length) {
     const byId = new Map(teamA.players.map((player) => [player.id, player]));
     const ordered = parsed.starterIds
@@ -173,9 +179,22 @@ function rowToMatch(row: MatchRow): MatchRecord {
       parsed.kind === 'rotation'
         ? parseRotationFormation(parsed.formation, row.format)
         : undefined,
+    result: parsedA.result,
+    external: parsedA.external,
     ratingDifference: Number(row.rating_difference),
     recordedAsPlayed: Boolean(row.recorded_as_played),
     recordedAt: row.recorded_at ?? null,
+  };
+}
+
+function finalizeMatchRecord(record: MatchRecord): MatchRecord {
+  const hydrated = hydrateMatchRecord(record);
+  const parsedA = parseResultFromTeamA(hydrated.teamA);
+  return {
+    ...hydrated,
+    teamA: parsedA.teamA,
+    result: normalizeMatchResult(hydrated.result) ?? parsedA.result,
+    external: hydrated.external === true || parsedA.external === true,
   };
 }
 
@@ -187,7 +206,7 @@ function matchToRow(record: MatchRecord) {
     name: record.name,
     format: record.format,
     selected_player_ids: record.selectedPlayerIds,
-    team_a: record.teamA,
+    team_a: attachResultToTeamA(record),
     team_b: attachRotationToTeamB(record),
     rating_difference: record.ratingDifference,
     recorded_as_played: Boolean(record.recordedAsPlayed),
@@ -463,7 +482,7 @@ export async function updateMatch(record: MatchRecord) {
 
 export async function listMatches(slug: string): Promise<MatchRecord[]> {
   if (useLocalStorage()) {
-    return (await listMatchesLocal(slug)).map(hydrateMatchRecord);
+    return (await listMatchesLocal(slug)).map((record) => finalizeMatchRecord(record));
   }
 
   const supabase = getSupabase();
@@ -480,7 +499,7 @@ export async function listMatches(slug: string): Promise<MatchRecord[]> {
 export async function getMatch(slug: string, matchId: string): Promise<MatchRecord | null> {
   if (useLocalStorage()) {
     const record = await readJsonLocal<MatchRecord>(groupPath(slug, 'matches', `${matchId}.json`));
-    return record ? hydrateMatchRecord(record) : null;
+    return record ? finalizeMatchRecord(record) : null;
   }
 
   const supabase = getSupabase();
