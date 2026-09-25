@@ -53,6 +53,9 @@ export function GamesPlayedPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link to={`/${slug}/league`} className="btn-secondary">
+            League status
+          </Link>
           <Link to={`/${slug}/history`} className="btn-secondary">
             Match history
           </Link>

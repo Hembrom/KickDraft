@@ -649,6 +649,9 @@ export function MatchPage() {
           <Link to={`/${slug}`} className="btn-secondary">
             New match
           </Link>
+          <Link to={`/${slug}/league`} className="btn-secondary">
+            League
+          </Link>
           <Link to={`/${slug}/games-played`} className="btn-secondary">
             Games played
           </Link>

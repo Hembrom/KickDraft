@@ -398,6 +398,9 @@ export function RotationMatchView({
           <Link to={`/${slug}`} className="btn-secondary">
             New match
           </Link>
+          <Link to={`/${slug}/league`} className="btn-secondary">
+            League
+          </Link>
           <Link to={`/${slug}/history`} className="btn-secondary">
             History
           </Link>

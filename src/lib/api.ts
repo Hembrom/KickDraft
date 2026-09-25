@@ -1,3 +1,4 @@
+import type { LeagueSeason } from '@shared/league';
 import type {
   GroupMeta,
   MatchRecord,
@@ -70,6 +71,10 @@ export const api = {
 
   getMatch(slug: string, matchId: string) {
     return request<MatchRecord>(`/api/groups/${slug}/matches/${matchId}`);
+  },
+
+  getLeague(slug: string) {
+    return request<{ group: GroupMeta; seasons: LeagueSeason[] }>(`/api/groups/${slug}/league`);
   },
 
   getAppearances(slug: string) {

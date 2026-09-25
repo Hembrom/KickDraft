@@ -1,5 +1,6 @@
 import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { isLeagueMatch } from '../../shared/league.js';
 import type { GroupMeta, GroupPlayers, GroupsIndex, MatchRecord } from '../../shared/types.js';
 
 const ROOT = path.join(process.cwd(), '.local-data');
@@ -77,7 +78,7 @@ export async function purgeOldMatchesLocal(days = 30) {
         if (!file.endsWith('.json')) continue;
         const filePath = path.join(dir, file);
         const match = JSON.parse(await readFile(filePath, 'utf8')) as MatchRecord;
-        if (new Date(match.date).getTime() < cutoff) {
+        if (new Date(match.date).getTime() < cutoff && !isLeagueMatch(match)) {
           await unlink(filePath);
           deleted++;
         }

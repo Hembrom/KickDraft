@@ -16,6 +16,7 @@ import groupClaim from './handlers/group-claim.js';
 import groupRatings from './handlers/group-ratings.js';
 import groupPeerReviews from './handlers/group-peer-reviews.js';
 import groupAppearances from './handlers/group-appearances.js';
+import groupLeague from './handlers/group-league.js';
 import adminMatchRecord from './handlers/admin-match-record.js';
 import adminMatchResult from './handlers/admin-match-result.js';
 import me from './handlers/me.js';
@@ -75,6 +76,12 @@ const routes: Route[] = [
     method: 'GET',
     regex: /^\/api\/groups\/([^/]+)\/appearances$/,
     handler: groupAppearances,
+    params: ['slug'],
+  },
+  {
+    method: 'GET',
+    regex: /^\/api\/groups\/([^/]+)\/league$/,
+    handler: groupLeague,
     params: ['slug'],
   },
   {

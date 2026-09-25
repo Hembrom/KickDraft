@@ -19,6 +19,7 @@ import {
   attachResultToTeamA,
   parseResultFromTeamA,
 } from '../../shared/match-result-persist.js';
+import { isLeagueMatch } from '../../shared/league.js';
 import { normalizeMatchResult } from '../../shared/match-result.js';
 import { getErrorMessage } from './auth.js';
 import { getSupabase, isSupabaseConfigured } from './supabase-client.js';
@@ -519,14 +520,22 @@ export async function purgeOldMatches(days = 30) {
 
   const supabase = getSupabase();
   const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-  const { data, error } = await supabase
+  const { data, error } = await supabase.from('matches').select('*').lt('date', cutoff);
+  if (error) throw error;
+
+  const toDelete = (data ?? [])
+    .map((row) => rowToMatch(row as MatchRow))
+    .filter((match) => !isLeagueMatch(match))
+    .map((match) => match.id);
+  if (toDelete.length === 0) return 0;
+
+  const { data: deleted, error: deleteError } = await supabase
     .from('matches')
     .delete()
-    .lt('date', cutoff)
+    .in('id', toDelete)
     .select('id');
-
-  if (error) throw error;
-  return data?.length ?? 0;
+  if (deleteError) throw deleteError;
+  return deleted?.length ?? 0;
 }
 
 export async function groupExists(slug: string): Promise<boolean> {

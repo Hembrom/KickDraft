@@ -31,6 +31,9 @@ export function HistoryPage() {
           <h1 className="font-display text-3xl font-bold text-slate-900">Match history</h1>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link to={`/${slug}/league`} className="btn-secondary">
+            League status
+          </Link>
           <Link to={`/${slug}/games-played`} className="btn-secondary">
             Games played
           </Link>
