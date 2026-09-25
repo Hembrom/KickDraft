@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { GroupPageHeading } from '@/components/GroupPageHeading';
 import { PublicPeerReviewsPanel } from '@/components/PublicPeerReviewsPanel';
 import { api, ApiError } from '@/lib/api';
 
@@ -21,17 +22,11 @@ export function PeerReviewsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-slate-500">
-            <Link to={`/${slug}`} className="text-elite-700 hover:underline">
-              {groupName || slug}
-            </Link>
-          </p>
-          <h1 className="font-display text-3xl font-bold text-slate-900">Who rated whom</h1>
+        <GroupPageHeading slug={slug} groupName={groupName} title="Who rated whom">
           <p className="mt-1 max-w-xl text-sm text-slate-600">
             Public peer reviews — no login required.
           </p>
-        </div>
+        </GroupPageHeading>
         <div className="flex flex-wrap gap-2">
           <Link to={`/${slug}/claim`} className="btn-secondary">
             Claim player

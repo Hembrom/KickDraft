@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { LogIn, Save, User } from 'lucide-react';
+import { GroupPageHeading } from '@/components/GroupPageHeading';
 import { api, ApiError } from '@/lib/api';
 import {
   getBrowserSupabase,
@@ -66,6 +67,7 @@ export function RatePlayersPage() {
   const { slug = '' } = useParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [groupName, setGroupName] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
   const [targets, setTargets] = useState<RateTarget[]>([]);
   const [claimedPlayerId, setClaimedPlayerId] = useState<string | null>(null);
@@ -80,6 +82,7 @@ export function RatePlayersPage() {
     setError('');
     try {
       const group = await api.getGroup(slug);
+      setGroupName(group.name);
       setPlayers(group.players);
 
       const session = await getGoogleSession();
@@ -168,13 +171,7 @@ export function RatePlayersPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-slate-500">
-            <Link to={`/${slug}`} className="text-elite-700 hover:underline">
-              Back to group
-            </Link>
-          </p>
-          <h1 className="font-display text-3xl font-bold text-slate-900">Rate teammates</h1>
+        <GroupPageHeading slug={slug} groupName={groupName} title="Rate teammates">
           <p className="mt-1 max-w-xl text-sm text-slate-600">
             Browse the squad below. Sign in and claim your player to rate others (once every two
             weeks per teammate).{' '}
@@ -182,7 +179,7 @@ export function RatePlayersPage() {
               How to rate
             </Link>
           </p>
-        </div>
+        </GroupPageHeading>
         {signedIn ? (
           <button
             type="button"

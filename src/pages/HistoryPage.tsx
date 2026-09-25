@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { GroupPageHeading } from '@/components/GroupPageHeading';
 import { api, ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import { formatMatchScore } from '@shared/match-result';
@@ -7,14 +8,15 @@ import { formatRatingGap, getMatchLabel, isRotationMatch, type MatchRecord } fro
 
 export function HistoryPage() {
   const { slug = '' } = useParams();
+  const [groupName, setGroupName] = useState('');
   const [matches, setMatches] = useState<MatchRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api
-      .getMatches(slug)
-      .then((matchData) => {
+    Promise.all([api.getGroup(slug).catch(() => null), api.getMatches(slug)])
+      .then(([group, matchData]) => {
+        if (group) setGroupName(group.name);
         setMatches(matchData.matches);
       })
       .catch((err: unknown) => {
@@ -26,10 +28,9 @@ export function HistoryPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Last 30 days</p>
-          <h1 className="font-display text-3xl font-bold text-slate-900">Match history</h1>
-        </div>
+        <GroupPageHeading slug={slug} groupName={groupName} title="Match history">
+          <p className="mt-1 max-w-xl text-sm text-slate-600">Last 30 days.</p>
+        </GroupPageHeading>
         <div className="flex flex-wrap gap-2">
           <Link to={`/${slug}/league`} className="btn-secondary">
             League status

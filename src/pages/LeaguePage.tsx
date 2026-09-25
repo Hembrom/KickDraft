@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { User } from 'lucide-react';
-import { TeamLogo } from '@/components/TeamLogo';
+import { GroupPageHeading } from '@/components/GroupPageHeading';
 import { api, ApiError } from '@/lib/api';
 import { cn, formatDate } from '@/lib/utils';
 import type { LeaguePlayerRow, LeagueScope, LeagueSeason } from '@shared/league';
@@ -97,21 +97,12 @@ export function LeaguePage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <TeamLogo slug={slug} name={groupName || slug} className="h-12 w-12" />
-          <div>
-          <p className="text-sm text-slate-500">
-            <Link to={`/${slug}`} className="text-elite-700 hover:underline">
-              {groupName || slug}
-            </Link>
-          </p>
-          <h1 className="font-display text-3xl font-bold text-slate-900">League status</h1>
+        <GroupPageHeading slug={slug} groupName={groupName} title="League status">
           <p className="mt-1 max-w-xl text-sm text-slate-600">
             Calendar year totals. Internal is attendance. External is vs another side — scores
             count there.
           </p>
-          </div>
-        </div>
+        </GroupPageHeading>
         <div className="flex flex-wrap gap-2">
           <Link to={`/${slug}/games-played`} className="btn-secondary">
             Games played

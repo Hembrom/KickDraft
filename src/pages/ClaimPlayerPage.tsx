@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Check, LogIn, User } from 'lucide-react';
+import { GroupPageHeading } from '@/components/GroupPageHeading';
 import { api, ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
@@ -97,13 +98,7 @@ export function ClaimPlayerPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-slate-500">
-            <Link to={`/${slug}`} className="text-elite-700 hover:underline">
-              {groupName || slug}
-            </Link>
-          </p>
-          <h1 className="font-display text-3xl font-bold text-slate-900">Claim your player</h1>
+        <GroupPageHeading slug={slug} groupName={groupName} title="Claim your player">
           <p className="mt-1 max-w-xl text-sm text-slate-600">
             Browse the squad below. Sign in with Google to claim your card once — then you can rate
             teammates every two weeks.{' '}
@@ -111,7 +106,7 @@ export function ClaimPlayerPage() {
               How to rate
             </Link>
           </p>
-        </div>
+        </GroupPageHeading>
         <div className="flex flex-wrap items-center gap-2">
           <Link to={`/${slug}/reviews`} className="btn-secondary">
             Who rated whom
