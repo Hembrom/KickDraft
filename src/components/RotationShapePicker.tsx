@@ -5,10 +5,12 @@ export function RotationShapePicker({
   format,
   value,
   onChange,
+  readOnly = false,
 }: {
   format: number;
   value: number[];
   onChange: (shape: number[]) => void;
+  readOnly?: boolean;
 }) {
   const selected = formationLabel(value);
 
@@ -23,11 +25,16 @@ export function RotationShapePicker({
             <button
               key={key}
               type="button"
+              disabled={readOnly}
               className={cn(
                 'rounded-lg px-2.5 py-1.5 text-sm font-semibold sm:px-3',
                 active ? 'bg-elite-600 text-white' : 'text-slate-600 hover:bg-slate-50',
+                readOnly && !active && 'opacity-60',
+                readOnly && 'cursor-default',
               )}
-              onClick={() => onChange(shape)}
+              onClick={() => {
+                if (!readOnly) onChange(shape);
+              }}
             >
               {key}
             </button>

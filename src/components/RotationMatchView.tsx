@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Check, Loader2, Pencil, Plus, Save, Share2, Shuffle, User, X } from 'lucide-react';
 import { MatchResultPanel } from '@/components/MatchResultPanel';
+import { TeamLogo } from '@/components/TeamLogo';
 import { RotationLineupBoard } from '@/components/RotationLineupBoard';
 import { RotationShapePicker } from '@/components/RotationShapePicker';
 import { api, ApiError } from '@/lib/api';
@@ -129,6 +130,7 @@ export function RotationMatchView({
   }, [slots, boxes, initialSlots, initialBoxes, shape, savedShape]);
 
   function applyShape(nextShape: number[]) {
+    if (match.recordedAsPlayed) return;
     const parsed = parseRotationFormation(nextShape, format);
     if (formationLabel(parsed) === formationLabel(shape)) return;
     setShape(parsed);
@@ -165,6 +167,7 @@ export function RotationMatchView({
     nextBoxes: RotationBoxes,
     nextShape: number[],
   ): Promise<MatchRecord | null> {
+    if (match.recordedAsPlayed) return match;
     const starterIds = nextSlots
       .map((player) => player?.id)
       .filter((id): id is string => Boolean(id));
@@ -184,6 +187,7 @@ export function RotationMatchView({
   }
 
   function addToMatch(player: Player) {
+    if (match.recordedAsPlayed) return;
     const nextBoxes = cloneBoxes(boxes);
     nextBoxes[preferredRotationSlot(player)].push(player);
     setBoxes(nextBoxes);
@@ -196,6 +200,7 @@ export function RotationMatchView({
   }
 
   function removeFromMatch(playerId: string) {
+    if (match.recordedAsPlayed) return;
     const taken = takePlayer(slots, boxes, playerId);
     if (!taken) return;
     const nextSlots: Array<Player | null> = taken.nextSlots.filter(
@@ -234,6 +239,7 @@ export function RotationMatchView({
   }
 
   function applyMove(playerId: string, dest: { type: 'pitch'; index: number } | { type: 'bench'; slot: RotationSlot }) {
+    if (match.recordedAsPlayed) return;
     setError('');
     const taken = takePlayer(slots, boxes, playerId);
     if (!taken) return;
@@ -314,7 +320,7 @@ export function RotationMatchView({
   }
 
   async function handleShuffle() {
-    if (shuffling) return;
+    if (shuffling || match.recordedAsPlayed) return;
     setShuffling(true);
     setError('');
     try {
@@ -365,11 +371,14 @@ export function RotationMatchView({
 
   const displayMatch = { ...match, formation: shape };
   const matchTitle = (match.name ?? '').trim() || getMatchLabel(displayMatch);
+  const locked = Boolean(match.recordedAsPlayed);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div className="flex items-start gap-3">
+          <TeamLogo slug={slug} name={groupName} className="h-12 w-12" />
+          <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
             {groupName}
           </p>
@@ -390,6 +399,7 @@ export function RotationMatchView({
               </span>
             ) : null}
           </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           {isAdmin ? (
@@ -404,6 +414,8 @@ export function RotationMatchView({
               {recording ? 'Saving…' : 'Count as played'}
             </label>
           ) : null}
+          {locked ? null : (
+            <>
           <button
             type="button"
             className="btn-secondary"
@@ -435,6 +447,8 @@ export function RotationMatchView({
             )}
             {shuffling ? 'Shuffling…' : 'Shuffle again'}
           </button>
+            </>
+          )}
           <button
             type="button"
             className="btn-primary"
@@ -463,17 +477,23 @@ export function RotationMatchView({
       </div>
 
       <p className="text-sm text-slate-600">
-        Drag a brown sub onto an empty circle on the pitch, or tap the sub then tap the circle.
-        Green = playing now, brown = bench.
-        {editing
+        {locked
+          ? 'This match is counted as played, so the lineup is locked. Uncheck Count as played to edit again.'
+          : 'Drag a brown sub onto an empty circle on the pitch, or tap the sub then tap the circle. Green = playing now, brown = bench.'}
+        {editing && !locked
           ? ' Edit teams adds late arrivals to the bench or drops someone who did not play.'
           : ''}
-        {isAdmin
+        {isAdmin && !locked
           ? ' Tick Count as played so this night counts for attendance — including External games.'
           : ''}
       </p>
 
-      <RotationShapePicker format={format} value={shape} onChange={applyShape} />
+      <RotationShapePicker
+        format={format}
+        value={shape}
+        onChange={applyShape}
+        readOnly={locked}
+      />
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
@@ -484,7 +504,7 @@ export function RotationMatchView({
         onMatchChange={onMatchChange}
       />
 
-      {editing ? (
+      {editing && !locked ? (
         <section className="card space-y-4 p-4 sm:p-5">
           <div>
             <h2 className="font-display text-xl font-bold text-slate-900">Edit teams</h2>
@@ -589,7 +609,8 @@ export function RotationMatchView({
           shape={shape}
           slots={slots}
           boxes={boxes}
-          selectedPlayerId={selectedPlayerId}
+          selectedPlayerId={locked ? null : selectedPlayerId}
+          readOnly={locked}
           onSelectPlayer={setSelectedPlayerId}
           onDropOnPitch={(playerId, index) => applyMove(playerId, { type: 'pitch', index })}
           onDropOnBench={(playerId, slot) => applyMove(playerId, { type: 'bench', slot })}

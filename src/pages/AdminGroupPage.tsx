@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Plus, Save, Trash2, Upload } from 'lucide-react';
+import { TeamLogo } from '@/components/TeamLogo';
+import { GROUP_LOGO_ID } from '@shared/group-logo';
 import { ClubSelect } from '@/components/ClubSelect';
 import { PlayerCard } from '@/components/PlayerCard';
 import { AdminPeerRatingsPanel } from '@/components/AdminPeerRatingsPanel';
@@ -41,6 +43,8 @@ export function AdminGroupPage() {
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'roster' | 'ratings' | 'claims'>('roster');
   const [isSuper, setIsSuper] = useState(isSuperAdmin());
+  const [logoVersion, setLogoVersion] = useState(0);
+  const [logoBusy, setLogoBusy] = useState(false);
 
   useEffect(() => {
     if (!getAdminToken()) {
@@ -78,6 +82,21 @@ export function AdminGroupPage() {
         p.positions.some((pos) => pos.toLowerCase().includes(q)),
     );
   }, [players, search]);
+
+  async function handleLogoChange(file: File | null) {
+    if (!file || logoBusy) return;
+    setLogoBusy(true);
+    setError('');
+    try {
+      const imageBase64 = await fileToBase64(file);
+      await api.adminUploadImage(slug, GROUP_LOGO_ID, imageBase64, file.type || 'image/png');
+      setLogoVersion(Date.now());
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to update team logo');
+    } finally {
+      setLogoBusy(false);
+    }
+  }
 
   function resetForm() {
     setEditing(null);
@@ -188,7 +207,41 @@ export function AdminGroupPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="flex items-start gap-4">
+          <label
+            className={cn(
+              'flex shrink-0 cursor-pointer flex-col items-center gap-2',
+              logoBusy && 'pointer-events-none opacity-70',
+            )}
+          >
+            <span className="relative">
+              <TeamLogo
+                slug={slug}
+                name={groupName}
+                version={logoVersion || undefined}
+                className="h-20 w-20"
+                textClassName="text-xl"
+              />
+              <span className="absolute inset-x-0 bottom-0 rounded-b-2xl bg-slate-900/70 py-1 text-center text-[10px] font-semibold uppercase tracking-wide text-white">
+                {logoBusy ? 'Saving…' : 'Change'}
+              </span>
+            </span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-elite-700">
+              <Upload className="h-3.5 w-3.5" />
+              {logoBusy ? 'Uploading…' : 'Change logo'}
+            </span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              disabled={logoBusy}
+              onChange={(event) => {
+                void handleLogoChange(event.target.files?.[0] ?? null);
+                event.currentTarget.value = '';
+              }}
+            />
+          </label>
+          <div>
           <Link
             to="/admin/dashboard"
             className="mb-2 inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-elite-600"
@@ -197,6 +250,8 @@ export function AdminGroupPage() {
           </Link>
           <h1 className="font-display text-3xl font-bold text-slate-900">{groupName}</h1>
           <p className="text-sm text-slate-500">/{slug}</p>
+          <p className="mt-1 text-xs text-slate-500">Tap the badge to add or change the team logo.</p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <div className="flex rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">

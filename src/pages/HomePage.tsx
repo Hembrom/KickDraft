@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Trophy, Users } from 'lucide-react';
+import { TeamLogo } from '@/components/TeamLogo';
 import { api } from '@/lib/api';
 import type { GroupMeta } from '@shared/types';
 
@@ -117,9 +118,12 @@ export function HomePage() {
                 to={`/${group.slug}`}
                 className="card flex items-center justify-between p-4 transition hover:border-elite-200 hover:bg-elite-50/50 hover:shadow-elite"
               >
-                <div>
+                <div className="flex min-w-0 items-center gap-3">
+                  <TeamLogo slug={group.slug} name={group.name} className="h-11 w-11" />
+                  <div>
                   <p className="font-semibold text-slate-900">{group.name}</p>
                   <p className="text-xs text-slate-500">/{group.slug}</p>
+                  </div>
                 </div>
                 <ArrowRight className="h-4 w-4 text-elite-400" />
               </Link>

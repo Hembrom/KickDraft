@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, LogOut, Plus } from 'lucide-react';
+import { TeamLogo } from '@/components/TeamLogo';
 import { api, ApiError } from '@/lib/api';
 import {
   clearAdminToken,
@@ -139,9 +140,12 @@ export function AdminDashboardPage() {
                 to={`/admin/groups/${group.slug}`}
                 className="card flex items-center justify-between p-4 transition hover:border-elite-200 hover:bg-elite-50/50"
               >
-                <div>
+                <div className="flex min-w-0 items-center gap-3">
+                  <TeamLogo slug={group.slug} name={group.name} className="h-11 w-11" />
+                  <div>
                   <p className="font-semibold text-slate-900">{group.name}</p>
                   <p className="text-xs text-slate-500">/{group.slug}</p>
+                  </div>
                 </div>
                 <ArrowRight className="h-4 w-4 text-elite-400" />
               </Link>

@@ -7,6 +7,7 @@ import { RotationMatchView } from '@/components/RotationMatchView';
 import { ThreeTeamMatchView } from '@/components/ThreeTeamMatchView';
 import { TeamEditor, type EditTab, type EditorTeam } from '@/components/TeamEditor';
 import { TeamNameEditor } from '@/components/TeamNameEditor';
+import { TeamLogo } from '@/components/TeamLogo';
 import { api, ApiError } from '@/lib/api';
 import { shareMatchLineup } from '@/lib/share-match';
 import { formatDate, getAdminToken } from '@/lib/utils';
@@ -100,7 +101,7 @@ export function MatchPage() {
   }
 
   async function handleShuffleAgain() {
-    if (!match || shuffling) return;
+    if (!match || shuffling || match.recordedAsPlayed) return;
     setShuffling(true);
     setError('');
     try {
@@ -187,7 +188,7 @@ export function MatchPage() {
   }
 
   function startRenamingTeams() {
-    if (!match) return;
+    if (!match || match.recordedAsPlayed) return;
     setRenamingTeams(true);
     setDraftTeamAName(match.teamA.name);
     setDraftTeamBName(match.teamB.name);
@@ -227,7 +228,7 @@ export function MatchPage() {
   }
 
   function startEditing() {
-    if (!match) return;
+    if (!match || match.recordedAsPlayed) return;
     resetDraft('swap');
     setEditing(true);
   }
@@ -527,6 +528,7 @@ export function MatchPage() {
     );
   }
 
+  const locked = Boolean(match.recordedAsPlayed);
   const threeWay = isThreeTeamMatch(match);
   const matchLabel = getMatchLabel(match);
   const displayTitle = (match.name ?? '').trim() || `${matchLabel} lineup`;
@@ -567,7 +569,9 @@ export function MatchPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div className="flex items-start gap-3">
+          <TeamLogo slug={slug} name={groupName} className="h-12 w-12" />
+          <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{groupName}</p>
           <h1 className="font-display text-3xl font-bold text-slate-900">{displayTitle}</h1>
           <p className="mt-1 text-sm text-slate-500">
@@ -586,6 +590,7 @@ export function MatchPage() {
               </span>
             ) : null}
           </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           {isAdmin ? (
@@ -600,6 +605,8 @@ export function MatchPage() {
               {recording ? 'Saving…' : 'Count as played'}
             </label>
           ) : null}
+          {locked ? null : (
+            <>
           <button
             type="button"
             className="btn-secondary"
@@ -631,6 +638,8 @@ export function MatchPage() {
             )}
             {shuffling ? 'Shuffling…' : 'Shuffle again'}
           </button>
+            </>
+          )}
           <button
             type="button"
             className="btn-primary"
@@ -662,10 +671,11 @@ export function MatchPage() {
       </div>
 
       <p className="text-sm text-slate-600">
-        Edit teams moves players. Rename teams changes labels only. Shuffle again opens a separate
-        lineup link.
+        {locked
+          ? 'This match is counted as played, so the lineup is locked. Uncheck Count as played to edit again.'
+          : 'Edit teams moves players. Rename teams changes labels only. Shuffle again opens a separate lineup link.'}
         {isAdmin
-          ? ' Check “Count as played” after the game so player games-played totals update. Tick External match only for games vs another side — those scores count.'
+          ? ' Tick External match only for games vs another side — those scores count.'
           : ''}
       </p>
 
@@ -678,7 +688,7 @@ export function MatchPage() {
         onMatchChange={setMatch}
       />
 
-      {renamingTeams ? (
+      {renamingTeams && !locked ? (
         <TeamNameEditor
           teamCount={threeWay ? 3 : 2}
           teamAName={draftTeamAName}
@@ -693,7 +703,7 @@ export function MatchPage() {
         />
       ) : null}
 
-      {editing ? (
+      {editing && !locked ? (
         <TeamEditor
           tab={editTab}
           onTabChange={switchEditTab}

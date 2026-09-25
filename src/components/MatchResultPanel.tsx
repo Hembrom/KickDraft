@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Minus, Plus, User } from 'lucide-react';
+import { TeamLogo } from '@/components/TeamLogo';
 import { api, ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
@@ -111,12 +112,16 @@ function teamSections(match: MatchRecord) {
 }
 
 function ScoreHero({
+  slug,
+  groupName,
   match,
   admin,
   busy,
   onConcededDelta,
   onConcededSet,
 }: {
+  slug?: string;
+  groupName?: string;
   match: MatchRecord;
   admin?: boolean;
   busy?: boolean;
@@ -130,9 +135,14 @@ function ScoreHero({
     const conceded = goalsAgainst(match);
     return (
       <div className="flex items-center justify-center gap-3 sm:gap-6">
-        <div className="min-w-0 flex-1 text-right">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          {slug ? (
+            <TeamLogo slug={slug} name={groupName || 'Us'} className="h-10 w-10" />
+          ) : null}
+          <div className="text-right">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Us</p>
           <p className="font-display text-4xl font-bold tabular-nums text-slate-900">{scored}</p>
+          </div>
         </div>
         <span className="text-2xl font-semibold text-slate-300">–</span>
         <div className="min-w-0 flex-1 text-left">
@@ -372,6 +382,7 @@ export function MatchResultPanel({
 
       {external ? (
         <ScoreHero
+          slug={slug}
           match={match}
           admin={admin}
           busy={busyId === 'conceded'}

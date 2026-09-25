@@ -28,17 +28,18 @@ function PlayerChip({
   player: Player;
   status: 'playing' | 'sub';
   selected: boolean;
-  onDragStart: (event: React.DragEvent) => void;
+  onDragStart?: (event: React.DragEvent) => void;
   onClick: (event: React.MouseEvent) => void;
 }) {
   const playing = status === 'playing';
   return (
     <div
-      draggable
+      draggable={Boolean(onDragStart)}
       onDragStart={onDragStart}
       onClick={onClick}
       className={cn(
-        'flex cursor-grab items-center gap-2 rounded-xl border px-2 py-1.5 active:cursor-grabbing',
+        'flex items-center gap-2 rounded-xl border px-2 py-1.5',
+        onDragStart && 'cursor-grab active:cursor-grabbing',
         playing
           ? 'border-emerald-400 bg-emerald-50'
           : 'border-amber-900 bg-[#f3e5d0]',
@@ -110,6 +111,7 @@ export function RotationLineupBoard({
   slots,
   boxes,
   selectedPlayerId,
+  readOnly = false,
   onSelectPlayer,
   onDropOnPitch,
   onDropOnBench,
@@ -119,6 +121,7 @@ export function RotationLineupBoard({
   slots: Array<Player | null>;
   boxes: RotationBoxes;
   selectedPlayerId: string | null;
+  readOnly?: boolean;
   onSelectPlayer: (playerId: string | null) => void;
   onDropOnPitch: (playerId: string, index: number) => void;
   onDropOnBench: (playerId: string, slot: RotationSlot) => void;
@@ -139,6 +142,10 @@ export function RotationLineupBoard({
 
   function startDrag(playerId: string) {
     return (event: React.DragEvent) => {
+      if (readOnly) {
+        event.preventDefault();
+        return;
+      }
       dragIdRef.current = playerId;
       event.dataTransfer.setData('text/plain', playerId);
       event.dataTransfer.setData('text', playerId);
@@ -148,7 +155,7 @@ export function RotationLineupBoard({
 
   const rowCount = formation.length;
   const pitchHeight = Math.max(420, 80 + rowCount * 110);
-  const placing = Boolean(selectedPlayerId);
+  const placing = !readOnly && Boolean(selectedPlayerId);
 
   return (
     <div className="space-y-4">
@@ -190,8 +197,8 @@ export function RotationLineupBoard({
                       key={key}
                       role="button"
                       tabIndex={0}
-                      draggable={Boolean(player)}
-                      onDragStart={player ? startDrag(player.id) : undefined}
+                      draggable={!readOnly && Boolean(player)}
+                      onDragStart={player && !readOnly ? startDrag(player.id) : undefined}
                       onDragEnd={() => {
                         dragIdRef.current = null;
                         setDragOverKey(null);
@@ -208,11 +215,13 @@ export function RotationLineupBoard({
                         event.preventDefault();
                         event.stopPropagation();
                         setDragOverKey(null);
+                        if (readOnly) return;
                         const playerId = readDragId(event);
                         dragIdRef.current = null;
                         if (playerId) onDropOnPitch(playerId, index);
                       }}
                       onClick={() => {
+                        if (readOnly) return;
                         if (selectedPlayerId && selectedPlayerId !== player?.id) {
                           onDropOnPitch(selectedPlayerId, index);
                           return;
@@ -222,6 +231,7 @@ export function RotationLineupBoard({
                       onKeyDown={(event) => {
                         if (event.key !== 'Enter' && event.key !== ' ') return;
                         event.preventDefault();
+                        if (readOnly) return;
                         if (selectedPlayerId && selectedPlayerId !== player?.id) {
                           onDropOnPitch(selectedPlayerId, index);
                           return;
@@ -229,8 +239,9 @@ export function RotationLineupBoard({
                         onSelectPlayer(selectedHere ? null : player?.id ?? null);
                       }}
                       className={cn(
-                        'flex min-h-[84px] min-w-[72px] cursor-pointer flex-col items-center justify-end rounded-xl p-1',
-                        player && 'cursor-grab active:cursor-grabbing',
+                        'flex min-h-[84px] min-w-[72px] flex-col items-center justify-end rounded-xl p-1',
+                        !readOnly && 'cursor-pointer',
+                        player && !readOnly && 'cursor-grab active:cursor-grabbing',
                         dragOverKey === key && 'bg-white/25 ring-2 ring-white',
                         selectedHere && 'bg-white/15 ring-2 ring-amber-300',
                         emptyTarget && 'bg-amber-300/25 ring-2 ring-amber-200',
@@ -260,7 +271,9 @@ export function RotationLineupBoard({
       </div>
 
       <p className="text-center text-xs text-slate-500">
-        {placing ? (
+        {readOnly ? (
+          'Lineup is locked because this match is counted as played.'
+        ) : placing ? (
           <span className="font-semibold text-amber-800">
             Tap an empty circle (or a player) on the pitch to place them. Drag also works.
           </span>
@@ -295,11 +308,13 @@ export function RotationLineupBoard({
                 event.preventDefault();
                 event.stopPropagation();
                 setDragOverKey(null);
+                if (readOnly) return;
                 const playerId = readDragId(event);
                 dragIdRef.current = null;
                 if (playerId) onDropOnBench(playerId, slot);
               }}
               onClick={() => {
+                if (readOnly) return;
                 if (selectedPlayerId) onDropOnBench(selectedPlayerId, slot);
               }}
               className={cn(
@@ -333,9 +348,10 @@ export function RotationLineupBoard({
                       player={player}
                       status="playing"
                       selected={selectedPlayerId === player.id}
-                      onDragStart={startDrag(player.id)}
+                      onDragStart={readOnly ? undefined : startDrag(player.id)}
                       onClick={(event) => {
                         event.stopPropagation();
+                        if (readOnly) return;
                         if (selectedPlayerId && selectedPlayerId !== player.id) {
                           const index = slots.findIndex((slotPlayer) => slotPlayer?.id === player.id);
                           if (index >= 0) onDropOnPitch(selectedPlayerId, index);
@@ -351,9 +367,10 @@ export function RotationLineupBoard({
                       player={player}
                       status="sub"
                       selected={selectedPlayerId === player.id}
-                      onDragStart={startDrag(player.id)}
+                      onDragStart={readOnly ? undefined : startDrag(player.id)}
                       onClick={(event) => {
                         event.stopPropagation();
+                        if (readOnly) return;
                         if (selectedPlayerId && selectedPlayerId !== player.id) {
                           onDropOnBench(selectedPlayerId, slot);
                           return;

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowDownWideNarrow, History, Repeat, Split, Users, UsersRound } from 'lucide-react';
 import { PlayerCard } from '@/components/PlayerCard';
+import { TeamLogo } from '@/components/TeamLogo';
 import { api, ApiError } from '@/lib/api';
 import {
   getMatchSizeLabel,
@@ -197,12 +198,15 @@ export function GroupPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div className="flex items-start gap-3">
+          <TeamLogo slug={slug} name={groupName} className="h-14 w-14" textClassName="text-base" />
+          <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Squad</p>
           <h1 className="font-display text-3xl font-bold text-slate-900">{groupName}</h1>
           <p className="mt-1 text-sm text-slate-500">
             {players.length} in squad · {selectedCount} selected for today
           </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to="/guide/rate" className="btn-secondary">

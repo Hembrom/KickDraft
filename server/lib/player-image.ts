@@ -1,3 +1,4 @@
+import { GROUP_LOGO_ID } from '../../shared/group-logo.js';
 import { uploadPlayerImage } from './storage.js';
 
 export async function uploadPlayerImageFromBase64(
@@ -6,7 +7,10 @@ export async function uploadPlayerImageFromBase64(
   imageBase64: string,
   mimeType = 'image/jpeg',
 ) {
-  const extension = mimeType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
+  const extension =
+    playerId === GROUP_LOGO_ID
+      ? 'png'
+      : mimeType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
   const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1]! : imageBase64;
   const buffer = Buffer.from(base64Data, 'base64');
   const blob = new Blob([buffer], { type: mimeType });
