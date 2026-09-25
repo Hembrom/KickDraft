@@ -363,6 +363,13 @@ export function MatchResultPanel({
         </p>
       )}
 
+      {admin && external && !match.recordedAsPlayed ? (
+        <p className="text-sm text-slate-500">
+          Tick <span className="font-semibold text-slate-700">Count as played</span> as well so
+          this game counts for External attendance.
+        </p>
+      ) : null}
+
       {external ? (
         <ScoreHero
           match={match}

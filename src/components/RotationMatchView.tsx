@@ -113,6 +113,7 @@ export function RotationMatchView({
   const [shuffling, setShuffling] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [recording, setRecording] = useState(false);
   const [error, setError] = useState('');
 
   const dirty = useMemo(() => {
@@ -275,6 +276,43 @@ export function RotationMatchView({
     }, 500);
   }
 
+  async function handleRecordToggle(recorded: boolean) {
+    if (recording) return;
+    if (
+      recorded &&
+      !confirm(
+        'Count this match as played?\n\nEveryone on the pitch and the bench gets +1 attendance. You can undo later.',
+      )
+    ) {
+      return;
+    }
+    if (
+      !recorded &&
+      !confirm('Remove this match from games-played data? Player counts will decrease.')
+    ) {
+      return;
+    }
+
+    setRecording(true);
+    setError('');
+    try {
+      if (recorded) {
+        window.clearTimeout(saveTimerRef.current);
+        const saved = await persistLineup(slots, boxes, shape);
+        if (!saved) {
+          setError('Could not save the lineup before counting it as played.');
+          return;
+        }
+      }
+      const result = await api.adminRecordMatch(slug, match.id, recorded);
+      onMatchChange(result.match);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to update record status');
+    } finally {
+      setRecording(false);
+    }
+  }
+
   async function handleShuffle() {
     if (shuffling) return;
     setShuffling(true);
@@ -346,9 +384,26 @@ export function RotationMatchView({
                 External
               </span>
             ) : null}
+            {match.recordedAsPlayed ? (
+              <span className="ml-2 inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                Counted as played
+              </span>
+            ) : null}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {isAdmin ? (
+            <label className="btn-secondary cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-300 text-elite-600 focus:ring-elite-500"
+                checked={Boolean(match.recordedAsPlayed)}
+                disabled={recording || saving || shuffling || editing}
+                onChange={(event) => void handleRecordToggle(event.target.checked)}
+              />
+              {recording ? 'Saving…' : 'Count as played'}
+            </label>
+          ) : null}
           <button
             type="button"
             className="btn-secondary"
@@ -412,6 +467,9 @@ export function RotationMatchView({
         Green = playing now, brown = bench.
         {editing
           ? ' Edit teams adds late arrivals to the bench or drops someone who did not play.'
+          : ''}
+        {isAdmin
+          ? ' Tick Count as played so this night counts for attendance — including External games.'
           : ''}
       </p>
 
