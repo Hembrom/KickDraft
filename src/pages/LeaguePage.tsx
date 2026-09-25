@@ -6,9 +6,9 @@ import { cn, formatDate } from '@/lib/utils';
 import type { LeaguePlayerRow, LeagueScope, LeagueSeason } from '@shared/league';
 
 type LeagueTab = 'attendance' | 'goals' | 'matches';
+type VisibleScope = Exclude<LeagueScope, 'all'>;
 
-const SCOPES: Array<{ id: LeagueScope; label: string; hint: string }> = [
-  { id: 'all', label: 'All', hint: 'Internal nights plus external games.' },
+const SCOPES: Array<{ id: VisibleScope; label: string; hint: string }> = [
   { id: 'internal', label: 'Internal', hint: 'Squad nights. Attendance only — scores do not count.' },
   { id: 'external', label: 'External', hint: 'Vs another side. Attendance, goals, and W–D–L count.' },
 ];
@@ -18,6 +18,20 @@ const TABS: Array<{ id: LeagueTab; label: string }> = [
   { id: 'goals', label: 'Goals scored' },
   { id: 'matches', label: 'Matches' },
 ];
+
+function scopeTone(scope: VisibleScope, selected: boolean) {
+  if (!selected) return 'text-slate-500 hover:text-slate-800';
+  return scope === 'external'
+    ? 'bg-sky-600 text-white shadow-sm'
+    : 'bg-emerald-600 text-white shadow-sm';
+}
+
+function tabTone(scope: VisibleScope, selected: boolean) {
+  if (!selected) return 'font-medium text-slate-500 hover:text-slate-800';
+  return scope === 'external'
+    ? 'bg-sky-50 font-bold text-sky-800 ring-1 ring-sky-200'
+    : 'bg-emerald-50 font-bold text-emerald-800 ring-1 ring-emerald-200';
+}
 
 function sortPlayers(players: LeaguePlayerRow[], tab: LeagueTab): LeaguePlayerRow[] {
   return [...players].sort((a, b) => {
@@ -42,7 +56,7 @@ export function LeaguePage() {
   const [groupName, setGroupName] = useState('');
   const [seasons, setSeasons] = useState<LeagueSeason[]>([]);
   const [year, setYear] = useState<number>(new Date().getFullYear());
-  const [scope, setScope] = useState<LeagueScope>('all');
+  const [scope, setScope] = useState<VisibleScope>('internal');
   const [tab, setTab] = useState<LeagueTab>('attendance');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -90,8 +104,8 @@ export function LeaguePage() {
           </p>
           <h1 className="font-display text-3xl font-bold text-slate-900">League status</h1>
           <p className="mt-1 max-w-xl text-sm text-slate-600">
-            Calendar year totals. Switch Internal / External for the same tables — attendance,
-            goals, and matches.
+            Calendar year totals. Internal is attendance. External is vs another side — scores
+            count there.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -140,12 +154,13 @@ export function LeaguePage() {
                   key={item.id}
                   type="button"
                   className={cn(
-                    'flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition',
-                    scope === item.id
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700',
+                    'flex-1 rounded-lg px-3 py-2 text-sm font-bold transition',
+                    scopeTone(item.id, scope === item.id),
                   )}
-                  onClick={() => setScope(item.id)}
+                  onClick={() => {
+                    setScope(item.id);
+                    if (item.id === 'internal' && tab === 'goals') setTab('attendance');
+                  }}
                 >
                   {item.label}
                 </button>
@@ -155,16 +170,24 @@ export function LeaguePage() {
           </div>
 
           {view ? (
-          <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: 'Matches', value: view.matchesPlayed },
-              { label: 'Goals scored', value: view.goalsFor },
-              { label: 'Goals conceded', value: view.goalsAgainst },
-              {
-                label: 'W–D–L',
-                value: `${view.wins}–${view.draws}–${view.losses}`,
-              },
-            ].map((card) => (
+          <section
+            className={cn(
+              'grid gap-3',
+              scope === 'external' ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-2',
+            )}
+          >
+            {(scope === 'external'
+              ? [
+                  { label: 'Matches', value: view.matchesPlayed },
+                  { label: 'Goals scored', value: view.goalsFor },
+                  { label: 'Goals conceded', value: view.goalsAgainst },
+                  {
+                    label: 'W–D–L',
+                    value: `${view.wins}–${view.draws}–${view.losses}`,
+                  },
+                ]
+              : [{ label: 'Matches', value: view.matchesPlayed }]
+            ).map((card) => (
               <div key={card.label} className="card px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   {card.label}
@@ -178,15 +201,13 @@ export function LeaguePage() {
           ) : null}
 
           <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
-            {TABS.map((item) => (
+            {TABS.filter((item) => scope === 'external' || item.id !== 'goals').map((item) => (
               <button
                 key={item.id}
                 type="button"
                 className={cn(
-                  'flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition',
-                  tab === item.id
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700',
+                  'flex-1 rounded-lg px-3 py-2 text-sm transition',
+                  tabTone(scope, tab === item.id),
                 )}
                 onClick={() => setTab(item.id)}
               >
@@ -200,9 +221,7 @@ export function LeaguePage() {
               <div className="card p-5 text-sm text-slate-600">
                 {scope === 'internal'
                   ? `No internal matches in ${season.year}.`
-                  : scope === 'external'
-                    ? `No external matches in ${season.year}.`
-                    : `No recorded or external matches in ${season.year}.`}
+                  : `No external matches in ${season.year}.`}
               </div>
             ) : (
               <div className="space-y-2">
@@ -215,11 +234,6 @@ export function LeaguePage() {
                     <div>
                       <p className="font-semibold text-slate-900">
                         {match.name.trim() || `${match.format}-a-side`}
-                        {match.external ? (
-                          <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide text-sky-700">
-                            External
-                          </span>
-                        ) : null}
                         {match.recorded ? (
                           <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
                             Played
@@ -242,9 +256,7 @@ export function LeaguePage() {
           ) : players.length === 0 ? (
             <div className="card p-5 text-sm text-slate-600">
               {tab === 'goals'
-                ? scope === 'internal'
-                  ? `Internal nights do not count goals. Switch to External.`
-                  : `No external goals recorded in ${season.year}.`
+                ? `No external goals recorded in ${season.year}.`
                 : `No attendance recorded in ${season.year}. Mark a match as played to start the table.`}
             </div>
           ) : (
@@ -257,9 +269,11 @@ export function LeaguePage() {
                     <th className="px-3 py-2 font-semibold">
                       {tab === 'goals' ? 'Goals' : 'Games'}
                     </th>
-                    <th className="px-3 py-2 font-semibold">
-                      {tab === 'goals' ? 'Games' : 'Goals'}
-                    </th>
+                    {tab === 'goals' || scope === 'external' ? (
+                      <th className="px-3 py-2 font-semibold">
+                        {tab === 'goals' ? 'Games' : 'Goals'}
+                      </th>
+                    ) : null}
                     {tab === 'goals' ? (
                       <th className="px-3 py-2 font-semibold">G/G</th>
                     ) : null}
@@ -290,9 +304,11 @@ export function LeaguePage() {
                       <td className="px-3 py-2 font-display text-base font-bold tabular-nums text-elite-700">
                         {tab === 'goals' ? player.goals : player.gamesPlayed}
                       </td>
+                      {tab === 'goals' || scope === 'external' ? (
                       <td className="px-3 py-2 tabular-nums text-slate-700">
                         {tab === 'goals' ? player.gamesPlayed : player.goals}
                       </td>
+                      ) : null}
                       {tab === 'goals' ? (
                         <td className="px-3 py-2 tabular-nums text-slate-500">
                           {goalsPerGame(player)}
