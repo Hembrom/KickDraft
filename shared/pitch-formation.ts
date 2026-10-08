@@ -9,7 +9,7 @@ const FORMATIONS: Record<number, number[]> = {
   8: [1, 2, 3, 2],
   9: [1, 4, 4],
   10: [1, 4, 5],
-  11: [1, 4, 4, 2],
+  11: [1, 5, 4, 1],
 };
 
 function isGoalkeeper(player: Player): boolean {
