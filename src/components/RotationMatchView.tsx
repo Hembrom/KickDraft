@@ -90,7 +90,7 @@ export function RotationMatchView({
     () => parseRotationFormation(display.formation, format),
     [display.formation, format],
   );
-  const captureRef = useRef<HTMLDivElement>(null);
+  const pitchCaptureRef = useRef<HTMLDivElement>(null);
   const saveTimerRef = useRef<number>(0);
 
   const initialSlots = useMemo(() => {
@@ -356,7 +356,7 @@ export function RotationMatchView({
       const result = await shareMatchLineup({
         match: saved,
         groupName,
-        captureEl: captureRef.current,
+        captureEl: pitchCaptureRef.current,
       });
       if (result === 'copied') {
         setCopied(true);
@@ -603,7 +603,7 @@ export function RotationMatchView({
         </section>
       ) : null}
 
-      <div ref={captureRef} className="space-y-4 rounded-2xl bg-white p-3 sm:p-4">
+      <div className="space-y-4 rounded-2xl bg-white p-3 sm:p-4">
         <RotationLineupBoard
           format={format}
           shape={shape}
@@ -614,6 +614,7 @@ export function RotationMatchView({
           onSelectPlayer={setSelectedPlayerId}
           onDropOnPitch={(playerId, index) => applyMove(playerId, { type: 'pitch', index })}
           onDropOnBench={(playerId, slot) => applyMove(playerId, { type: 'bench', slot })}
+          pitchCaptureRef={pitchCaptureRef}
         />
       </div>
     </div>

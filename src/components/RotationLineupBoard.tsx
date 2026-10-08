@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type Ref } from 'react';
 import { Repeat, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PositionBadge } from '@/components/PlayerCard';
@@ -115,6 +115,7 @@ export function RotationLineupBoard({
   onSelectPlayer,
   onDropOnPitch,
   onDropOnBench,
+  pitchCaptureRef,
 }: {
   format: RotationFormat;
   shape?: number[];
@@ -125,6 +126,7 @@ export function RotationLineupBoard({
   onSelectPlayer: (playerId: string | null) => void;
   onDropOnPitch: (playerId: string, index: number) => void;
   onDropOnBench: (playerId: string, slot: RotationSlot) => void;
+  pitchCaptureRef?: Ref<HTMLDivElement>;
 }) {
   const roles = useMemo(() => rotationSlotRoles(format, shape), [format, shape]);
   const rows = useMemo(() => startersToRows(slots, format, shape), [slots, format, shape]);
@@ -160,6 +162,7 @@ export function RotationLineupBoard({
   return (
     <div className="space-y-4">
       <div
+        ref={pitchCaptureRef}
         className="relative mx-auto w-full max-w-lg overflow-hidden rounded-2xl"
         style={{
           height: pitchHeight,
