@@ -22,12 +22,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const user = await requireGoogleUser(req, res);
   if (!user) return;
 
-  const claim = await getClaimByGoogleUserId(user.id);
+  const claim = await getClaimByGoogleUserId(user.id, slug);
   if (!claim) {
     return error(res, 403, 'Claim a player first before rating others');
-  }
-  if (claim.groupSlug !== slug) {
-    return error(res, 403, `You claimed a player in /${claim.groupSlug}`);
   }
 
   if (req.method === 'GET') {

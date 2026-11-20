@@ -11,7 +11,7 @@
 
 Players rate each other. A card’s public **OVR** is the average of ratings teammates gave that player. Those peer OVRs are what the app uses to split fair teams.
 
-You cannot rate until you **claim your own card**. Claiming is once only.
+You cannot rate in a squad until you **claim your own card in that squad**.
 
 ---
 
@@ -49,15 +49,15 @@ Tap **Claim / rate**.
 ### 2. Sign in with Google
 Use **Continue with Google**. The same Google account is how the app knows who you are.
 
-### 3. Claim your player (once)
+### 3. Claim your player in this squad
 Tap **your** card, then confirm.
 
 Rules:
 
-- **One Google account = one player, forever**
-- **One player = one owner** — if someone else already claimed that card, pick another
-- You cannot switch later yourself
-- If you already claimed in another group, you stay with that player (claiming is global, not per group)
+- **One Google account = one player per squad**
+- **One player per squad = one owner** — if someone else already claimed that card, pick another
+- You can claim a different player in another squad using the same Google account
+- You cannot change a claim yourself later
 
 After you claim, you are sent to the rate page.
 

@@ -23,7 +23,6 @@ export function ClaimPlayerPage() {
   const [claimedIds, setClaimedIds] = useState<Set<string>>(new Set());
   const [claim, setClaim] = useState<PlayerClaim | null>(null);
   const [signedIn, setSignedIn] = useState(false);
-  const [elsewhere, setElsewhere] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -37,7 +36,6 @@ export function ClaimPlayerPage() {
       setPlayers(data.players);
       setClaimedIds(new Set(data.claimedPlayerIds));
       setClaim(data.claim);
-      setElsewhere(data.alreadyClaimedElsewhere);
       setSignedIn(Boolean(session) || data.signedIn);
 
       if (data.claim && data.claim.groupSlug === slug) {
@@ -79,7 +77,7 @@ export function ClaimPlayerPage() {
       return;
     }
     if (claimedIds.has(playerId)) return;
-    if (!confirm('Claim this player? You can only claim once and cannot change later.')) return;
+    if (!confirm('Claim this player for this squad? You cannot change it yourself later.')) return;
     setClaimingId(playerId);
     setError('');
     try {
@@ -92,16 +90,15 @@ export function ClaimPlayerPage() {
     }
   }
 
-  const alreadyClaimedHere = Boolean(claim && claim.groupSlug === slug);
-  const claimLocked = elsewhere || alreadyClaimedHere;
+  const claimLocked = Boolean(claim);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <GroupPageHeading slug={slug} groupName={groupName} title="Claim your player">
           <p className="mt-1 max-w-xl text-sm text-slate-600">
-            Browse the squad below. Sign in with Google to claim your card once — then you can rate
-            teammates every two weeks.{' '}
+            Sign in with Google to claim your card in this squad, then rate teammates every two
+            weeks.{' '}
             <Link to="/guide/rate" className="font-medium text-elite-600 hover:underline">
               How to rate
             </Link>
@@ -133,18 +130,6 @@ export function ClaimPlayerPage() {
       </div>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-      {elsewhere && claim ? (
-        <div className="card space-y-2 p-5">
-          <p className="text-sm text-slate-700">
-            You already claimed a player in <strong>/{claim.groupSlug}</strong>. Claiming is once
-            only.
-          </p>
-          <Link to={`/${claim.groupSlug}/rate`} className="btn-primary inline-flex">
-            Go rate teammates
-          </Link>
-        </div>
-      ) : null}
 
       {loading ? (
         <p className="text-sm text-slate-500">Loading players…</p>

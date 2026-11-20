@@ -95,8 +95,8 @@ export function RatePlayersPage() {
         return;
       }
 
-      const me = await api.getMe();
-      if (!me.claim || me.claim.groupSlug !== slug) {
+      const me = await api.getMe(slug);
+      if (!me.claim) {
         setHasClaim(false);
         setClaimedPlayerId(null);
         setTargets([]);

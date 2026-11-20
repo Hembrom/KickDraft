@@ -3,6 +3,7 @@ import { error, json } from '../lib/auth.js';
 import { requireGoogleUser } from '../lib/google-auth.js';
 import { getClaimByGoogleUserId, getUsePeerRatings } from '../lib/peer-ratings.js';
 import { getGroupPlayers } from '../lib/storage.js';
+import { slugify } from '../../shared/types.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -19,7 +20,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const user = await requireGoogleUser(req, res);
   if (!user) return;
 
-  const claim = await getClaimByGoogleUserId(user.id);
+  const slug = slugify(String(req.query.slug ?? ''));
+  const claim = slug ? await getClaimByGoogleUserId(user.id, slug) : null;
   let claimedPlayer = null;
   if (claim) {
     const { players } = await getGroupPlayers(claim.groupSlug);
