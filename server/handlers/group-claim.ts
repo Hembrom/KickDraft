@@ -34,14 +34,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         listClaimedPlayerIds(slug),
       ]);
 
-      const claim = user ? await getClaimByGoogleUserId(user.id) : null;
+      const claim = user ? await getClaimByGoogleUserId(user.id, slug) : null;
       const unclaimedPlayers = playersData.players.filter((p) => !claimedIds.has(p.id));
 
       return json(res, 200, {
         group: meta,
         players: playersData.players,
         claim,
-        alreadyClaimedElsewhere: Boolean(claim && claim.groupSlug !== slug),
         unclaimedPlayers,
         claimedPlayerIds: [...claimedIds],
         signedIn: Boolean(user),

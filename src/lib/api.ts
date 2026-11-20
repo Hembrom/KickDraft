@@ -199,13 +199,13 @@ export const api = {
     });
   },
 
-  async getMe() {
+  async getMe(slug: string) {
     return request<{
       user: { id: string; email: string } | null;
       claim: PlayerClaim | null;
       claimedPlayer: Player | null;
       usePeerRatings: boolean;
-    }>('/api/me', { headers: await playerHeaders() });
+    }>(`/api/me?slug=${encodeURIComponent(slug)}`, { headers: await playerHeaders() });
   },
 
   async getClaimStatus(slug: string) {
@@ -213,7 +213,6 @@ export const api = {
       group: GroupMeta;
       players: Player[];
       claim: PlayerClaim | null;
-      alreadyClaimedElsewhere: boolean;
       unclaimedPlayers: Player[];
       claimedPlayerIds: string[];
       signedIn: boolean;

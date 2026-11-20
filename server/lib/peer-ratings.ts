@@ -116,32 +116,37 @@ export async function setUsePeerRatings(enabled: boolean): Promise<boolean> {
   return enabled;
 }
 
-export async function getClaimByGoogleUserId(googleUserId: string): Promise<PlayerClaim | null> {
+export async function getClaimByGoogleUserId(
+  googleUserId: string,
+  groupSlug: string,
+): Promise<PlayerClaim | null> {
   if (useLocal()) {
     const store = await readLocalStore();
-    return store.claims.find((c) => c.googleUserId === googleUserId) ?? null;
+    return store.claims.find((c) => c.googleUserId === googleUserId && c.groupSlug === groupSlug) ?? null;
   }
 
   const { data, error } = await getSupabase()
     .from('player_claims')
     .select('*')
     .eq('google_user_id', googleUserId)
+    .eq('group_slug', groupSlug)
     .maybeSingle();
 
   if (error) throw error;
   return data ? rowToClaim(data as ClaimRow) : null;
 }
 
-export async function getClaimByPlayerId(playerId: string): Promise<PlayerClaim | null> {
+export async function getClaimByPlayerId(playerId: string, groupSlug: string): Promise<PlayerClaim | null> {
   if (useLocal()) {
     const store = await readLocalStore();
-    return store.claims.find((c) => c.playerId === playerId) ?? null;
+    return store.claims.find((c) => c.playerId === playerId && c.groupSlug === groupSlug) ?? null;
   }
 
   const { data, error } = await getSupabase()
     .from('player_claims')
     .select('*')
     .eq('player_id', playerId)
+    .eq('group_slug', groupSlug)
     .maybeSingle();
 
   if (error) throw error;
@@ -210,12 +215,12 @@ export async function createClaim(input: {
   playerId: string;
   groupSlug: string;
 }): Promise<PlayerClaim> {
-  const existingUser = await getClaimByGoogleUserId(input.googleUserId);
+  const existingUser = await getClaimByGoogleUserId(input.googleUserId, input.groupSlug);
   if (existingUser) {
-    throw new Error('You already claimed a player — claiming is once only');
+    throw new Error('You already claimed a player in this squad');
   }
 
-  const existingPlayer = await getClaimByPlayerId(input.playerId);
+  const existingPlayer = await getClaimByPlayerId(input.playerId, input.groupSlug);
   if (existingPlayer) {
     throw new Error('That player is already claimed');
   }

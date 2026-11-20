@@ -84,7 +84,7 @@ export function RatingsGuidePage() {
       </section>
 
       <section className="card space-y-3 p-5">
-        <h2 className="font-display text-lg font-bold">3 · Claim your player (once)</h2>
+        <h2 className="font-display text-lg font-bold">3 · Claim your player in this squad</h2>
         <p className="flex items-start gap-2 text-sm text-slate-600">
           <UserCheck className="mt-0.5 h-4 w-4 shrink-0 text-elite-600" />
           <span>
@@ -93,15 +93,14 @@ export function RatingsGuidePage() {
         </p>
         <ul className="list-inside list-disc space-y-1 text-sm text-slate-600">
           <li>
-            <strong>One Google account = one player, forever</strong>
+            <strong>One Google account = one player per squad</strong>
           </li>
           <li>
-            <strong>One player = one owner</strong> — if that card is taken, pick another
+            <strong>One player per squad = one owner</strong> — if that card is taken, pick another
           </li>
           <li>You cannot switch later yourself</li>
           <li>
-            If you already claimed in another group, you stay with that player — claiming is
-            global, not per group
+            You can claim a different player in each squad using the same Google account
           </li>
         </ul>
         <p className="text-sm text-slate-600">

@@ -91,11 +91,13 @@ values ('use_peer_ratings', 'false'::jsonb)
 on conflict (key) do nothing;
 
 create table if not exists player_claims (
-  google_user_id text primary key,
+  google_user_id text not null,
   email text not null,
-  player_id uuid not null unique references players (id) on delete cascade,
+  player_id uuid not null references players (id) on delete cascade,
   group_slug text not null references groups (slug) on delete cascade,
-  claimed_at timestamptz not null default now()
+  claimed_at timestamptz not null default now(),
+  constraint player_claims_group_user_unique unique (google_user_id, group_slug),
+  constraint player_claims_group_player_unique unique (player_id, group_slug)
 );
 
 create index if not exists player_claims_group_slug_idx on player_claims (group_slug);
